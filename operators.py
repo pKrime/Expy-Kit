@@ -91,7 +91,7 @@ class RevertDotBoneNames(bpy.types.Operator):
 class ConvertBoneNaming(bpy.types.Operator):
     """Convert Bone Names between Naming Convention"""
     bl_idname = "object.charetee_convert_bone_names"
-    bl_label = "Convert Bone Naming"
+    bl_label = "Convert Bone Names"
     bl_options = {'REGISTER', 'UNDO'}
 
     source: EnumProperty(items=skeleton_types,

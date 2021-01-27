@@ -65,7 +65,7 @@ class HumanSkeleton:
         """
         bone_map = dict()
 
-        def add_bone_mapping(attr, limb, bone_name):
+        def bone_mapping(attr, limb, bone_name):
             target_limbs = getattr(target_skeleton, attr, None)
             if not target_limbs:
                 return
@@ -76,27 +76,30 @@ class HumanSkeleton:
                 bone_map[bone_name] = trg_name
 
         for limb_name, bone_name in self.spine.items():
-            add_bone_mapping('spine', limb_name, bone_name)
+            bone_mapping('spine', limb_name, bone_name)
 
         for limb_name, bone_name in self.left_arm.items():
-            add_bone_mapping('left_arm', limb_name, bone_name)
+            bone_mapping('left_arm', limb_name, bone_name)
 
         for limb_name, bone_name in self.right_arm.items():
-            add_bone_mapping('right_arm', limb_name, bone_name)
+            bone_mapping('right_arm', limb_name, bone_name)
 
         for limb_name, bone_name in self.left_leg.items():
-            add_bone_mapping('left_leg', limb_name, bone_name)
+            bone_mapping('left_leg', limb_name, bone_name)
 
         for limb_name, bone_name in self.right_leg.items():
-            add_bone_mapping('right_leg', limb_name, bone_name)
+            bone_mapping('right_leg', limb_name, bone_name)
+
+        def fingers_mapping(src_fingers, trg_fingers):
+            for finger, bone_names in src_fingers.items():
+                trg_bone_names = trg_fingers[finger]
+
+                assert len(bone_names) == len(trg_bone_names)
+                for bone, trg_bone in zip(bone_names, trg_bone_names):
+                    bone_map[bone] = trg_bone
 
         trg_fingers = target_skeleton.right_fingers
-        for finger, bone_names in self.right_fingers.items():
-            trg_bone_names = trg_fingers[finger]
-
-            assert len(bone_names) == len(trg_bone_names)
-            for bone, trg_bone in zip(bone_names, trg_bone_names):
-                bone_map[bone] = trg_bone
+        fingers_mapping(self.right_fingers, trg_fingers)
 
         return bone_map
 
@@ -185,7 +188,7 @@ class RigifySkeleton(HumanSkeleton):
         self.right_arm = HumanArm(shoulder="DEF-shoulder.{0}".format(side),
                                   arm="DEF-upper_arm.{0}".format(side),
                                   forearm="DEF-forearm.{0}".format(side),
-                                  hand="DEF-shoulder.{0}".format(side))
+                                  hand="DEF-hand.{0}".format(side))
 
         self.right_fingers = HumanFingers(
             thumb=["DEF-thumb.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
