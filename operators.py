@@ -27,11 +27,11 @@ skeleton_types = (
 class ConstraintStatus(bpy.types.Operator):
     """Disable/Enable bone constraints."""
     bl_idname = "object.charetee_set_constraints_status"
-    bl_label = "Enable or disable all constraints"
+    bl_label = "Enable/disable constraints"
     bl_options = {'REGISTER', 'UNDO'}
 
     set_status: EnumProperty(items=status_types,
-                              name="Set Status",
+                              name="Status",
                               default='enable')
 
     selected_only: BoolProperty(name="Only Selected",
@@ -57,7 +57,7 @@ class ConstraintStatus(bpy.types.Operator):
 class RevertDotBoneNames(bpy.types.Operator):
     """Reverts dots in bones that have renamed by Unreal Engine"""
     bl_idname = "object.charetee_dot_bone_names"
-    bl_label = "Revert dot in Names (from UE4 renaming)"
+    bl_label = "Revert dots in Names (from UE4 renaming)"
     bl_options = {'REGISTER', 'UNDO'}
 
     sideletters_only: BoolProperty(name="Only Side Letters",
