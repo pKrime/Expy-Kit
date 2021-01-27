@@ -5,14 +5,17 @@ from importlib import reload
 reload(operators)
 
 
-def pose_context_options(self, context):
-    layout = self.layout
-
+def menu_header(layout):
     row = layout.row()
     row.separator()
 
     row = layout.row()
-    row.label(text="Charetee Tools")
+    row.label(text="Charigty Tools")
+
+
+def pose_context_options(self, context):
+    layout = self.layout
+    menu_header(layout)
 
     row = layout.row()
     row.operator(operators.ConstraintStatus.bl_idname)
@@ -24,18 +27,9 @@ def pose_context_options(self, context):
     row.operator(operators.ConvertBoneNaming.bl_idname)
 
 
-class ARMATURE_PT_charetee_buttons(bpy.types.Panel):
-    bl_label = "Charetee Tools"
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = "data"
+def armature_context_options(self, context):
+    layout = self.layout
+    menu_header(layout)
 
-    @classmethod
-    def poll(cls, context):
-        return context.object and context.object.type == 'ARMATURE'
-
-    def draw(self, context):
-        layout = self.layout
-
-        row = layout.row()
-        row.operator(operators.ConstraintStatus.bl_idname)
+    row = layout.row()
+    row.operator(operators.ConvertGameFriendly.bl_idname)

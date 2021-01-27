@@ -3,8 +3,10 @@ from bpy.props import BoolProperty
 from bpy.props import EnumProperty
 
 from . import bone_mapping
+from . import bone_utils
 from importlib import reload
 reload(bone_mapping)
+reload(bone_utils)
 
 
 status_types = (
@@ -137,3 +139,48 @@ class UpdateMetarig(bpy.types.Operator):
 class ActionToRange(bpy.types.Operator):
     """Set Playback range to current action Start/End"""
     # TODO
+
+
+class ConvertGameFriendly(bpy.types.Operator):
+    """Convert Rigify (0.5) rigs to a Game Friendly hierarchy"""
+    bl_idname = "armature.charigty_convert_gamefriendly"
+    bl_label = "Rigify Game Friendly"
+    bl_description = "Make the rigify deformation bones a one root rig"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    keep_backup: BoolProperty(
+        name="Backup",
+        description="Keep copy of datablock",
+        default=True
+    )
+    limit_scale: BoolProperty(
+        name="Limit Spine Scale",
+        description="Limit scale on the spine deform bones",
+        default=True
+    )
+    fix_tail: BoolProperty(
+        name="Invert Tail",
+        description="Reverse the tail direction so that it spawns from hip",
+        default=True
+    )
+
+    @classmethod
+    def poll(cls, context):
+        obj = context.active_object
+        if not obj:
+            return False
+        if obj.mode != 'EDIT':
+            return False
+        if obj.type != 'ARMATURE':
+            return False
+        return bool(context.active_object.data.get("rig_id"))
+
+    def execute(self, context):
+        ob = context.active_object
+        if self.keep_backup:
+            backup_data = ob.data.copy()
+            backup_data.name = ob.name + "_GameUnfriendly_backup"
+            backup_data.use_fake_user = True
+
+        bone_utils.gamefriendly_hierarchy(ob, fix_tail=self.fix_tail, limit_scale=self.limit_scale)
+        return {'FINISHED'}
