@@ -124,6 +124,8 @@ class ConvertBoneNaming(bpy.types.Operator):
                     continue
                 src_bone.name = trg_name
 
+            #TODO: drivers
+
         return {'FINISHED'}
 
 
