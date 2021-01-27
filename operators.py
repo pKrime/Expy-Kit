@@ -2,6 +2,11 @@ import bpy
 from bpy.props import BoolProperty
 from bpy.props import EnumProperty
 
+from . import bone_mapping
+from importlib import reload
+reload(bone_mapping)
+
+
 status_types = (
     ('enable', "Enable", "Enable All Constraints"),
     ('disable', "Disable", "Disable All Constraints"),
@@ -83,24 +88,42 @@ class RevertDotBoneNames(bpy.types.Operator):
 
 class ConvertBoneNaming(bpy.types.Operator):
     """Convert Bone Names between Naming Convention"""
-    bl_idname = "object.charetee_dot_bone_names"
-    bl_label = "Convert Rig Naming between different standards"
+    bl_idname = "object.charetee_convert_bone_names"
+    bl_label = "Convert Bone Naming"
     bl_options = {'REGISTER', 'UNDO'}
 
     source: EnumProperty(items=skeleton_types,
-                         name="Source Skeleton Type",
+                         name="Source Type",
                          default='--')
 
     target: EnumProperty(items=skeleton_types,
-                         name="Target Skeleton Type",
+                         name="Target Type",
                          default='--')
 
     @classmethod
     def poll(cls, context):
         return all((context.object, context.mode == 'POSE', context.object.type == 'ARMATURE'))
 
+    @staticmethod
+    def skeleton_from_type(skeleton_type):
+        # TODO: this would be better handled by EnumTypes
+        if skeleton_type == 'mixamo':
+            return bone_mapping.MixamoSkeleton()
+        if skeleton_type == 'rigify':
+            return bone_mapping.RigifySkeleton()
+
     def execute(self, context):
-        # TODO
+        src_skeleton = self.skeleton_from_type(self.source)
+        trg_skeleton = self.skeleton_from_type(self.target)
+
+        if all((src_skeleton, trg_skeleton, src_skeleton != trg_skeleton)):
+            bone_names_map = src_skeleton.conversion_map(trg_skeleton)
+            for src_name, trg_name in bone_names_map.items():
+                src_bone = context.object.data.bones.get(src_name, None)
+                if not src_bone:
+                    continue
+                src_bone.name = trg_name
+
         return {'FINISHED'}
 
 

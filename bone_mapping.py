@@ -126,8 +126,8 @@ class MixamoSkeleton(HumanSkeleton):
                     pinky=["{0}HandPinky{1}".format(side, i) for i in range(1, 4)],
                 )
 
-        self.right_leg = HumanLeg(upleg="{0}UpLeg".format(side),
-                                  leg="{0}UpLeg".format(side),
+        self.left_leg = HumanLeg(upleg="{0}UpLeg".format(side),
+                                  leg="{0}Leg".format(side),
                                   foot="{0}Foot".format(side),
                                   toe="{0}ToeBase".format(side))
 
@@ -146,7 +146,7 @@ class MixamoSkeleton(HumanSkeleton):
         )
 
         self.right_leg = HumanLeg(upleg="{0}UpLeg".format(side),
-                                  leg="{0}UpLeg".format(side),
+                                  leg="{0}Leg".format(side),
                                   foot="{0}Foot".format(side),
                                   toe="{0}ToeBase".format(side))
 
@@ -188,11 +188,11 @@ class RigifySkeleton(HumanSkeleton):
                                   hand="DEF-shoulder.{0}".format(side))
 
         self.right_fingers = HumanFingers(
-            thumb=["DEF-thumb.{1:03d}.{0}".format(side, i) for i in range(1, 4)],
-            index=["DEF-f_index.{1:03d}.{0}".format(side, i) for i in range(1, 4)],
-            middle=["DEF-f_middle.{1:03d}.{0}".format(side, i) for i in range(1, 4)],
-            ring=["DEF-f_ring.{1:03d}.{0}".format(side, i) for i in range(1, 4)],
-            pinky=["DEF-f_pinky.{1:03d}.{0}".format(side, i) for i in range(1, 4)],
+            thumb=["DEF-thumb.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
+            index=["DEF-f_index.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
+            middle=["DEF-f_middle.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
+            ring=["DEF-f_ring.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
+            pinky=["DEF-f_pinky.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
         )
 
         self.right_leg = HumanLeg(upleg="DEF-thigh.{0}".format(side),

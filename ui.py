@@ -20,6 +20,9 @@ def pose_context_options(self, context):
     row = layout.row()
     row.operator(operators.RevertDotBoneNames.bl_idname)
 
+    row = layout.row()
+    row.operator(operators.ConvertBoneNaming.bl_idname)
+
 
 class ARMATURE_PT_charetee_buttons(bpy.types.Panel):
     bl_label = "Charetee Tools"
