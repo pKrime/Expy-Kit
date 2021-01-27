@@ -17,7 +17,7 @@
 
 
 bl_info = {
-    "name": "Charigtee Scripts",
+    "name": "Charigty Scripts",
     "version": (0, 0, 1),
     "author": "Paolo Acampora",
     "blender": (2, 90, 0),
