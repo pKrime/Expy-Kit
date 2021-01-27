@@ -1,6 +1,7 @@
 
 # Charigty Scripts
-## tools that come handy when rigging
+## blender addon
+### tools that come handy with rigs
 
 * Enable/Disable/Remove all constraints
 * Convert rigify armatures to a deform hierarchy for game engines
