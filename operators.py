@@ -57,7 +57,7 @@ class ConstraintStatus(bpy.types.Operator):
 class RevertDotBoneNames(bpy.types.Operator):
     """Reverts dots in bones that have renamed by Unreal Engine"""
     bl_idname = "object.charetee_dot_bone_names"
-    bl_label = "revert dot naming (from UE4 renaming)"
+    bl_label = "Revert dot in Names (from UE4 renaming)"
     bl_options = {'REGISTER', 'UNDO'}
 
     sideletters_only: BoolProperty(name="Only Side Letters",
