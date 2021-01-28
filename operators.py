@@ -19,6 +19,7 @@ status_types = (
 skeleton_types = (
     ('unreal', "Unreal", "UE4 Skeleton"),
     ('rigify', "Rigify", "Rigify Skeleton"),
+    ('rigify_meta', "Rigify Metarig", "Rigify Metarig"),
     ('mixamo', "Mixamo", "Mixamo Skeleton"),
     ('--', "--", "None")
 )
@@ -113,6 +114,8 @@ class ConvertBoneNaming(bpy.types.Operator):
             return bone_mapping.MixamoSkeleton()
         if skeleton_type == 'rigify':
             return bone_mapping.RigifySkeleton()
+        if skeleton_type == 'rigify_meta':
+            return bone_mapping.RigifyMeta()
 
     def execute(self, context):
         src_skeleton = self.skeleton_from_type(self.source)

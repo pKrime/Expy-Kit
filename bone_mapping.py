@@ -98,6 +98,9 @@ class HumanSkeleton:
                 for bone, trg_bone in zip(bone_names, trg_bone_names):
                     bone_map[bone] = trg_bone
 
+        trg_fingers = target_skeleton.left_fingers
+        fingers_mapping(self.left_fingers, trg_fingers)
+
         trg_fingers = target_skeleton.right_fingers
         fingers_mapping(self.right_fingers, trg_fingers)
 
@@ -172,11 +175,11 @@ class RigifySkeleton(HumanSkeleton):
                                  hand="DEF-hand.{0}".format(side))
 
         self.left_fingers = HumanFingers(
-            thumb=["DEF-thumb.{1:03d}.{0}".format(side, i) for i in range(1, 4)],
-            index=["DEF-f_index.{1:03d}.{0}".format(side, i) for i in range(1, 4)],
-            middle=["DEF-f_middle.{1:03d}.{0}".format(side, i) for i in range(1, 4)],
-            ring=["DEF-f_ring.{1:03d}.{0}".format(side, i) for i in range(1, 4)],
-            pinky=["DEF-f_pinky.{1:03d}.{0}".format(side, i) for i in range(1, 4)],
+            thumb=["DEF-thumb.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
+            index=["DEF-f_index.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
+            middle=["DEF-f_middle.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
+            ring=["DEF-f_ring.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
+            pinky=["DEF-f_pinky.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
         )
 
         self.left_leg = HumanLeg(upleg="DEF-thigh.{0}".format(side),
@@ -202,6 +205,56 @@ class RigifySkeleton(HumanSkeleton):
                                   leg="DEF-shin.{0}".format(side),
                                   foot="DEF-foot.{0}".format(side),
                                   toe="DEF-toe.{0}".format(side))
+
+
+class RigifyMeta(HumanSkeleton):
+    def __init__(self):
+        self.spine = HumanSpine(
+            head='spine.006',
+            neck='spine.004',
+            spine2='spine.003',
+            spine1='spine.002',
+            spine='spine.001',
+            hips='spine'
+        )
+
+        side = 'L'
+        self.left_arm = HumanArm(shoulder="shoulder.{0}".format(side),
+                                 arm="upper_arm.{0}".format(side),
+                                 forearm="forearm.{0}".format(side),
+                                 hand="hand.{0}".format(side))
+
+        self.left_fingers = HumanFingers(
+            thumb=["thumb.{1:03d}.{0}".format(side, i) for i in range(1, 4)],
+            index=["f_index.{1:03d}.{0}".format(side, i) for i in range(1, 4)],
+            middle=["f_middle.{1:03d}.{0}".format(side, i) for i in range(1, 4)],
+            ring=["f_ring.{1:03d}.{0}".format(side, i) for i in range(1, 4)],
+            pinky=["f_pinky.{1:03d}.{0}".format(side, i) for i in range(1, 4)],
+        )
+
+        self.left_leg = HumanLeg(upleg="thigh.{0}".format(side),
+                                 leg="shin.{0}".format(side),
+                                 foot="foot.{0}".format(side),
+                                 toe="toe.{0}".format(side))
+
+        side = 'R'
+        self.right_arm = HumanArm(shoulder="shoulder.{0}".format(side),
+                                  arm="upper_arm.{0}".format(side),
+                                  forearm="forearm.{0}".format(side),
+                                  hand="hand.{0}".format(side))
+
+        self.right_fingers = HumanFingers(
+            thumb=["thumb.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
+            index=["f_index.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
+            middle=["f_middle.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
+            ring=["f_ring.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
+            pinky=["f_pinky.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
+        )
+
+        self.right_leg = HumanLeg(upleg="thigh.{0}".format(side),
+                                  leg="shin.{0}".format(side),
+                                  foot="foot.{0}".format(side),
+                                  toe="toe.{0}".format(side))
 
 
 # test
