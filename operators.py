@@ -126,6 +126,8 @@ class ConvertBoneNaming(bpy.types.Operator):
             return bone_mapping.RigifySkeleton()
         if skeleton_type == 'rigify_meta':
             return bone_mapping.RigifyMeta()
+        if skeleton_type == 'unreal':
+            return bone_mapping.UnrealSkeleton()
 
     def execute(self, context):
         src_skeleton = self.skeleton_from_type(self.source)
