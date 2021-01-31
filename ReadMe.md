@@ -36,4 +36,7 @@ Once enabled, the script will add the following actions to the pose menu (mouse 
 * Convert Bone Names: Renames a standard hierarchy to another, i.e. Rigify skeleton to Mixamo skeleton
     options:
     * Source Type
-    * Target Type 
+    * Target Type
+ 
+ * Rigify Game Friendly: bring rigify deform bones under a single hierarchy,
+  making the rig is suitable for game engines
