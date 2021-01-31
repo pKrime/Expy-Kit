@@ -159,9 +159,35 @@ class UpdateMetarig(bpy.types.Operator):
     # TODO
 
 
-class ActionToRange(bpy.types.Operator):
+class ActionRangeToScene(bpy.types.Operator):
     """Set Playback range to current action Start/End"""
-    # TODO
+    bl_idname = "object.charigty_action_to_range"
+    bl_label = "Action Range to Scene"
+    bl_description = "Match scene range with current action range"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        obj = context.object
+
+        if not obj:
+            return False
+        if not obj.mode == 'POSE':
+            return False
+        if not obj.animation_data.action:
+            return False
+
+        return True
+
+    def execute(self, context):
+        action_range = context.object.animation_data.action.frame_range
+
+        scn = context.scene
+        scn.frame_start = action_range[0]
+        scn.frame_end = action_range[1]
+
+        bpy.ops.action.view_all()
+        return {'FINISHED'}
 
 
 class MergeHeadTails(bpy.types.Operator):
