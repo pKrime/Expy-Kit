@@ -1,6 +1,7 @@
 import bpy
 from bpy.props import BoolProperty
 from bpy.props import EnumProperty
+from bpy.props import FloatProperty
 
 from . import bone_mapping
 from . import bone_utils
@@ -103,6 +104,15 @@ class ConvertBoneNaming(bpy.types.Operator):
                          name="Target Type",
                          default='--')
 
+    strip_prefix: BoolProperty(
+        name="Strip Prefix",
+        description="Remove prefix when found",
+        default=True
+    )
+
+    # TODO: separator as a string property
+    _separator = ":"
+
     @classmethod
     def poll(cls, context):
         return all((context.object, context.mode == 'POSE', context.object.type == 'ARMATURE'))
@@ -123,6 +133,14 @@ class ConvertBoneNaming(bpy.types.Operator):
 
         if all((src_skeleton, trg_skeleton, src_skeleton != trg_skeleton)):
             bone_names_map = src_skeleton.conversion_map(trg_skeleton)
+
+            if self.strip_prefix:
+                for bone in context.object.data.bones:
+                    if self._separator not in bone.name:
+                        continue
+
+                    bone.name = bone.name.rsplit(self._separator, 1)[1]
+
             for src_name, trg_name in bone_names_map.items():
                 src_bone = context.object.data.bones.get(src_name, None)
                 if not src_bone:
@@ -142,6 +160,28 @@ class UpdateMetarig(bpy.types.Operator):
 class ActionToRange(bpy.types.Operator):
     """Set Playback range to current action Start/End"""
     # TODO
+
+
+class MergeHeadTails(bpy.types.Operator):
+    """Convert Rigify (0.5) rigs to a Game Friendly hierarchy"""
+    bl_idname = "armature.charigty_merge_head_tails"
+    bl_label = "Merge Head/Tails"
+    bl_description = "Connect head/tails when closer than given max distance"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    keep_backup: BoolProperty(
+        name="Match at child head",
+        description="Bring parent's bone to match child tail when possible",
+        default=True
+    )
+
+    distance: FloatProperty(
+        name="Distance",
+        description="Max Distance for merging",
+        default=0.0
+    )
+
+    # TODO:
 
 
 class ConvertGameFriendly(bpy.types.Operator):
