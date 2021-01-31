@@ -257,6 +257,56 @@ class RigifyMeta(HumanSkeleton):
                                   toe="toe.{0}".format(side))
 
 
+class UnrealSkeleton(HumanSkeleton):
+    def __init__(self):
+        self.spine = HumanSpine(
+            head='Head',
+            neck='Neck',
+            spine2='Spine2',
+            spine1='Spine1',
+            spine='Spine',
+            hips='Hips'
+        )
+
+        side = 'Left'
+        self.left_arm = HumanArm(shoulder=side + "Shoulder",
+                                 arm=side + "Arm",
+                                 forearm=side + "ForeArm",
+                                 hand=side + "Hand")
+
+        self.left_fingers = HumanFingers(
+                    thumb=["{0}HandThumb{1}".format(side, i) for i in range(1, 4)],
+                    index=["{0}HandIndex{1}".format(side, i) for i in range(1, 4)],
+                    middle=["{0}HandMiddle{1}".format(side, i) for i in range(1, 4)],
+                    ring=["{0}HandRing{1}".format(side, i) for i in range(1, 4)],
+                    pinky=["{0}HandPinky{1}".format(side, i) for i in range(1, 4)],
+                )
+
+        self.left_leg = HumanLeg(upleg="{0}UpLeg".format(side),
+                                  leg="{0}Leg".format(side),
+                                  foot="{0}Foot".format(side),
+                                  toe="{0}ToeBase".format(side))
+
+        side = 'Right'
+        self.right_arm = HumanArm(shoulder=side + "Shoulder",
+                                 arm=side + "Arm",
+                                 forearm=side + "ForeArm",
+                                 hand=side + "Hand")
+
+        self.right_fingers = HumanFingers(
+            thumb=["{0}HandThumb{1}".format(side, i) for i in range(1, 4)],
+            index=["{0}HandIndex{1}".format(side, i) for i in range(1, 4)],
+            middle=["{0}HandMiddle{1}".format(side, i) for i in range(1, 4)],
+            ring=["{0}HandRing{1}".format(side, i) for i in range(1, 4)],
+            pinky=["{0}HandPinky{1}".format(side, i) for i in range(1, 4)],
+        )
+
+        self.right_leg = HumanLeg(upleg="{0}UpLeg".format(side),
+                                  leg="{0}Leg".format(side),
+                                  foot="{0}Foot".format(side),
+                                  toe="{0}ToeBase".format(side))
+
+
 # test
 if __name__ == "__main__":
     rigify = RigifySkeleton()

@@ -27,7 +27,7 @@ skeleton_types = (
 
 class ConstraintStatus(bpy.types.Operator):
     """Disable/Enable bone constraints."""
-    bl_idname = "object.charetee_set_constraints_status"
+    bl_idname = "object.charigty_set_constraints_status"
     bl_label = "Enable/disable constraints"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -57,7 +57,7 @@ class ConstraintStatus(bpy.types.Operator):
 
 class RevertDotBoneNames(bpy.types.Operator):
     """Reverts dots in bones that have renamed by Unreal Engine"""
-    bl_idname = "object.charetee_dot_bone_names"
+    bl_idname = "object.charigty_dot_bone_names"
     bl_label = "Revert dots in Names (from UE4 renaming)"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -91,7 +91,7 @@ class RevertDotBoneNames(bpy.types.Operator):
 
 class ConvertBoneNaming(bpy.types.Operator):
     """Convert Bone Names between Naming Convention"""
-    bl_idname = "object.charetee_convert_bone_names"
+    bl_idname = "object.charigty_convert_bone_names"
     bl_label = "Convert Bone Names"
     bl_options = {'REGISTER', 'UNDO'}
 
