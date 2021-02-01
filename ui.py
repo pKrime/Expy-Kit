@@ -34,6 +34,9 @@ def armature_context_options(self, context):
     row = layout.row()
     row.operator(operators.ConvertGameFriendly.bl_idname)
 
+    row = layout.row()
+    row.operator(operators.MergeHeadTails.bl_idname)
+
 
 def action_header_buttons(self, context):
     st = context.space_data

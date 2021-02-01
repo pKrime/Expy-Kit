@@ -197,19 +197,62 @@ class MergeHeadTails(bpy.types.Operator):
     bl_description = "Connect head/tails when closer than given max distance"
     bl_options = {'REGISTER', 'UNDO'}
 
-    keep_backup: BoolProperty(
+    at_child_head: BoolProperty(
         name="Match at child head",
-        description="Bring parent's bone to match child tail when possible",
+        description="Bring parent's tail to match child head when possible",
         default=True
     )
 
-    distance: FloatProperty(
+    min_distance: FloatProperty(
         name="Distance",
         description="Max Distance for merging",
         default=0.0
     )
 
-    # TODO:
+    selected_only: BoolProperty(name="Only Selected",
+                                default=False)
+
+    @classmethod
+    def poll(cls, context):
+        obj = context.active_object
+        if not obj:
+            return False
+        if obj.mode != 'EDIT':
+            return False
+        if obj.type != 'ARMATURE':
+            return False
+
+        return True
+
+    def execute(self, context):
+        if self.selected_only:
+            selected_names = [bone.name for bone in context.selected_bones]
+            bones = [bone for bone in context.object.data.edit_bones if bone.name in selected_names]
+        else:
+            bones = context.object.data.edit_bones
+
+        for bone in bones:
+            if bone.use_connect:
+                continue
+            if not bone.parent:
+                continue
+
+            distance = (bone.parent.tail - bone.head).length
+            if distance <= self.min_distance:
+                if self.at_child_head and len(bone.parent.children) == 1:
+                    bone.parent.tail = bone.head
+
+                bone.use_connect = True
+                print("con", bone.use_connect)
+
+        context.object.update_from_editmode()
+
+        return {'FINISHED'}
+
+
+class MakeRestPose(bpy.types.Operator):
+    """Apply current pose to model and rig"""
+    # TODO
 
 
 class ConvertGameFriendly(bpy.types.Operator):
