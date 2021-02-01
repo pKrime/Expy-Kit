@@ -1,12 +1,15 @@
 
 # Charigty Scripts
 ## blender addon
-### tools that come handy with rigs
+### tools that come handy with Character Rigs
 
 * Enable/Disable/Remove all constraints
 * Convert rigify armatures to a deform hierarchy for game engines
 * Restore rigify ".L"/".R" naming on skeletons reimported from Unreal Engine
 * Convert Bone Names to export rigify character to mixamo
+* Connect child bones
+* Set playback range from action keyframes
+* Make Game Friendly hierarchy from rigify rigs
 
 
 ### How to use
