@@ -3,6 +3,8 @@ from bpy.props import BoolProperty
 from bpy.props import EnumProperty
 from bpy.props import FloatProperty
 
+from itertools import chain
+
 from . import bone_mapping
 from . import bone_utils
 from importlib import reload
@@ -149,7 +151,20 @@ class ConvertBoneNaming(bpy.types.Operator):
                     continue
                 src_bone.name = trg_name
 
-            #TODO: drivers
+            for driver in chain(context.object.animation_data.drivers, context.object.data.animation_data.drivers):
+                try:
+                    driver_bone = driver.data_path.split('"')[1]
+
+                except IndexError:
+                    continue
+
+                try:
+                    trg_name = bone_names_map[driver_bone]
+                except KeyError:
+                    continue
+
+                driver.data_path = driver.data_path.replace('bones["{0}"'.format(driver_bone),
+                                                            'bones["{0}"'.format(trg_name))
 
         return {'FINISHED'}
 
