@@ -26,13 +26,16 @@ def pose_context_options(self, context):
     row = layout.row()
     row.operator(operators.ConvertBoneNaming.bl_idname)
 
+    row = layout.row()
+    row.operator(operators.ExtractMetarig.bl_idname)
+
+    row = layout.row()
+    row.operator(operators.ConvertGameFriendly.bl_idname)
+
 
 def armature_context_options(self, context):
     layout = self.layout
     menu_header(layout)
-
-    row = layout.row()
-    row.operator(operators.ConvertGameFriendly.bl_idname)
 
     row = layout.row()
     row.operator(operators.MergeHeadTails.bl_idname)

@@ -1,5 +1,93 @@
 import bpy
 from mathutils import Vector
+from mathutils import Matrix
+from mathutils import Quaternion
+from math import pi
+
+
+def vec_roll_to_mat3_normalized(nor, roll):
+    THETA_SAFE = 1.0e-5  # theta above this value are always safe to use
+    THETA_CRITICAL = 1.0e-9  # above this is safe under certain conditions
+
+    assert nor.magnitude - 1.0 < 0.01
+
+    x = nor.x
+    y = nor.y
+    z = nor.z
+
+    theta = 1.0 + y
+    theta_alt = x * x + z * z
+
+    # When theta is close to zero (nor is aligned close to negative Y Axis),
+    # we have to check we do have non-null X/Z components as well.
+    # Also, due to float precision errors, nor can be (0.0, -0.99999994, 0.0) which results
+    # in theta being close to zero. This will cause problems when theta is used as divisor.
+
+    bMatrix = Matrix().to_3x3()
+
+    if theta > THETA_SAFE or ((x | z) and theta > THETA_CRITICAL):
+        # nor is *not* aligned to negative Y-axis (0,-1,0).
+        # We got these values for free... so be happy with it... ;)
+
+        bMatrix[0][1] = -x
+        bMatrix[1][0] = x
+        bMatrix[1][1] = y
+        bMatrix[1][2] = z
+        bMatrix[2][1] = -z
+
+        if theta > THETA_SAFE:
+            # nor differs significantly from negative Y axis (0,-1,0): apply the general case. */
+            bMatrix[0][0] = 1 - x * x / theta
+            bMatrix[2][2] = 1 - z * z / theta
+            bMatrix[2][0] = bMatrix[0][2] = -x * z / theta
+        else:
+            # nor is close to negative Y axis (0,-1,0): apply the special case. */
+            bMatrix[0][0] = (x + z) * (x - z) / -theta_alt
+            bMatrix[2][2] = -bMatrix[0][0]
+            bMatrix[2][0] = bMatrix[0][2] = 2.0 * x * z / theta_alt
+    else:
+        # nor is very close to negative Y axis (0,-1,0): use simple symmetry by Z axis. */
+        bMatrix.identity()
+        bMatrix[0][0] = bMatrix[1][1] = -1.0
+
+    # Make Roll matrix */
+    quat = Quaternion(nor, roll)
+    rMatrix = quat.to_matrix()
+
+    # Combine and output result */
+    return rMatrix @ bMatrix
+
+
+def ebone_roll_to_vector(bone, align_axis, axis_only=False):
+    roll = 0.0
+
+    assert abs(align_axis.magnitude - 1.0) < 1.0e-5
+    nor = bone.tail - bone.head
+    nor.normalize()
+
+    d = nor.dot(align_axis)
+    if d == 1.0:
+        return roll
+
+    mat = vec_roll_to_mat3_normalized(nor, 0.0)
+
+    # project the new_up_axis along the normal */
+    vec = align_axis.project(nor)
+    align_axis_proj = align_axis - vec
+
+    if axis_only:
+        if align_axis_proj.angle(mat[2]) > pi / 2:
+            align_axis_proj.negate()
+
+    roll = align_axis_proj.angle(mat[2])
+
+    vec = mat[2].cross(align_axis_proj)
+
+    if vec.dot(nor) < 0.0:
+        return -roll
+
+    return roll
+
 
 
 def copy_bone_constraints(bone_a, bone_b):
@@ -338,39 +426,36 @@ def gamefriendly_hierarchy(ob, fix_tail=True, limit_scale=False):
     Create ITD- (InTermeDiate) bones in the process"""
     assert (ob.mode == 'EDIT')
 
-    pbones = list(ob.pose.bones)  # a list of pose bones is safer when switching through modes
+    bone_names = list((b.name for b in ob.data.bones if is_def_bone(ob, b.name)))
     new_bone_names = []  # collect newly added bone names so that they can be edited later in Object Mode
 
     def_root_name = get_deform_root_name(ob)
 
     # we want deforming bone (i.e. the ones on layer 29) to have deforming bone parents
-    for pbone in pbones:
-        bone_name = pbone.name
-
-        if not is_def_bone(ob, bone_name):
-            continue
+    for bone_name in bone_names:
         if bone_name == def_root_name:
             continue
-        if not pbone.parent:
+
+        if not ob.pose.bones[bone_name].parent:
             # root bones are fine
             continue
-        if is_def_bone(ob, pbone.parent.name):
-            continue
-        if not bone_name.startswith("DEF-"):
-            # we are only dealing with Rigify DEF- bones so far
-            print("WARNING: {0}, not supported for Game Friendly Conversion".format(bone_name))
+        if is_def_bone(ob, ob.pose.bones[bone_name].parent.name):
             continue
 
         # Intermediate Bone
         itd_name = bone_name.replace("DEF-", "ITD-")
+        itd_name = itd_name.replace("MCH-", "ITD-")
+        if not itd_name.startswith("ITD-"):
+            itd_name = "ITD-" + itd_name
         try:
             ob.data.edit_bones[itd_name]
         except KeyError:
-            itd_name = copy_bone(ob, bone_name, assign_name=bone_name.replace("DEF-", "ITD-"), constraints=True,
+            itd_name = copy_bone(ob, bone_name, assign_name=itd_name, constraints=True,
                                  deform_bone=False)
             new_bone_names.append(itd_name)
 
         # DEF- bone will now follow the ITD- bone
+        pbone = ob.pose.bones[bone_name]
         remove_bone_constraints(pbone)
         for cp_constr in (pbone.constraints.new('COPY_LOCATION'),
                           pbone.constraints.new('COPY_ROTATION'),
@@ -425,3 +510,33 @@ def gamefriendly_hierarchy(ob, fix_tail=True, limit_scale=False):
         ob.data.edit_bones[def_root_name].parent = ob.data.edit_bones['root']
     except KeyError:
         print("WARNING: DEF hierarchy root was not parented to root bone")
+
+
+def iterate_rigged_obs(armature_object):
+    for ob in bpy.data.objects:
+        if ob.type != 'MESH':
+            continue
+        if not ob.modifiers:
+            continue
+        for modifier in [mod for mod in ob.modifiers if mod.type == 'ARMATURE']:
+            if modifier.object == armature_object:
+                yield ob
+                break
+
+
+def get_group_verts(obj, vertex_group, threshold=0.1):
+    group_idx = obj.vertex_groups[vertex_group].index
+    weighted_verts = []
+
+    for i, v in enumerate(obj.data.vertices):
+        try:
+            g = next(g for g in v.groups if g.group == group_idx)
+        except StopIteration:
+            continue
+
+        if g.weight < threshold:
+            continue
+
+        weighted_verts.append(i)
+
+    return weighted_verts
