@@ -9,6 +9,7 @@
 * Convert Bone Names to export *Rigify*/*Unreal* characters to *Mixamo*
 * Connect child bones
 * Enable/Disable/Remove all constraints
+* Constrain bones to another armature
 * Set playback range from action start/end
 
 

@@ -2,6 +2,7 @@ import bpy
 from bpy.props import BoolProperty
 from bpy.props import EnumProperty
 from bpy.props import FloatProperty
+from bpy.props import IntProperty
 
 from itertools import chain
 
@@ -33,7 +34,7 @@ skeleton_types = (
 
 class ConstraintStatus(bpy.types.Operator):
     """Disable/Enable bone constraints."""
-    bl_idname = "object.charigty_set_constraints_status"
+    bl_idname = "object.expykit_set_constraints_status"
     bl_label = "Enable/disable constraints"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -70,7 +71,7 @@ class ConstraintStatus(bpy.types.Operator):
 
 class RevertDotBoneNames(bpy.types.Operator):
     """Reverts dots in bones that have renamed by Unreal Engine"""
-    bl_idname = "object.charigty_dot_bone_names"
+    bl_idname = "object.expykit_dot_bone_names"
     bl_label = "Revert dots in Names (from UE4 renaming)"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -104,7 +105,7 @@ class RevertDotBoneNames(bpy.types.Operator):
 
 class ConvertBoneNaming(bpy.types.Operator):
     """Convert Bone Names between Naming Convention"""
-    bl_idname = "object.charigty_convert_bone_names"
+    bl_idname = "object.expykit_convert_bone_names"
     bl_label = "Convert Bone Names"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -218,7 +219,7 @@ def align_to_closer_axis(src_bone, trg_bone):
 
 class ExtractMetarig(bpy.types.Operator):
     """Create Metarig from current object"""
-    bl_idname = "object.charigty_extract_metarig"
+    bl_idname = "object.expykit_extract_metarig"
     bl_label = "Extract Metarig"
     bl_description = "Create Metarig from current object"
     bl_options = {'REGISTER', 'UNDO'}
@@ -266,7 +267,7 @@ class ExtractMetarig(bpy.types.Operator):
             return {'FINISHED'}
 
         if self.skeleton_type != 'rigify' and self.rigify_names:
-            bpy.ops.object.charigty_convert_bone_names(source=self.skeleton_type, target='rigify')
+            bpy.ops.object.expykit_convert_bone_names(source=self.skeleton_type, target='rigify')
             src_skeleton = skeleton_from_type('rigify')
 
         try:
@@ -461,7 +462,7 @@ class ExtractMetarig(bpy.types.Operator):
 
 class ActionRangeToScene(bpy.types.Operator):
     """Set Playback range to current action Start/End"""
-    bl_idname = "object.charigty_action_to_range"
+    bl_idname = "object.expykit_action_to_range"
     bl_label = "Action Range to Scene"
     bl_description = "Match scene range with current action range"
     bl_options = {'REGISTER', 'UNDO'}
@@ -494,7 +495,7 @@ class ActionRangeToScene(bpy.types.Operator):
 
 class MergeHeadTails(bpy.types.Operator):
     """Convert Rigify (0.5) rigs to a Game Friendly hierarchy"""
-    bl_idname = "armature.charigty_merge_head_tails"
+    bl_idname = "armature.expykit_merge_head_tails"
     bl_label = "Merge Head/Tails"
     bl_description = "Connect head/tails when closer than given max distance"
     bl_options = {'REGISTER', 'UNDO'}
@@ -558,7 +559,7 @@ class MakeRestPose(bpy.types.Operator):
 
 class ConvertGameFriendly(bpy.types.Operator):
     """Convert Rigify (0.5) rigs to a Game Friendly hierarchy"""
-    bl_idname = "armature.charigty_convert_gamefriendly"
+    bl_idname = "armature.expykit_convert_gamefriendly"
     bl_label = "Rigify Game Friendly"
     bl_description = "Make the rigify deformation bones a one root rig"
     bl_options = {'REGISTER', 'UNDO'}
@@ -622,4 +623,81 @@ class ConvertGameFriendly(bpy.types.Operator):
         bpy.ops.object.mode_set(mode='EDIT')
         bone_utils.gamefriendly_hierarchy(ob, fix_tail=self.fix_tail, limit_scale=self.limit_scale)
         bpy.ops.object.mode_set(mode='POSE')
+        return {'FINISHED'}
+
+
+class ConstrainToArmature(bpy.types.Operator):
+    bl_idname = "armature.expykit_constrain_to_armature"
+    bl_label = "Constrain to Active Armature"
+    bl_description = "Constrain bones of selected armatures to active armature"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    source: EnumProperty(items=skeleton_types,
+                         name="Source Type",
+                         default='--')
+
+    skeleton_type: EnumProperty(items=skeleton_types,
+                                name="Target Type",
+                                default='--')
+
+    ret_bones_layer: IntProperty(name="Connection bones layer",
+                                 min=0, max=29, default=24,
+                                 description="Armature Layer to use for connection bones")
+
+    @classmethod
+    def poll(cls, context):
+        if len(context.selected_objects) != 2:
+            return False
+        if context.mode != 'POSE':
+            return False
+        for ob in context.selected_objects:
+            if ob.type != 'ARMATURE':
+                return False
+
+        return True
+
+    def execute(self, context):
+        src_skeleton = skeleton_from_type(self.source)
+        trg_skeleton = skeleton_from_type(self.skeleton_type)
+
+        if not src_skeleton:
+            return {'FINISHED'}
+        if not trg_skeleton:
+            return {'FINISHED'}
+
+        bone_names_map = src_skeleton.conversion_map(trg_skeleton)
+        trg_ob = context.active_object
+
+        cp_suffix = 'RET'
+
+        for ob in context.selected_objects:
+            if ob == trg_ob:
+                continue
+
+            if f'{next(iter(bone_names_map))}_{cp_suffix}' not in trg_ob.data.bones:
+                # create Retarget bones
+                bpy.ops.object.mode_set(mode='EDIT')
+                for src_name, trg_name in bone_names_map.items():
+                    new_bone_name = bone_utils.copy_bone_to_arm(ob, trg_ob, src_name, suffix=cp_suffix)
+                    if not new_bone_name:
+                        continue
+                    new_bone = trg_ob.data.edit_bones[new_bone_name]
+                    new_bone.parent = trg_ob.data.edit_bones[trg_name]
+
+                    src_bone = ob.data.bones[src_name]
+                    src_x_axis = Vector((0.0, 0.0, 1.0)) @ src_bone.matrix_local.inverted().to_3x3()
+                    src_x_axis.normalize()
+
+                    new_bone.roll = bone_utils.ebone_roll_to_vector(new_bone, src_x_axis)
+                    for i, L in enumerate(new_bone.layers):
+                        new_bone.layers[i] = i == self.ret_bones_layer
+
+            bpy.ops.object.mode_set(mode='POSE')
+            for src_name in bone_names_map.keys():
+                src_pbone = ob.pose.bones[src_name]
+                if not src_pbone.constraints:
+                    constr = src_pbone.constraints.new(type='COPY_TRANSFORMS')
+                    constr.target = trg_ob
+                    constr.subtarget = f'{src_name}_{cp_suffix}'
+
         return {'FINISHED'}

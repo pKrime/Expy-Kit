@@ -43,6 +43,7 @@ def register():
     bpy.utils.register_class(operators.ExtractMetarig)
     bpy.utils.register_class(operators.MergeHeadTails)
     bpy.utils.register_class(operators.RevertDotBoneNames)
+    bpy.utils.register_class(operators.ConstrainToArmature)
 
     bpy.types.VIEW3D_MT_pose_context_menu.append(ui.pose_context_options)
     bpy.types.VIEW3D_MT_armature_context_menu.append(ui.armature_context_options)
@@ -61,3 +62,4 @@ def unregister():
     bpy.utils.unregister_class(operators.ExtractMetarig)
     bpy.utils.unregister_class(operators.MergeHeadTails)
     bpy.utils.unregister_class(operators.RevertDotBoneNames)
+    bpy.utils.unregister_class(operators.ConstrainToArmature)

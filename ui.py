@@ -10,12 +10,15 @@ def menu_header(layout):
     row.separator()
 
     row = layout.row()
-    row.label(text="Charigty Tools")
+    row.label(text="Expy Kit")
 
 
 def pose_context_options(self, context):
     layout = self.layout
     menu_header(layout)
+
+    row = layout.row()
+    row.operator(operators.ConstrainToArmature.bl_idname)
 
     row = layout.row()
     row.operator(operators.ConstraintStatus.bl_idname)
@@ -39,6 +42,7 @@ def armature_context_options(self, context):
 
     row = layout.row()
     row.operator(operators.MergeHeadTails.bl_idname)
+
 
 
 def action_header_buttons(self, context):

@@ -106,6 +106,20 @@ def copy_bone_constraints(bone_a, bone_b):
                 continue
 
 
+def copy_bone_to_arm(src_ob, trg_ob, bone_name, suffix='CP'):
+    """Create a new bone in trg_ob with the same head/tail as bone with the given name"""
+    try:
+        src_bone = src_ob.data.bones[bone_name]
+    except KeyError:
+        return
+
+    new_bone = trg_ob.data.edit_bones.new('_'.join((bone_name, suffix)))
+    new_bone.head = src_bone.head_local
+    new_bone.tail = src_bone.tail_local
+
+    return new_bone.name
+
+
 def copy_bone(ob, bone_name, assign_name='', constraints=False, deform_bone='SAME'):
     """ Makes a copy of the given bone in the given armature object.
         Returns the resulting bone's name.
