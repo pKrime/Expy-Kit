@@ -27,6 +27,8 @@ skeleton_types = (
     ('unreal', "Unreal", "UE4 Skeleton"),
     ('rigify', "Rigify", "Rigify Skeleton"),
     ('rigify_meta', "Rigify Metarig", "Rigify Metarig"),
+    ('rigify_fk', "Rigify FK Controls", "Rigify FK"),
+    ('rigify_ik', "Rigify IK Controls", "Rigify IK"),
     ('mixamo', "Mixamo", "Mixamo Skeleton"),
     ('--', "--", "None")
 )
@@ -187,6 +189,10 @@ def skeleton_from_type(skeleton_type):
         return bone_mapping.RigifySkeleton()
     if skeleton_type == 'rigify_meta':
         return bone_mapping.RigifyMeta()
+    if skeleton_type == 'rigify_fk':
+        return bone_mapping.RigifyCtrlsFK()
+    if skeleton_type == 'rigify_ik':
+        return bone_mapping.RigifyCtrlsIK()
     if skeleton_type == 'unreal':
         return bone_mapping.UnrealSkeleton()
 
@@ -686,6 +692,7 @@ class ConstrainToArmature(bpy.types.Operator):
 
                     src_bone = ob.data.bones[src_name]
                     src_x_axis = Vector((0.0, 0.0, 1.0)) @ src_bone.matrix_local.inverted().to_3x3()
+                    src_x_axis = trg_ob.matrix_world.inverted() @ src_x_axis
                     src_x_axis.normalize()
 
                     new_bone.roll = bone_utils.ebone_roll_to_vector(new_bone, src_x_axis)
@@ -694,10 +701,15 @@ class ConstrainToArmature(bpy.types.Operator):
 
             bpy.ops.object.mode_set(mode='POSE')
             for src_name in bone_names_map.keys():
-                src_pbone = ob.pose.bones[src_name]
+                try:
+                    src_pbone = ob.pose.bones[src_name]
+                except KeyError:
+                    continue
+
                 if not src_pbone.constraints:
-                    constr = src_pbone.constraints.new(type='COPY_TRANSFORMS')
-                    constr.target = trg_ob
-                    constr.subtarget = f'{src_name}_{cp_suffix}'
+                    for constr_type in 'COPY_ROTATION', 'COPY_LOCATION':
+                        constr = src_pbone.constraints.new(type=constr_type)
+                        constr.target = trg_ob
+                        constr.subtarget = f'{src_name}_{cp_suffix}'
 
         return {'FINISHED'}

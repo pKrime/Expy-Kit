@@ -275,6 +275,86 @@ class RigifyMeta(HumanSkeleton):
                                   toe="toe.{0}".format(side))
 
 
+class RigifyCtrlsBase(HumanSkeleton):
+    def __init__(self):
+        self.spine = HumanSpine(
+            head='head',
+            neck='neck',
+            spine2='spine_fk.003',
+            spine1='spine_fk.002',
+            spine='spine_fk.001',
+            hips='torso'
+        )
+
+        side = 'L'
+        self.left_fingers = HumanFingers(
+            thumb=["thumb.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
+            index=["f_index.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
+            middle=["f_middle.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
+            ring=["f_ring.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
+            pinky=["f_pinky.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
+        )
+
+        side = 'R'
+        self.right_fingers = HumanFingers(
+            thumb=["thumb.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
+            index=["f_index.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
+            middle=["f_middle.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
+            ring=["f_ring.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
+            pinky=["f_pinky.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
+        )
+
+
+class RigifyCtrlsFK(RigifyCtrlsBase):
+    def __init__(self):
+        super().__init__()
+
+        side = 'L'
+        self.left_arm = HumanArm(shoulder="shoulder.{0}".format(side),
+                                 arm="upper_arm_fk.{0}".format(side),
+                                 forearm="forearm_fk.{0}".format(side),
+                                 hand="hand_fk.{0}".format(side))
+
+        self.left_leg = HumanLeg(upleg="thigh_fk.{0}".format(side),
+                                 leg="shin_fk.{0}".format(side),
+                                 foot="foot_fk.{0}".format(side),
+                                 toe="toe.{0}".format(side))
+
+        side = 'R'
+        self.right_arm = HumanArm(shoulder="shoulder.{0}".format(side),
+                                  arm="upper_arm_fk.{0}".format(side),
+                                  forearm="forearm_fk.{0}".format(side),
+                                  hand="hand_fk.{0}".format(side))
+
+        self.right_leg = HumanLeg(upleg="thigh_fk.{0}".format(side),
+                                  leg="shin_fk.{0}".format(side),
+                                  foot="foot_fk.{0}".format(side),
+                                  toe="toe.{0}".format(side))
+
+
+class RigifyCtrlsIK(RigifyCtrlsBase):
+    def __init__(self):
+        super().__init__()
+
+        side = 'L'
+        self.left_arm = HumanArm(shoulder="shoulder.{0}".format(side),
+                                 arm="upper_arm_ik.{0}".format(side),
+                                 hand="hand_ik.{0}".format(side))
+
+        self.left_leg = HumanLeg(upleg="thigh_ik.{0}".format(side),
+                                 foot="foot_ik.{0}".format(side),
+                                 toe="toe.{0}".format(side))
+
+        side = 'R'
+        self.right_arm = HumanArm(shoulder="shoulder.{0}".format(side),
+                                  arm="upper_arm_ik.{0}".format(side),
+                                  hand="hand_ik.{0}".format(side))
+
+        self.right_leg = HumanLeg(upleg="thigh_ik.{0}".format(side),
+                                  foot="foot_ik.{0}".format(side),
+                                  toe="toe.{0}".format(side))
+
+
 class UnrealSkeleton(HumanSkeleton):
     def __init__(self):
         self.spine = HumanSpine(

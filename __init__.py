@@ -18,7 +18,7 @@
 
 bl_info = {
     "name": "Expy Kit",
-    "version": (0, 1, 0),
+    "version": (0, 1, 1),
     "author": "Paolo Acampora",
     "blender": (2, 90, 0),
     "description": "Tools for Character Rig Conversion",
