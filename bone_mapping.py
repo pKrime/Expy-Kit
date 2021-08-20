@@ -85,6 +85,30 @@ class HumanSkeleton:
     left_fingers = None
     right_fingers = None
 
+    def bone_names(self):
+        for limb_name, bone_name in self.spine.items():
+            yield bone_name
+
+        for limb_name, bone_name in self.left_arm.items():
+            yield bone_name
+
+        for limb_name, bone_name in self.right_arm.items():
+            yield bone_name
+
+        for limb_name, bone_name in self.left_leg.items():
+            yield bone_name
+
+        for limb_name, bone_name in self.right_leg.items():
+            yield bone_name
+
+        for limb_name, bone_names in self.left_fingers.items():
+            for bone_name in bone_names:
+                yield bone_name
+
+        for limb_name, bone_names in self.right_fingers.items():
+            for bone_name in bone_names:
+                yield bone_name
+
     def conversion_map(self, target_skeleton):
         """Return a dictionary that maps skeleton bone names to target bone names
         >>> rigify = RigifySkeleton()

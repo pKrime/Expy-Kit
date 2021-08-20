@@ -3,17 +3,26 @@ from bpy.props import BoolProperty
 from bpy.props import EnumProperty
 from bpy.props import FloatProperty
 from bpy.props import IntProperty
+from bpy.props import StringProperty
+from bpy.props import CollectionProperty
+
+from bpy_extras.io_utils import ImportHelper
 
 from itertools import chain
 
 from . import bone_mapping
 from . import bone_utils
+from . import fbx_helper
+
 from importlib import reload
 reload(bone_mapping)
 reload(bone_utils)
+reload(fbx_helper)
 
 from mathutils import Vector
 from math import pi
+import os
+import typing
 
 
 status_types = (
@@ -71,6 +80,40 @@ class ConstraintStatus(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class SelectConstrainedControls(bpy.types.Operator, ImportHelper):
+    bl_idname = "armature.expykit_select_constrained_ctrls"
+    bl_label = "Select constrained controls"
+    bl_description = "Select bone controls with constraint"
+    bl_options = {'PRESET', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        if not context.object:
+            return False
+        if context.mode != 'POSE':
+            return False
+        if context.object.type != 'ARMATURE':
+            return False
+
+        return True
+
+    def execute(self, context):
+        ob = context.object
+
+        for bone in ob.data.bones:
+            if bone.use_deform:
+                bone.select = False
+                continue
+            pbone = ob.pose.bones[bone.name]
+            if len(pbone.constraints) == 0:
+                bone.select = False
+                continue
+
+            bone.select = bool(pbone.custom_shape)
+
+        return {'FINISHED'}
+
+
 class RevertDotBoneNames(bpy.types.Operator):
     """Reverts dots in bones that have renamed by Unreal Engine"""
     bl_idname = "object.expykit_dot_bone_names"
@@ -86,7 +129,11 @@ class RevertDotBoneNames(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return all((context.object, context.mode == 'POSE', context.object.type == 'ARMATURE'))
+        if not context.object:
+            return False
+        if context.mode != 'POSE':
+            return False
+        return context.object.type == 'ARMATURE'
 
     def execute(self, context):
         bones = context.selected_pose_bones if self.selected_only else context.object.pose.bones
@@ -495,7 +542,11 @@ class ActionRangeToScene(bpy.types.Operator):
         scn.frame_start = action_range[0]
         scn.frame_end = action_range[1]
 
-        bpy.ops.action.view_all()
+        try:
+            bpy.ops.action.view_all()
+        except RuntimeError:
+            # we are not in the timeline context, we won't set the timeline view
+            pass
         return {'FINISHED'}
 
 
@@ -650,6 +701,12 @@ class ConstrainToArmature(bpy.types.Operator):
                                  min=0, max=29, default=24,
                                  description="Armature Layer to use for connection bones")
 
+    mismatch_threshold: FloatProperty(
+        name="Mismatching Threshold",
+        description="Match target bone if not farthest than this value",
+        default=0.0
+    )
+
     @classmethod
     def poll(cls, context):
         if len(context.selected_objects) != 2:
@@ -684,11 +741,27 @@ class ConstrainToArmature(bpy.types.Operator):
                 # create Retarget bones
                 bpy.ops.object.mode_set(mode='EDIT')
                 for src_name, trg_name in bone_names_map.items():
+                    if not src_name:
+                        continue
+                    if not trg_name:
+                        continue
                     new_bone_name = bone_utils.copy_bone_to_arm(ob, trg_ob, src_name, suffix=cp_suffix)
                     if not new_bone_name:
                         continue
+                    try:
+                        new_parent = trg_ob.data.edit_bones[trg_name]
+                    except KeyError:
+                        self.report({'WARNING'}, f"{trg_name} not found in target")
+                        continue
+
                     new_bone = trg_ob.data.edit_bones[new_bone_name]
-                    new_bone.parent = trg_ob.data.edit_bones[trg_name]
+                    mismatch = new_parent.head - new_bone.head
+
+                    if 0.0 < mismatch.length < self.mismatch_threshold:
+                        new_bone.head = new_parent.head
+                        new_bone.tail += mismatch
+
+                    new_bone.parent = new_parent
 
                     src_bone = ob.data.bones[src_name]
                     src_x_axis = Vector((0.0, 0.0, 1.0)) @ src_bone.matrix_local.inverted().to_3x3()
@@ -701,6 +774,8 @@ class ConstrainToArmature(bpy.types.Operator):
 
             bpy.ops.object.mode_set(mode='POSE')
             for src_name in bone_names_map.keys():
+                if not src_name:
+                    continue
                 try:
                     src_pbone = ob.pose.bones[src_name]
                 except KeyError:
@@ -711,5 +786,154 @@ class ConstrainToArmature(bpy.types.Operator):
                         constr = src_pbone.constraints.new(type=constr_type)
                         constr.target = trg_ob
                         constr.subtarget = f'{src_name}_{cp_suffix}'
+
+        return {'FINISHED'}
+
+
+def validate_actions(act, path_resolve):
+    for fc in act.fcurves:
+        data_path = fc.data_path
+        if fc.array_index:
+            data_path = data_path + "[%d]" % fc.array_index
+        try:
+            path_resolve(data_path)
+        except ValueError:
+            return False  # Invalid.
+    return True  # Valid.
+
+
+class BakeConstrainedActions(bpy.types.Operator):
+    bl_idname = "armature.expykit_bake_constrained_actions"
+    bl_label = "Bake Constrained Actions"
+    bl_description = "Bake Actions constrained from another Armature"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    skeleton_type: EnumProperty(items=skeleton_types,
+                                name="Skeleton Type",
+                                default='--')
+
+    clear_users: BoolProperty(name="Clear Action Users",
+                              default=True)
+
+    @classmethod
+    def poll(cls, context):
+        if len(context.selected_objects) != 2:
+            return False
+        if context.mode != 'POSE':
+            return False
+        for ob in context.selected_objects:
+            if ob.type != 'ARMATURE':
+                return False
+
+        return True
+
+    def execute(self, context):
+        src_skeleton = skeleton_from_type(self.skeleton_type)
+        if not src_skeleton:
+            return {'FINISHED'}
+
+        bone_names = list(bn for bn in src_skeleton.bone_names() if bn)
+        trg_ob = context.active_object
+        trg_ob.select_set(False)
+        path_resolve = trg_ob.path_resolve
+
+        for ob in context.selected_objects:
+            if ob == trg_ob:
+                # should not happen, but anyway
+                continue
+
+            for bone in ob.data.bones:
+                bone.select = bone.name in bone_names
+
+            for action in bpy.data.actions:
+                if not validate_actions(action, path_resolve):
+                    continue
+
+                trg_ob.animation_data.action = action
+                fr_start, fr_end = action.frame_range
+                bpy.ops.nla.bake(frame_start=fr_start, frame_end=fr_end,
+                                 bake_types={'POSE'}, only_selected=True,
+                                 visual_keying=True, clear_constraints=False)
+
+                if self.clear_users:
+                    action.user_clear()
+
+            # delete Constraints
+            for bone_name in bone_names:
+                pbone = ob.pose.bones[bone_name]
+                for constr in reversed(pbone.constraints):
+                    pbone.constraints.remove(constr)
+
+        return {'FINISHED'}
+
+
+class ActionNameCandidates(bpy.types.PropertyGroup):
+    name: bpy.props.StringProperty(name="Name Candidate", default="")
+
+
+class RenameActionsFromFbxFiles(bpy.types.Operator, ImportHelper):
+    bl_idname = "armature.expykit_rename_actions_fbx"
+    bl_label = "Rename Actions from fbx data..."
+    bl_description = "Rename Actions from candidate fbx files"
+    bl_options = {'PRESET', 'UNDO'}
+
+    directory: StringProperty()
+
+    filename_ext = ".fbx"
+    filter_glob: StringProperty(default="*.fbx", options={'HIDDEN'})
+
+    files: CollectionProperty(
+        name="File Path",
+        type=bpy.types.OperatorFileListElement,
+    )
+
+    suffix: StringProperty(default="")
+
+    def execute(self, context):
+        fbx_durations = dict()
+        for f in self.files:
+            fbx_path = os.path.join(self.directory, f.name)
+            local_time = fbx_helper.get_fbx_local_time(fbx_path)
+            if not local_time:
+                continue
+
+            duration = fbx_helper.convert_from_fbx_duration(*local_time)
+            duration = round(duration, 5)
+            duration = str(duration)
+            action_name = os.path.splitext(f.name[:-3])[0]
+
+            try:
+                fbx_durations[duration].append(action_name)
+            except KeyError:  # entry doesn'exist yet
+                fbx_durations[duration] = action_name
+            except AttributeError:  # existing entry is not a list
+                current = fbx_durations[duration]
+                fbx_durations[duration] = [current, action_name]
+
+        path_resolve = context.object.path_resolve
+        for action in bpy.data.actions:
+            if not validate_actions(action, path_resolve):
+                continue
+
+            start, end = action.frame_range
+            ac_duration = end - start
+            ac_duration /= context.scene.render.fps
+            ac_duration = round(ac_duration, 5)
+            ac_duration = str(ac_duration)
+
+            try:
+                fbx_match = fbx_durations[ac_duration]
+            except KeyError:
+                continue
+
+            if not fbx_match:
+                continue
+            if isinstance(fbx_match, typing.List):
+                for name in fbx_match:
+                    entry = action.expykit_name_candidates.add()
+                    entry.name = name
+                continue
+
+            action.name = fbx_match
 
         return {'FINISHED'}
