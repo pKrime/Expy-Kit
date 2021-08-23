@@ -707,6 +707,9 @@ class ConstrainToArmature(bpy.types.Operator):
         default=0.0
     )
 
+    check_prefix = BoolProperty(default=False, name="Check Prefix")
+    _separator = ":"  # TODO: StringProperty
+
     @classmethod
     def poll(cls, context):
         if len(context.selected_objects) != 2:
@@ -733,6 +736,13 @@ class ConstrainToArmature(bpy.types.Operator):
 
         cp_suffix = 'RET'
 
+        prefix = ""
+        if self.check_prefix:
+            first_bone = trg_ob.data.bones[0]
+            if self._separator in first_bone.name:
+                prefix = first_bone.name.rsplit(self._separator, 1)[0]
+                prefix += self._separator
+
         for ob in context.selected_objects:
             if ob == trg_ob:
                 continue
@@ -743,6 +753,7 @@ class ConstrainToArmature(bpy.types.Operator):
                 for src_name, trg_name in bone_names_map.items():
                     if not src_name:
                         continue
+                    trg_name = prefix + trg_name
                     if not trg_name:
                         continue
                     new_bone_name = bone_utils.copy_bone_to_arm(ob, trg_ob, src_name, suffix=cp_suffix)
