@@ -701,6 +701,9 @@ class ConstrainToArmature(bpy.types.Operator):
                                  min=0, max=29, default=24,
                                  description="Armature Layer to use for connection bones")
 
+    match_target_matrix: BoolProperty(name="Match target transform",
+                                      default=False)
+
     mismatch_threshold: FloatProperty(
         name="Mismatching Threshold",
         description="Match target bone if not farthest than this value",
@@ -732,6 +735,8 @@ class ConstrainToArmature(bpy.types.Operator):
             return {'FINISHED'}
 
         bone_names_map = src_skeleton.conversion_map(trg_skeleton)
+        deformation_map = src_skeleton.deformation_bone_map
+
         trg_ob = context.active_object
 
         cp_suffix = 'RET'
@@ -774,10 +779,28 @@ class ConstrainToArmature(bpy.types.Operator):
 
                     new_bone.parent = new_parent
 
-                    src_bone = ob.data.bones[src_name]
-                    src_x_axis = Vector((0.0, 0.0, 1.0)) @ src_bone.matrix_local.inverted().to_3x3()
-                    src_x_axis = trg_ob.matrix_world.inverted() @ src_x_axis
-                    src_x_axis.normalize()
+                    if self.match_target_matrix and deformation_map:
+                        # find conversion matrix between deformation bones
+                        def_bone = ob.data.edit_bones[deformation_map[src_name]]
+                        mat = trg_ob.data.edit_bones[trg_name].matrix @ def_bone.matrix.inverted()
+                        new_bone.transform(mat)
+
+                        src_bone = ob.data.edit_bones[src_name]
+                        trg_bone = trg_ob.data.bones[trg_name]
+
+                        src_x_axis = Vector((0.0, 0.0, 1.0)) @ trg_bone.matrix_local.inverted().to_3x3()
+                        src_x_axis = trg_ob.matrix_world.inverted() @ src_x_axis
+
+                        # ctrl may have a different orient, in that case we roll them back
+                        ctrl_offset = src_bone.matrix @ def_bone.matrix.inverted()
+                        src_x_axis = ctrl_offset @ src_x_axis
+
+                        src_x_axis.normalize()
+                    else:
+                        src_bone = ob.data.bones[src_name]
+                        src_x_axis = Vector((0.0, 0.0, 1.0)) @ src_bone.matrix_local.inverted().to_3x3()
+                        src_x_axis = trg_ob.matrix_world.inverted() @ src_x_axis
+                        src_x_axis.normalize()
 
                     new_bone.roll = bone_utils.ebone_roll_to_vector(new_bone, src_x_axis)
                     for i, L in enumerate(new_bone.layers):

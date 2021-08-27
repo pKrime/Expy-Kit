@@ -85,6 +85,11 @@ class HumanSkeleton:
     left_fingers = None
     right_fingers = None
 
+    @property
+    def deformation_bone_map(self):
+        """Property for control skeletons"""
+        return None
+
     def bone_names(self):
         for limb_name, bone_name in self.spine.items():
             yield bone_name
@@ -327,6 +332,10 @@ class RigifyCtrlsBase(HumanSkeleton):
             ring=["f_ring.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
             pinky=["f_pinky.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
         )
+
+    @property
+    def deformation_bone_map(self):
+        return self.conversion_map(RigifySkeleton())
 
 
 class RigifyCtrlsFK(RigifyCtrlsBase):
