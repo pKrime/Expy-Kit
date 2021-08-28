@@ -25,7 +25,7 @@ def vec_roll_to_mat3_normalized(nor, roll):
 
     bMatrix = Matrix().to_3x3()
 
-    if theta > THETA_SAFE or ((x | z) and theta > THETA_CRITICAL):
+    if theta > THETA_SAFE or ((bool(x) | bool(z)) and theta > THETA_CRITICAL):
         # nor is *not* aligned to negative Y-axis (0,-1,0).
         # We got these values for free... so be happy with it... ;)
 

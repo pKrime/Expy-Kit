@@ -5,6 +5,7 @@ from bpy.props import FloatProperty
 from bpy.props import IntProperty
 from bpy.props import StringProperty
 from bpy.props import CollectionProperty
+from bpy.props import FloatVectorProperty
 
 from bpy_extras.io_utils import ImportHelper
 
@@ -287,6 +288,8 @@ class ExtractMetarig(bpy.types.Operator):
     offset_elbow: FloatProperty(name='Offset Elbow',
                                 default=0.0)
 
+    offset_fingers: FloatVectorProperty(name='Offset Fingers')
+
     no_face: BoolProperty(name='No face bones',
                           default=True)
 
@@ -441,10 +444,19 @@ class ExtractMetarig(bpy.types.Operator):
                 met_bone.roll = 0.0
 
                 src_z_axis = Vector((0.0, 0.0, 1.0)) @ src_bone.matrix_local.to_3x3()
+
                 inv_rot = met_bone.matrix.to_3x3().inverted()
                 trg_z_axis = src_z_axis @ inv_rot
                 dot_z = (met_bone.z_axis @ met_bone.matrix.inverted()).dot(trg_z_axis)
                 met_bone.roll = dot_z * pi
+
+                offset_fingers = Vector(self.offset_fingers) @ src_bone.matrix_local.to_3x3()
+                offset_fingers /= 100
+                if met_bone.parent.name in met_bone_names and met_bone.children:
+                    met_bone.head += offset_fingers
+                    met_bone.tail += offset_fingers
+                    # met_bone.head += offset/100
+                    # met_bone.tail += offset/100
 
         for bone_attr in ['thumb', 'index', 'middle', 'ring', 'pinky']:
             match_meta_fingers(met_skeleton.right_fingers, src_skeleton.right_fingers, bone_attr)
@@ -846,7 +858,10 @@ class BakeConstrainedActions(bpy.types.Operator):
                                 name="Skeleton Type",
                                 default='--')
 
-    clear_users: BoolProperty(name="Clear Action Users",
+    clear_users_old: BoolProperty(name="Clear original Action Users",
+                                  default=True)
+
+    fake_user_new: BoolProperty(name="Save New Action User",
                               default=True)
 
     @classmethod
@@ -889,7 +904,9 @@ class BakeConstrainedActions(bpy.types.Operator):
                                  bake_types={'POSE'}, only_selected=True,
                                  visual_keying=True, clear_constraints=False)
 
-                if self.clear_users:
+                ob.animation_data.action.use_fake_user = self.fake_user_new
+
+                if self.clear_users_old:
                     action.user_clear()
 
             # delete Constraints
