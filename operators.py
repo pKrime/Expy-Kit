@@ -451,7 +451,11 @@ class ExtractMetarig(bpy.types.Operator):
                 met_bone.roll = dot_z * pi
 
                 offset_fingers = Vector(self.offset_fingers) @ src_bone.matrix_local.to_3x3()
-                offset_fingers /= 100
+                if met_bone.head.x < 0:  # Right side
+                    offset_fingers /= -100
+                else:
+                    offset_fingers /= 100
+
                 if met_bone.parent.name in met_bone_names and met_bone.children:
                     met_bone.head += offset_fingers
                     met_bone.tail += offset_fingers
