@@ -815,10 +815,14 @@ class ConstrainToArmature(bpy.types.Operator):
                     else:
                         src_bone = ob.data.bones[src_name]
                         src_x_axis = Vector((0.0, 0.0, 1.0)) @ src_bone.matrix_local.inverted().to_3x3()
-                        src_x_axis = trg_ob.matrix_world.inverted() @ src_x_axis
+                        # src_x_axis = trg_ob.matrix_world.inverted() @ src_x_axis
                         src_x_axis.normalize()
 
                     new_bone.roll = bone_utils.ebone_roll_to_vector(new_bone, src_x_axis)
+
+                    new_bone.transform(ob.matrix_world)
+                    new_bone.transform(trg_ob.matrix_world.inverted())
+
                     for i, L in enumerate(new_bone.layers):
                         new_bone.layers[i] = i == self.ret_bones_layer
 
