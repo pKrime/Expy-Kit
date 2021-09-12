@@ -3,6 +3,8 @@
 ## blender addon
 ### switch between different types of Character Rig
 
+[![Alt text](https://img.youtube.com/vi/pFouaNVxcso/0.jpg)](https://www.youtube.com/watch?v=pFouaNVxcso)
+
 * Convert *Rigify* armatures to a single hierarchy for game engines
 * Extract rigify metarig from rigged character
 * Restore *Rigify* **.L**/**.R** naming on skeletons reimported from Unreal Engine
