@@ -796,32 +796,37 @@ class ConstrainToArmature(bpy.types.Operator):
                     new_bone.parent = new_parent
 
                     if self.match_target_matrix and deformation_map:
-                        # find conversion matrix between deformation bones
+                        # counter deformation bone transform
                         def_bone = ob.data.edit_bones[deformation_map[src_name]]
-                        mat = trg_ob.data.edit_bones[trg_name].matrix @ def_bone.matrix.inverted()
-                        new_bone.transform(mat)
+                        new_bone.transform(def_bone.matrix.inverted())
 
-                        src_bone = ob.data.edit_bones[src_name]
+                        # even transform
+                        new_bone.transform(ob.matrix_world)
+                        # counter target transform
+                        new_bone.transform(trg_ob.matrix_world.inverted())
+                        # bring under trg_bone
+                        new_bone.transform(trg_ob.data.edit_bones[trg_name].matrix)
+
+                        # orient to TARGET bone
                         trg_bone = trg_ob.data.bones[trg_name]
-
                         src_x_axis = Vector((0.0, 0.0, 1.0)) @ trg_bone.matrix_local.inverted().to_3x3()
-                        src_x_axis = trg_ob.matrix_world.inverted() @ src_x_axis
 
                         # ctrl may have a different orient, in that case we roll them back
+                        src_bone = ob.data.edit_bones[src_name]
                         ctrl_offset = src_bone.matrix @ def_bone.matrix.inverted()
                         src_x_axis = ctrl_offset @ src_x_axis
-
                         src_x_axis.normalize()
+
+                        new_bone.roll = bone_utils.ebone_roll_to_vector(new_bone, src_x_axis)
                     else:
                         src_bone = ob.data.bones[src_name]
                         src_x_axis = Vector((0.0, 0.0, 1.0)) @ src_bone.matrix_local.inverted().to_3x3()
-                        # src_x_axis = trg_ob.matrix_world.inverted() @ src_x_axis
                         src_x_axis.normalize()
 
-                    new_bone.roll = bone_utils.ebone_roll_to_vector(new_bone, src_x_axis)
+                        new_bone.roll = bone_utils.ebone_roll_to_vector(new_bone, src_x_axis)
 
-                    new_bone.transform(ob.matrix_world)
-                    new_bone.transform(trg_ob.matrix_world.inverted())
+                        new_bone.transform(ob.matrix_world)
+                        new_bone.transform(trg_ob.matrix_world.inverted())
 
                     for i, L in enumerate(new_bone.layers):
                         new_bone.layers[i] = i == self.ret_bones_layer
