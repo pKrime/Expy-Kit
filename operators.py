@@ -718,10 +718,12 @@ class ConstrainToArmature(bpy.types.Operator):
                                  description="Armature Layer to use for connection bones")
 
     match_target_matrix: BoolProperty(name="Match target transform",
+                                      description="Retarget bone rotations",
                                       default=False)
 
-    ik_look_at: BoolProperty(name="IK Look At",
-                                  default=False)
+    math_look_at: BoolProperty(name="Chain Look At",
+                               description="Correct chain direction based on mid limb (Useful for IK)",
+                               default=False)
 
     mismatch_threshold: FloatProperty(
         name="Mismatching Threshold",
@@ -833,10 +835,13 @@ class ConstrainToArmature(bpy.types.Operator):
                         new_bone.transform(ob.matrix_world)
                         new_bone.transform(trg_ob.matrix_world.inverted())
 
+                    new_bone.layers[self.ret_bones_layer] = True
                     for i, L in enumerate(new_bone.layers):
-                        new_bone.layers[i] = i == self.ret_bones_layer
+                        if i == self.ret_bones_layer:
+                            continue
+                        new_bone.layers[i] = False
 
-                    if self.ik_look_at:
+                    if self.math_look_at:
                         if src_name == src_skeleton.right_arm.arm:
                             start_bone_name = trg_skeleton.right_arm.forearm
                         elif src_name == src_skeleton.left_arm.arm:
@@ -857,6 +862,12 @@ class ConstrainToArmature(bpy.types.Operator):
                             look_bone.parent = start_bone
 
                             look_ats[src_name] = look_bone.name
+
+                            look_bone.layers[self.ret_bones_layer] = True
+                            for i, L in enumerate(look_bone.layers):
+                                if i == self.ret_bones_layer:
+                                    continue
+                                look_bone.layers[i] = False
 
             bpy.ops.object.mode_set(mode='POSE')
 
