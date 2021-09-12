@@ -720,6 +720,9 @@ class ConstrainToArmature(bpy.types.Operator):
     match_target_matrix: BoolProperty(name="Match target transform",
                                       default=False)
 
+    ik_look_at: BoolProperty(name="IK Look At",
+                                  default=False)
+
     mismatch_threshold: FloatProperty(
         name="Mismatching Threshold",
         description="Match target bone if not farthest than this value",
@@ -767,6 +770,8 @@ class ConstrainToArmature(bpy.types.Operator):
         for ob in context.selected_objects:
             if ob == trg_ob:
                 continue
+
+            look_ats = {}
 
             if f'{next(iter(bone_names_map))}_{cp_suffix}' not in trg_ob.data.bones:
                 # create Retarget bones
@@ -831,7 +836,40 @@ class ConstrainToArmature(bpy.types.Operator):
                     for i, L in enumerate(new_bone.layers):
                         new_bone.layers[i] = i == self.ret_bones_layer
 
+                    if self.ik_look_at:
+                        if src_name == src_skeleton.right_arm.arm:
+                            start_bone_name = trg_skeleton.right_arm.forearm
+                        elif src_name == src_skeleton.left_arm.arm:
+                            start_bone_name = trg_skeleton.left_arm.forearm
+                        elif src_name == src_skeleton.right_leg.upleg:
+                            start_bone_name = trg_skeleton.right_leg.leg
+                        elif src_name == src_skeleton.left_leg.upleg:
+                            start_bone_name = trg_skeleton.left_leg.leg
+                        else:
+                            start_bone_name = ""
+
+                        if start_bone_name:
+                            start_bone = trg_ob.data.edit_bones[start_bone_name]
+
+                            look_bone = trg_ob.data.edit_bones.new(start_bone_name + '_LOOK')
+                            look_bone.head = start_bone.head
+                            look_bone.tail = 2 * start_bone.head - start_bone.tail
+                            look_bone.parent = start_bone
+
+                            look_ats[src_name] = look_bone.name
+
             bpy.ops.object.mode_set(mode='POSE')
+
+            for src_name, trg_name in look_ats.items():
+                ret_bone = trg_ob.pose.bones[f'{src_name}_{cp_suffix}']
+                constr = ret_bone.constraints.new(type='LOCKED_TRACK')
+
+                constr.head_tail = 1.0
+                constr.target = trg_ob
+                constr.subtarget = trg_name
+                constr.lock_axis = 'LOCK_Y'
+                constr.track_axis = 'TRACK_NEGATIVE_Z'
+
             for src_name in bone_names_map.keys():
                 if not src_name:
                     continue

@@ -116,8 +116,6 @@ def copy_bone_to_arm(src_ob, trg_ob, bone_name, suffix='CP'):
     new_bone = trg_ob.data.edit_bones.new('_'.join((bone_name, suffix)))
     new_bone.head = src_bone.head_local
     new_bone.tail = src_bone.tail_local
-    #new_bone.head = transform @ src_bone.head_local
-    #new_bone.tail = transform @ src_bone.tail_local
 
     return new_bone.name
 
