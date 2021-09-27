@@ -808,7 +808,7 @@ class ConstrainToArmature(bpy.types.Operator):
                                 name="Target Type",
                                 default='--')
 
-    ret_bones_layer: IntProperty(name="Connection bones layer",
+    ret_bones_layer: IntProperty(name="Binding-Bones layer",
                                  min=0, max=29, default=24,
                                  description="Armature Layer to use for connection bones")
 
@@ -820,11 +820,31 @@ class ConstrainToArmature(bpy.types.Operator):
                                description="Correct chain direction based on mid limb (Useful for IK)",
                                default=False)
 
+    root_motion_bone: StringProperty(name="Root Motion",
+                                     description="Constrain Root bone to Hip motion",
+                                     default="")
+
+    limit_root_height_min: BoolProperty(name="Limit Min Height", description="Limit root bone min height",
+                                        default=False)
+
+    root_height_min: FloatProperty(name="Root Min Height",
+                                   description="Prevent Root Bone from going below this height")
+
+    limit_root_height_max: BoolProperty(name="Limit Max Height", description="Limit root bone max height",
+                                        default=False)
+
+    root_height_max: FloatProperty(name="Root Max Height",
+                                   description="Prevent Root Bone from going above this height")
+
     mismatch_threshold: FloatProperty(
         name="Mismatching Threshold",
         description="Match target bone if not farthest than this value",
         default=0.0
     )
+
+    root_cp_rot_x: BoolProperty(name="Root Copy Rot X", description="Constrain Root X Rotation", default=True)
+    root_cp_rot_y: BoolProperty(name="Root Copy Rot y", description="Constrain Root Y Rotation", default=True)
+    root_cp_rot_z: BoolProperty(name="Root Copy Rot Z", description="Constrain Root Z Rotation", default=True)
 
     check_prefix = BoolProperty(default=False, name="Check Prefix")
     _separator = ":"  # TODO: StringProperty
@@ -840,6 +860,57 @@ class ConstrainToArmature(bpy.types.Operator):
                 return False
 
         return True
+
+    def draw(self, context):
+        layout = self.layout
+        column = layout.column()
+
+        row = column.split(factor=0.25, align=True)
+        row.label(text="Source Type")
+        row.prop(self, 'source', text="")
+
+        row = column.split(factor=0.25, align=True)
+        row.label(text="Target Type")
+        row.prop(self, 'skeleton_type', text="")
+
+        row = column.split(factor=0.25, align=True)
+        row.separator()
+        row.prop(self, 'ret_bones_layer')
+
+        row = column.split(factor=0.25, align=True)
+        row.separator()
+        row.prop(self, 'match_target_matrix')
+
+        row = column.split(factor=0.25, align=True)
+        row.separator()
+        row.prop(self, 'math_look_at')
+
+        row = column.split(factor=0.25, align=True)
+        row.separator()
+        row.prop(self, 'mismatch_threshold')
+
+        row = column.split(factor=0.25, align=True)
+        row.label(text="Root Motion Bone")
+        row.prop_search(self, 'root_motion_bone',
+                        next(ob.data for ob in context.selected_objects if ob != context.active_object),
+                        "bones", text="")
+
+        row = column.split(factor=0.25, align=True)
+        row.prop(self, 'limit_root_height_min', text="Min Height")
+        row.prop(self, 'root_height_min', text="")
+        row.enabled = bool(self.root_motion_bone)
+
+        row = column.split(factor=0.25, align=True)
+        row.prop(self, 'limit_root_height_max', text="Max Height")
+        row.prop(self, 'root_height_max', text="")
+        row.enabled = bool(self.root_motion_bone)
+
+        row = column.row(align=True)
+        row.label(text="Rotation")
+        row.prop(self, "root_cp_rot_x", text="X", toggle=True)
+        row.prop(self, "root_cp_rot_y", text="Y", toggle=True)
+        row.prop(self, "root_cp_rot_z", text="Z", toggle=True)
+        row.enabled = bool(self.root_motion_bone)
 
     def execute(self, context):
         src_skeleton = skeleton_from_type(self.source)
@@ -870,6 +941,9 @@ class ConstrainToArmature(bpy.types.Operator):
 
             look_ats = {}
 
+            if self.root_motion_bone:
+                bone_names_map[self.root_motion_bone] = trg_skeleton.spine.hips
+
             if f'{next(iter(bone_names_map))}_{cp_suffix}' not in trg_ob.data.bones:
                 # create Retarget bones
                 bpy.ops.object.mode_set(mode='EDIT')
@@ -899,7 +973,10 @@ class ConstrainToArmature(bpy.types.Operator):
 
                     if self.match_target_matrix and deformation_map:
                         # counter deformation bone transform
-                        def_bone = ob.data.edit_bones[deformation_map[src_name]]
+                        try:
+                            def_bone = ob.data.edit_bones[deformation_map[src_name]]
+                        except KeyError:
+                            continue
                         new_bone.transform(def_bone.matrix.inverted())
 
                         # even transform
@@ -989,6 +1066,26 @@ class ConstrainToArmature(bpy.types.Operator):
                         constr = src_pbone.constraints.new(type=constr_type)
                         constr.target = trg_ob
                         constr.subtarget = f'{src_name}_{cp_suffix}'
+
+            if self.root_motion_bone:
+                rbone = ob.pose.bones[self.root_motion_bone]
+                if self.limit_root_height_max or self.limit_root_height_min:
+
+                    constr = rbone.constraints.new('LIMIT_LOCATION')
+                    constr.use_min_z = self.limit_root_height_min
+                    constr.use_max_z = self.limit_root_height_max
+
+                    constr.min_z = self.root_height_min
+                    constr.max_z = self.root_height_max
+
+                try:
+                    constr = next(c for c in rbone.constraints if c.type == 'COPY_ROTATION')
+                except StopIteration:
+                    pass
+                else:
+                    constr.use_x = self.root_cp_rot_x
+                    constr.use_y = self.root_cp_rot_y
+                    constr.use_z = self.root_cp_rot_z
 
         return {'FINISHED'}
 
