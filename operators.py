@@ -21,6 +21,7 @@ reload(bone_utils)
 reload(fbx_helper)
 
 from mathutils import Vector
+from mathutils import Matrix
 from math import pi
 import os
 import typing
@@ -226,6 +227,77 @@ class ConvertBoneNaming(bpy.types.Operator):
                     driver.data_path = driver.data_path.replace('bones["{0}"'.format(driver_bone),
                                                                 'bones["{0}"'.format(trg_name))
 
+        return {'FINISHED'}
+
+
+class CreateTransformOffset(bpy.types.Operator):
+    """Scale the Character and setup an Empty to preserve final transform"""
+    bl_idname = "object.expykit_convert_bone_names"
+    bl_label = "Create Offset"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    container_name: StringProperty(name="Name", description="Name of the transform container", default="EMP-Offset")
+    container_scale: FloatProperty(name="Scale", description="Scale of the transform container", default=0.01)
+
+    _allowed_modes = ['OBJECT']
+
+    @classmethod
+    def poll(cls, context):
+        if not context.object:
+            return False
+        if context.object.parent:
+            return False
+        if context.object.type != 'ARMATURE':
+            return False
+        if context.mode not in cls._allowed_modes:
+            return False
+
+        return True
+
+    def execute(self, context):
+        arm_ob = context.object
+        emp_ob = bpy.data.objects.new(self.container_name, None)
+        context.collection.objects.link(emp_ob)
+
+        transform = Matrix().to_3x3() * self.container_scale
+        emp_ob.matrix_world = transform.to_4x4()
+        arm_ob.parent = emp_ob
+
+        inverted = emp_ob.matrix_world.inverted()
+        arm_ob.data.transform(inverted)
+        arm_ob.update_tag()
+
+        # bring in metarig if found
+        try:
+            metarig = next(ob for ob in bpy.data.objects if ob.type == 'ARMATURE' and ob.data.rigify_target_rig == arm_ob)
+        except (StopIteration, AttributeError):  # Attribute Error if Rigify is not loaded
+            pass
+        else:
+            metarig.parent = emp_ob
+            metarig.data.transform(inverted)
+            metarig.update_tag()
+
+        # fix constraints rest lenghts
+        for pbone in arm_ob.pose.bones:
+            for constr in pbone.constraints:
+                if constr.type == 'STRETCH_TO':
+                    constr.rest_length /= self.container_scale
+
+        # scale rigged meshes as well
+        rigged = (ob for ob in bpy.data.objects if
+                  next((mod for mod in ob.modifiers if mod.type == 'ARMATURE' and mod.object == context.object),
+                           None))
+
+        for ob in rigged:
+            ob.data.transform(inverted)
+            # fix scale dependent attrs in modifiers
+            for mod in ob.modifiers:
+                if mod.type == 'DISPLACE':
+                    mod.strength /= self.container_scale
+                elif mod.type == 'SOLIDIFY':
+                    mod.thickness /= self.container_scale
+
+        context.view_layer.update()
         return {'FINISHED'}
 
 

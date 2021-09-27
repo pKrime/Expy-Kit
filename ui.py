@@ -14,6 +14,14 @@ def menu_header(layout):
     row.label(text="Expy Kit", icon='ARMATURE_DATA')
 
 
+def object_context_options(self, context):
+    layout = self.layout
+    menu_header(layout)
+
+    row = layout.row()
+    row.operator(operators.CreateTransformOffset.bl_idname)
+
+
 def pose_context_options(self, context):
     layout = self.layout
     menu_header(layout)
