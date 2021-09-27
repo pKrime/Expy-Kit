@@ -232,7 +232,7 @@ class ConvertBoneNaming(bpy.types.Operator):
 
 class CreateTransformOffset(bpy.types.Operator):
     """Scale the Character and setup an Empty to preserve final transform"""
-    bl_idname = "object.expykit_convert_bone_names"
+    bl_idname = "object.expykit_create_offset"
     bl_label = "Create Offset"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -406,6 +406,7 @@ class ExtractMetarig(bpy.types.Operator):
             create_metarig = True
             met_armature = bpy.data.armatures.new('metarig')
             metarig = bpy.data.objects.new("metarig", met_armature)
+            metarig.data.rigify_rig_basename = src_object.name
 
             context.collection.objects.link(metarig)
 
