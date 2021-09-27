@@ -608,13 +608,15 @@ class ActionRangeToScene(bpy.types.Operator):
     bl_description = "Match scene range with current action range"
     bl_options = {'REGISTER', 'UNDO'}
 
+    _allowed_modes_ = ['POSE', 'OBJECT']
+
     @classmethod
     def poll(cls, context):
         obj = context.object
 
         if not obj:
             return False
-        if not obj.mode == 'POSE':
+        if obj.mode not in cls._allowed_modes_:
             return False
         if not obj.animation_data:
             return False

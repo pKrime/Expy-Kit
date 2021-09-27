@@ -73,13 +73,9 @@ def armature_context_options(self, context):
 
 
 def action_header_buttons(self, context):
-    st = context.space_data
-
-    if st.mode == 'ACTION':
-        layout = self.layout
-
-        row = layout.row()
-        row.operator(operators.ActionRangeToScene.bl_idname, icon='PREVIEW_RANGE', text='To Scene Range')
+    layout = self.layout
+    row = layout.row()
+    row.operator(operators.ActionRangeToScene.bl_idname, icon='PREVIEW_RANGE', text='To Scene Range')
 
 
 class ActionRenameSimple(bpy.types.Operator):
