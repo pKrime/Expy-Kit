@@ -729,6 +729,11 @@ class ConvertGameFriendly(bpy.types.Operator):
         description="Limit scale on the spine deform bones",
         default=True
     )
+    disable_bendy: BoolProperty(
+        name="Disable B-Bones",
+        description="Disable Bendy-Bones",
+        default=True
+    )
     fix_tail: BoolProperty(
         name="Invert Tail",
         description="Reverse the tail direction so that it spawns from hip",
@@ -757,6 +762,15 @@ class ConvertGameFriendly(bpy.types.Operator):
             ob.name = 'Armature'
             ob.data.name = 'Armature'
 
+            try:
+                metarig = next(
+                    obj for obj in bpy.data.objects if obj.type == 'ARMATURE' and obj.data.rigify_target_rig == ob)
+            except (StopIteration, AttributeError):  # Attribute Error if Rigify is not loaded
+                pass
+            else:
+                metarig.data.rigify_rig_basename = "Armature"
+                print("Metarig Base Name", metarig.data.rigify_rig_basename)
+
         if self.eye_bones:
             # Oddly, changes to use_deform are not kept
             try:
@@ -766,8 +780,14 @@ class ConvertGameFriendly(bpy.types.Operator):
                 pass
 
         bpy.ops.object.mode_set(mode='EDIT')
-        bone_utils.gamefriendly_hierarchy(ob, fix_tail=self.fix_tail, limit_scale=self.limit_scale)
+        num_reparents = bone_utils.gamefriendly_hierarchy(ob, fix_tail=self.fix_tail, limit_scale=self.limit_scale)
         bpy.ops.object.mode_set(mode='POSE')
+
+        if self.disable_bendy:
+            for bone in ob.data.bones:
+                bone.bbone_segments = 1
+
+        self.report({'INFO'}, f'{num_reparents} bones were re-parented')
         return {'FINISHED'}
 
 

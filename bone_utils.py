@@ -444,6 +444,7 @@ def gamefriendly_hierarchy(ob, fix_tail=True, limit_scale=False):
     new_bone_names = []  # collect newly added bone names so that they can be edited later in Object Mode
 
     def_root_name = get_deform_root_name(ob)
+    num_reparents = 0
 
     # we want deforming bone (i.e. the ones on layer 29) to have deforming bone parents
     for bone_name in bone_names:
@@ -511,8 +512,10 @@ def gamefriendly_hierarchy(ob, fix_tail=True, limit_scale=False):
         ebone = get_edit_bone(ob, bone_name)
         ebone_par = get_edit_bone(ob, def_par.name)
         ebone.parent = ebone_par
+        num_reparents += 1
 
     if fix_tail:
+        # FIXME: these bones will not be added to num_reparents
         new_root_name = fix_tail_direction(ob)
         if new_root_name:
             def_root_name = new_root_name
@@ -524,6 +527,8 @@ def gamefriendly_hierarchy(ob, fix_tail=True, limit_scale=False):
         ob.data.edit_bones[def_root_name].parent = ob.data.edit_bones['root']
     except KeyError:
         print("WARNING: DEF hierarchy root was not parented to root bone")
+
+    return num_reparents
 
 
 def iterate_rigged_obs(armature_object):
