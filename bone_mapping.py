@@ -75,6 +75,7 @@ class HumanFingers(HumanLimb):
 
 
 class HumanSkeleton:
+    root = None
     spine = None
 
     left_arm = None
@@ -91,6 +92,9 @@ class HumanSkeleton:
         return None
 
     def bone_names(self):
+        if self.root:
+            yield self.root
+
         for limb_name, bone_name in self.spine.items():
             yield bone_name
 
@@ -131,6 +135,9 @@ class HumanSkeleton:
 
             if trg_name:
                 bone_map[bone_name] = trg_name
+
+        if self.root:
+            bone_mapping[self.root] = target_skeleton.root
 
         for limb_name, bone_name in self.spine.items():
             bone_mapping('spine', limb_name, bone_name)
@@ -224,6 +231,7 @@ class RigifySkeleton(HumanSkeleton):
             spine='DEF-spine.001',
             hips='DEF-spine'
         )
+        self.root = 'root'
 
         for side, side_letter in zip(('left', 'right'), ('L', 'R')):
             arm = HumanArm(shoulder="DEF-shoulder.{0}".format(side_letter),
@@ -314,6 +322,7 @@ class RigifyCtrlsBase(HumanSkeleton):
             spine='spine_fk.001',
             hips='torso'
         )
+        self.root = 'root'
 
         side = 'L'
         self.left_fingers = HumanFingers(
