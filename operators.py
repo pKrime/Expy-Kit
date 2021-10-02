@@ -1186,15 +1186,39 @@ class AddRootMotion(bpy.types.Operator):
     bl_description = "Updates Root Motion Bone To Animation"
     bl_options = {'REGISTER', 'UNDO'}
 
+    rig_type: EnumProperty(items=skeleton_types,
+                           name="Rig Type",
+                           default='--')
+
     root_bone_name: StringProperty(name="Root Bone", default='root')
     hip_bone_name: StringProperty(name="Hip Bone", default='torso')
+    root_cp_loc_x: BoolProperty(name="Root Copy Rot X", description="Constrain Root X Rotation", default=False)
+    root_cp_loc_y: BoolProperty(name="Root Copy Rot y", description="Constrain Root Y Rotation", default=True)
+    root_cp_loc_z: BoolProperty(name="Root Copy Rot Z", description="Constrain Root Z Rotation", default=False)
 
     _armature = None
-    _ik_bone_names = []
+
+    @classmethod
+    def poll(cls, context):
+        if not context.object:
+            return False
+        if context.mode != 'POSE':
+            return False
+        if context.object.type != 'ARMATURE':
+            return False
+        if not context.object.animation_data:
+            return False
+        if not context.object.animation_data.action:
+            return False
+        return True
 
     def draw(self, context):
         layout = self.layout
         column = layout.column()
+
+        row = column.split(factor=0.25, align=True)
+        row.label(text="Rig Type")
+        row.prop(self, 'rig_type', text="")
 
         row = column.split(factor=0.25, align=True)
         row.label(text="Root Bone")
@@ -1203,6 +1227,14 @@ class AddRootMotion(bpy.types.Operator):
         row = column.split(factor=0.25, align=True)
         row.label(text="Hip Bone")
         row.prop_search(self, 'hip_bone_name', context.active_object.data, "bones", text="")
+
+        column.separator()
+
+        row = column.row(align=True)
+        row.label(text="Location")
+        row.prop(self, "root_cp_loc_x", text="X", toggle=True)
+        row.prop(self, "root_cp_loc_y", text="Y", toggle=True)
+        row.prop(self, "root_cp_loc_z", text="Z", toggle=True)
 
     @staticmethod
     def add_loc_rot_key(bone, frame, options):
@@ -1216,12 +1248,28 @@ class AddRootMotion(bpy.types.Operator):
         bone.keyframe_insert('rotation_quaternion', index=3, frame=frame, options=options)
 
     def execute(self, context):
-        self._armature = context.active_object
-        self._ik_bone_names = ['hand_ik.L', 'hand_ik.R', 'foot_ik.L', 'foot_ik.R']
+        if not self.rig_type:
+            return {'FINISHED'}
 
+        if self.rig_type == '--':
+            return {'FINISHED'}
+
+        self._armature = context.active_object
         self.action_offs()
 
         return {'FINISHED'}
+
+    def is_bone_floating(self, bone):
+        binding_constrs = ['COPY_LOCATION', 'COPY_ROTATION', 'COPY_TRANSFORMS']
+        while bone.parent:
+            if bone.parent.name == self.hip_bone_name:
+                return False
+            for constr in bone.constraints:
+                if constr.type in binding_constrs:
+                    return False
+            bone = bone.parent
+
+        return True
 
     def action_offs(self):
         action = self._armature.animation_data.action
@@ -1237,8 +1285,10 @@ class AddRootMotion(bpy.types.Operator):
         start_mat_inverse = start_mat.inverted()
 
         root_bone = self._armature.pose.bones[self.root_bone_name]
-        floating_bones = list([self._armature.pose.bones[b_name] for b_name in self._ik_bone_names])
-        floating_bones.append(hip_bone)
+        skeleton = skeleton_from_type(self.rig_type)
+
+        rig_bones = [self._armature.pose.bones[b_name] for b_name in skeleton.bone_names() if b_name and b_name != self.root_bone_name]
+        floating_bones = list([bone for bone in rig_bones if self.is_bone_floating(bone)])
 
         rootmo_transfs = []
         hip_bone_transfs = []
@@ -1258,6 +1308,13 @@ class AddRootMotion(bpy.types.Operator):
             bpy.context.scene.frame_set(frame_num)
 
             rootmo_transf = start_mat_inverse @ hip_bone_transfs[i]
+            if not self.root_cp_loc_x:
+                rootmo_transf[0][3] = root_bone.matrix[0][3]
+            if not self.root_cp_loc_y:
+                rootmo_transf[1][3] = root_bone.matrix[1][3]
+            if not self.root_cp_loc_z:
+                rootmo_transf[2][3] = root_bone.matrix[2][3]
+
             root_bone.matrix = rootmo_transf
 
             self.add_loc_rot_key(root_bone, frame_num, keyframe_options)
