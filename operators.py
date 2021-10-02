@@ -890,7 +890,7 @@ class ConstrainToArmature(bpy.types.Operator):
         row.prop(self, 'mismatch_threshold')
 
         row = column.split(factor=0.25, align=True)
-        row.label(text="Root Motion Bone")
+        row.label(text="Root Motion Bone (Experimental)")
         row.prop_search(self, 'root_motion_bone',
                         next(ob.data for ob in context.selected_objects if ob != context.active_object),
                         "bones", text="")
@@ -1168,6 +1168,128 @@ class BakeConstrainedActions(bpy.types.Operator):
                 pbone = ob.pose.bones[bone_name]
                 for constr in reversed(pbone.constraints):
                     pbone.constraints.remove(constr)
+
+        return {'FINISHED'}
+
+
+def crv_bone_name(fcurve):
+    p_bone_prefix = 'pose.bones['
+    if not fcurve.data_path.startswith(p_bone_prefix):
+        return
+    data_path = fcurve.data_path
+    return data_path[len(p_bone_prefix):].rsplit('"]', 1)[0].strip('"[')
+
+
+class Offsetter():
+    def __init__(self):
+        self.armature = bpy.context.active_object
+
+        self.root_bone_name = 'root'
+        self.hip_bone_name = 'torso'
+        self.ik_bone_names = ['hand_ik.L', 'hand_ik.R', 'foot_ik.L', 'foot_ik.R']
+
+    def offset_root_mo(self):
+        hip_bone = self.armature.pose.bones[self.hip_bone_name]
+        root_bone = self.armature.pose.bones[self.root_bone_name]
+
+        floating_bones = list([self.armature.pose.bones[b_name] for b_name in self.ik_bone_names])
+        floating_bones.append(hip_bone)
+        floating_mats = list([b.matrix.copy() for b in floating_bones])
+
+        root_transform = Matrix()
+        root_transform.translation = hip_bone.matrix.translation
+        root_transform.translation[2] = 0.0
+
+        root_transform_inverse = root_transform.inverted()
+
+        root_bone.matrix = root_transform @ root_bone.matrix
+        for bone, mat in zip(floating_bones, floating_mats):
+            bone.matrix = root_transform_inverse @ mat
+
+    def action_offs(self):
+        action = self.armature.animation_data.action
+        start, end = action.frame_range
+        start = int(start)
+        end = int(end)
+        current = bpy.context.scene.frame_current
+
+        hip_bone = self.armature.pose.bones[self.hip_bone_name]
+
+        bpy.context.scene.frame_set(start)
+        start_mat = hip_bone.matrix.copy()
+        start_mat_inverse = start_mat.inverted()
+
+        root_bone = self.armature.pose.bones[self.root_bone_name]
+        floating_bones = list([self.armature.pose.bones[b_name] for b_name in self.ik_bone_names])
+        floating_bones.append(hip_bone)
+
+        rootmo_transfs = []
+        hip_bone_transfs = []
+        all_floating_mats = []
+        for frame_num in range(start + 1, end + 1):
+            bpy.context.scene.frame_set(frame_num)
+
+            all_floating_mats.append(list([b.matrix.copy() for b in floating_bones]))
+            hip_bone_transfs.append(hip_bone.matrix.copy())
+            rootmo_transfs.append(start_mat_inverse @ hip_bone.matrix)
+
+        bpy.context.scene.frame_set(start)
+        keyframe_options = {'INSERTKEY_VISUAL', 'INSERTKEY_CYCLE_AWARE'}
+        root_bone.keyframe_insert('location', index=0, frame=start, options=keyframe_options)
+        root_bone.keyframe_insert('location', index=1, frame=start, options=keyframe_options)
+        root_bone.keyframe_insert('location', index=2, frame=start, options=keyframe_options)
+
+        root_bone.keyframe_insert('rotation_quaternion', index=0, frame=start, options=keyframe_options)
+        root_bone.keyframe_insert('rotation_quaternion', index=1, frame=start, options=keyframe_options)
+        root_bone.keyframe_insert('rotation_quaternion', index=2, frame=start, options=keyframe_options)
+        root_bone.keyframe_insert('rotation_quaternion', index=3, frame=start, options=keyframe_options)
+
+        for i, frame_num in enumerate(range(start + 1, end + 1)):
+            bpy.context.scene.frame_set(frame_num)
+
+            rootmo_transf = hip_bone_transfs[i]
+            rootmo_transf_inverse = root_bone.matrix.inverted() @ rootmo_transf
+
+            root_bone.matrix = rootmo_transf
+            root_bone.keyframe_insert('location', index=0, frame=frame_num, options=keyframe_options)
+            root_bone.keyframe_insert('location', index=1, frame=frame_num, options=keyframe_options)
+            root_bone.keyframe_insert('location', index=2, frame=frame_num, options=keyframe_options)
+
+            root_bone.keyframe_insert('rotation_quaternion', index=0, frame=frame_num, options=keyframe_options)
+            root_bone.keyframe_insert('rotation_quaternion', index=1, frame=frame_num, options=keyframe_options)
+            root_bone.keyframe_insert('rotation_quaternion', index=2, frame=frame_num, options=keyframe_options)
+            root_bone.keyframe_insert('rotation_quaternion', index=3, frame=frame_num, options=keyframe_options)
+
+            floating_mats = all_floating_mats[i]
+            for bone, mat in zip(floating_bones, floating_mats):
+                bone.matrix = rootmo_transf_inverse @ mat
+
+                bone.keyframe_insert('location', index=0, frame=frame_num)
+                bone.keyframe_insert('location', index=1, frame=frame_num)
+                bone.keyframe_insert('location', index=2, frame=frame_num)
+
+                bone.keyframe_insert('rotation_quaternion', index=0, frame=frame_num)
+                bone.keyframe_insert('rotation_quaternion', index=1, frame=frame_num)
+                bone.keyframe_insert('rotation_quaternion', index=2, frame=frame_num)
+                bone.keyframe_insert('rotation_quaternion', index=3, frame=frame_num)
+
+        bpy.context.scene.frame_set(current)
+
+
+
+class TransferRootMotion(bpy.types.Operator):
+    bl_idname = "armature.expykit_transf_rootmotion"
+    bl_label = "Update Root Motion"
+    bl_description = "Updates Root Motion Bone To Animation"
+
+    root_bone_name: StringProperty(name="Root Bone", default="root")
+
+    def execute(self, context):
+        armature = context.active_object
+        action = armature.animation_data.action
+        start, end = action.frame_range
+
+
 
         return {'FINISHED'}
 
