@@ -1184,12 +1184,25 @@ class AddRootMotion(bpy.types.Operator):
     bl_idname = "armature.expykit_add_rootmotion"
     bl_label = "Add Root Motion"
     bl_description = "Updates Root Motion Bone To Animation"
+    bl_options = {'REGISTER', 'UNDO'}
 
     root_bone_name: StringProperty(name="Root Bone", default='root')
     hip_bone_name: StringProperty(name="Hip Bone", default='torso')
 
     _armature = None
     _ik_bone_names = []
+
+    def draw(self, context):
+        layout = self.layout
+        column = layout.column()
+
+        row = column.split(factor=0.25, align=True)
+        row.label(text="Root Bone")
+        row.prop_search(self, 'root_bone_name', context.active_object.data, "bones", text="")
+
+        row = column.split(factor=0.25, align=True)
+        row.label(text="Hip Bone")
+        row.prop_search(self, 'hip_bone_name', context.active_object.data, "bones", text="")
 
     @staticmethod
     def add_loc_rot_key(bone, frame, options):
