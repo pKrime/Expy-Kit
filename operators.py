@@ -1247,10 +1247,9 @@ class Offsetter():
         for i, frame_num in enumerate(range(start + 1, end + 1)):
             bpy.context.scene.frame_set(frame_num)
 
-            rootmo_transf = hip_bone_transfs[i]
-            rootmo_transf_inverse = root_bone.matrix.inverted() @ rootmo_transf
-
+            rootmo_transf = start_mat_inverse @ hip_bone_transfs[i]
             root_bone.matrix = rootmo_transf
+
             root_bone.keyframe_insert('location', index=0, frame=frame_num, options=keyframe_options)
             root_bone.keyframe_insert('location', index=1, frame=frame_num, options=keyframe_options)
             root_bone.keyframe_insert('location', index=2, frame=frame_num, options=keyframe_options)
@@ -1260,9 +1259,12 @@ class Offsetter():
             root_bone.keyframe_insert('rotation_quaternion', index=2, frame=frame_num, options=keyframe_options)
             root_bone.keyframe_insert('rotation_quaternion', index=3, frame=frame_num, options=keyframe_options)
 
+        for i, frame_num in enumerate(range(start + 1, end + 1)):
+            bpy.context.scene.frame_set(frame_num)
+
             floating_mats = all_floating_mats[i]
             for bone, mat in zip(floating_bones, floating_mats):
-                bone.matrix = rootmo_transf_inverse @ mat
+                bone.matrix = mat
 
                 bone.keyframe_insert('location', index=0, frame=frame_num)
                 bone.keyframe_insert('location', index=1, frame=frame_num)
