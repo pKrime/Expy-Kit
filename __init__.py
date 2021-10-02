@@ -48,6 +48,7 @@ def register():
     bpy.utils.register_class(operators.BakeConstrainedActions)
     bpy.utils.register_class(operators.RenameActionsFromFbxFiles)
     bpy.utils.register_class(operators.CreateTransformOffset)
+    bpy.utils.register_class(operators.AddRootMotion)
 
     bpy.utils.register_class(operators.ActionNameCandidates)
     bpy.utils.register_class(ui.ActionRenameSimple)
@@ -84,3 +85,4 @@ def unregister():
     bpy.utils.unregister_class(operators.BakeConstrainedActions)
     bpy.utils.unregister_class(operators.RenameActionsFromFbxFiles)
     bpy.utils.unregister_class(operators.CreateTransformOffset)
+    bpy.utils.unregister_class(operators.AddRootMotion)

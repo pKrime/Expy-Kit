@@ -63,6 +63,9 @@ def pose_context_options(self, context):
     row.operator_context = 'INVOKE_DEFAULT'
     row.operator(operators.RenameActionsFromFbxFiles.bl_idname)
 
+    row = layout.row()
+    row.operator(operators.AddRootMotion.bl_idname)
+
 
 def armature_context_options(self, context):
     layout = self.layout

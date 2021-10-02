@@ -1180,47 +1180,51 @@ def crv_bone_name(fcurve):
     return data_path[len(p_bone_prefix):].rsplit('"]', 1)[0].strip('"[')
 
 
-class Offsetter():
-    def __init__(self):
-        self.armature = bpy.context.active_object
+class AddRootMotion(bpy.types.Operator):
+    bl_idname = "armature.expykit_add_rootmotion"
+    bl_label = "Add Root Motion"
+    bl_description = "Updates Root Motion Bone To Animation"
 
-        self.root_bone_name = 'root'
-        self.hip_bone_name = 'torso'
-        self.ik_bone_names = ['hand_ik.L', 'hand_ik.R', 'foot_ik.L', 'foot_ik.R']
+    root_bone_name: StringProperty(name="Root Bone", default='root')
+    hip_bone_name: StringProperty(name="Hip Bone", default='torso')
 
-    def offset_root_mo(self):
-        hip_bone = self.armature.pose.bones[self.hip_bone_name]
-        root_bone = self.armature.pose.bones[self.root_bone_name]
+    _armature = None
+    _ik_bone_names = []
 
-        floating_bones = list([self.armature.pose.bones[b_name] for b_name in self.ik_bone_names])
-        floating_bones.append(hip_bone)
-        floating_mats = list([b.matrix.copy() for b in floating_bones])
+    @staticmethod
+    def add_loc_rot_key(bone, frame, options):
+        bone.keyframe_insert('location', index=0, frame=frame, options=options)
+        bone.keyframe_insert('location', index=1, frame=frame, options=options)
+        bone.keyframe_insert('location', index=2, frame=frame, options=options)
 
-        root_transform = Matrix()
-        root_transform.translation = hip_bone.matrix.translation
-        root_transform.translation[2] = 0.0
+        bone.keyframe_insert('rotation_quaternion', index=0, frame=frame, options=options)
+        bone.keyframe_insert('rotation_quaternion', index=1, frame=frame, options=options)
+        bone.keyframe_insert('rotation_quaternion', index=2, frame=frame, options=options)
+        bone.keyframe_insert('rotation_quaternion', index=3, frame=frame, options=options)
 
-        root_transform_inverse = root_transform.inverted()
+    def execute(self, context):
+        self._armature = context.active_object
+        self._ik_bone_names = ['hand_ik.L', 'hand_ik.R', 'foot_ik.L', 'foot_ik.R']
 
-        root_bone.matrix = root_transform @ root_bone.matrix
-        for bone, mat in zip(floating_bones, floating_mats):
-            bone.matrix = root_transform_inverse @ mat
+        self.action_offs()
+
+        return {'FINISHED'}
 
     def action_offs(self):
-        action = self.armature.animation_data.action
+        action = self._armature.animation_data.action
         start, end = action.frame_range
         start = int(start)
         end = int(end)
         current = bpy.context.scene.frame_current
 
-        hip_bone = self.armature.pose.bones[self.hip_bone_name]
+        hip_bone = self._armature.pose.bones[self.hip_bone_name]
 
         bpy.context.scene.frame_set(start)
         start_mat = hip_bone.matrix.copy()
         start_mat_inverse = start_mat.inverted()
 
-        root_bone = self.armature.pose.bones[self.root_bone_name]
-        floating_bones = list([self.armature.pose.bones[b_name] for b_name in self.ik_bone_names])
+        root_bone = self._armature.pose.bones[self.root_bone_name]
+        floating_bones = list([self._armature.pose.bones[b_name] for b_name in self._ik_bone_names])
         floating_bones.append(hip_bone)
 
         rootmo_transfs = []
@@ -1235,14 +1239,7 @@ class Offsetter():
 
         bpy.context.scene.frame_set(start)
         keyframe_options = {'INSERTKEY_VISUAL', 'INSERTKEY_CYCLE_AWARE'}
-        root_bone.keyframe_insert('location', index=0, frame=start, options=keyframe_options)
-        root_bone.keyframe_insert('location', index=1, frame=start, options=keyframe_options)
-        root_bone.keyframe_insert('location', index=2, frame=start, options=keyframe_options)
-
-        root_bone.keyframe_insert('rotation_quaternion', index=0, frame=start, options=keyframe_options)
-        root_bone.keyframe_insert('rotation_quaternion', index=1, frame=start, options=keyframe_options)
-        root_bone.keyframe_insert('rotation_quaternion', index=2, frame=start, options=keyframe_options)
-        root_bone.keyframe_insert('rotation_quaternion', index=3, frame=start, options=keyframe_options)
+        self.add_loc_rot_key(root_bone, start, keyframe_options)
 
         for i, frame_num in enumerate(range(start + 1, end + 1)):
             bpy.context.scene.frame_set(frame_num)
@@ -1250,14 +1247,7 @@ class Offsetter():
             rootmo_transf = start_mat_inverse @ hip_bone_transfs[i]
             root_bone.matrix = rootmo_transf
 
-            root_bone.keyframe_insert('location', index=0, frame=frame_num, options=keyframe_options)
-            root_bone.keyframe_insert('location', index=1, frame=frame_num, options=keyframe_options)
-            root_bone.keyframe_insert('location', index=2, frame=frame_num, options=keyframe_options)
-
-            root_bone.keyframe_insert('rotation_quaternion', index=0, frame=frame_num, options=keyframe_options)
-            root_bone.keyframe_insert('rotation_quaternion', index=1, frame=frame_num, options=keyframe_options)
-            root_bone.keyframe_insert('rotation_quaternion', index=2, frame=frame_num, options=keyframe_options)
-            root_bone.keyframe_insert('rotation_quaternion', index=3, frame=frame_num, options=keyframe_options)
+            self.add_loc_rot_key(root_bone, frame_num, keyframe_options)
 
         for i, frame_num in enumerate(range(start + 1, end + 1)):
             bpy.context.scene.frame_set(frame_num)
@@ -1266,34 +1256,9 @@ class Offsetter():
             for bone, mat in zip(floating_bones, floating_mats):
                 bone.matrix = mat
 
-                bone.keyframe_insert('location', index=0, frame=frame_num)
-                bone.keyframe_insert('location', index=1, frame=frame_num)
-                bone.keyframe_insert('location', index=2, frame=frame_num)
-
-                bone.keyframe_insert('rotation_quaternion', index=0, frame=frame_num)
-                bone.keyframe_insert('rotation_quaternion', index=1, frame=frame_num)
-                bone.keyframe_insert('rotation_quaternion', index=2, frame=frame_num)
-                bone.keyframe_insert('rotation_quaternion', index=3, frame=frame_num)
+                self.add_loc_rot_key(bone, frame_num, set())
 
         bpy.context.scene.frame_set(current)
-
-
-
-class TransferRootMotion(bpy.types.Operator):
-    bl_idname = "armature.expykit_transf_rootmotion"
-    bl_label = "Update Root Motion"
-    bl_description = "Updates Root Motion Bone To Animation"
-
-    root_bone_name: StringProperty(name="Root Bone", default="root")
-
-    def execute(self, context):
-        armature = context.active_object
-        action = armature.animation_data.action
-        start, end = action.frame_range
-
-
-
-        return {'FINISHED'}
 
 
 class ActionNameCandidates(bpy.types.PropertyGroup):
