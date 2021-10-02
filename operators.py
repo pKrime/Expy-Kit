@@ -1236,6 +1236,9 @@ class AddRootMotion(bpy.types.Operator):
         row.prop(self, "root_cp_loc_y", text="Y", toggle=True)
         row.prop(self, "root_cp_loc_z", text="Z", toggle=True)
 
+        # TODO: location min/max
+        # TODO: rotation axis
+
     @staticmethod
     def add_loc_rot_key(bone, frame, options):
         bone.keyframe_insert('location', index=0, frame=frame, options=options)
