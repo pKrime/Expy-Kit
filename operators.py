@@ -1192,9 +1192,13 @@ class AddRootMotion(bpy.types.Operator):
 
     root_bone_name: StringProperty(name="Root Bone", default='root')
     hip_bone_name: StringProperty(name="Hip Bone", default='torso')
-    root_cp_loc_x: BoolProperty(name="Root Copy Rot X", description="Constrain Root X Rotation", default=False)
-    root_cp_loc_y: BoolProperty(name="Root Copy Rot y", description="Constrain Root Y Rotation", default=True)
-    root_cp_loc_z: BoolProperty(name="Root Copy Rot Z", description="Constrain Root Z Rotation", default=False)
+    root_cp_loc_x: BoolProperty(name="Root Copy Loc X", description="Copy Root X Location", default=False)
+    root_cp_loc_y: BoolProperty(name="Root Copy Loc y", description="Copy Root Y Location", default=True)
+    root_cp_loc_z: BoolProperty(name="Root Copy Loc Z", description="Copy Root Z Location", default=False)
+
+    root_cp_rot_x: BoolProperty(name="Root Copy Rot X", description="Copy Root X Rotation", default=True)
+    root_cp_rot_y: BoolProperty(name="Root Copy Rot y", description="Copy Root Y Rotation", default=True)
+    root_cp_rot_z: BoolProperty(name="Root Copy Rot Z", description="Copy Root Z Rotation", default=False)
 
     _armature = None
 
@@ -1235,6 +1239,12 @@ class AddRootMotion(bpy.types.Operator):
         row.prop(self, "root_cp_loc_x", text="X", toggle=True)
         row.prop(self, "root_cp_loc_y", text="Y", toggle=True)
         row.prop(self, "root_cp_loc_z", text="Z", toggle=True)
+
+        row = column.row(align=True)
+        row.label(text="Rotation")
+        row.prop(self, "root_cp_rot_x", text="X", toggle=True)
+        row.prop(self, "root_cp_rot_y", text="Y", toggle=True)
+        row.prop(self, "root_cp_rot_z", text="Z", toggle=True)
 
         # TODO: location min/max
         # TODO: rotation axis
@@ -1290,6 +1300,8 @@ class AddRootMotion(bpy.types.Operator):
         root_bone = self._armature.pose.bones[self.root_bone_name]
         skeleton = skeleton_from_type(self.rig_type)
 
+        # TODO: check controls with animation curves instead
+
         rig_bones = [self._armature.pose.bones[b_name] for b_name in skeleton.bone_names() if b_name and b_name != self.root_bone_name]
         floating_bones = list([bone for bone in rig_bones if self.is_bone_floating(bone)])
 
@@ -1318,8 +1330,61 @@ class AddRootMotion(bpy.types.Operator):
             if not self.root_cp_loc_z:
                 rootmo_transf[2][3] = root_bone.matrix[2][3]
 
-            root_bone.matrix = rootmo_transf
+            # TODO: Make sure motion is correct whan anim is on  two axis
 
+            if not all((self.root_cp_rot_x, self.root_cp_rot_y, self.root_cp_rot_z)):
+                if self.root_cp_rot_x + self.root_cp_rot_y + self.root_cp_rot_z < 2:
+                    # need at least two axis to make this work, don't use rotation
+                    no_rot = Matrix()
+                    no_rot[0][3] = rootmo_transf[0][3]
+                    no_rot[1][3] = rootmo_transf[1][3]
+                    no_rot[2][3] = rootmo_transf[2][3]
+
+                    rootmo_transf = no_rot
+                else:
+                    rootmo_transf.transpose()
+                    root_transp = root_bone.matrix.transposed()
+
+                    if not self.root_cp_rot_z:
+                        # XY plane
+                        rootmo_transf[1][2] = root_transp[1][2]
+                        rootmo_transf[0][2] = root_transp[0][2]
+
+                        y_axis = rootmo_transf[1].to_3d()
+                        y_axis.normalize()
+
+                        x_axis = y_axis.cross(root_transp[2].to_3d())
+                        x_axis.normalize()
+
+                        z_axis = x_axis.cross(y_axis)
+                        z_axis.normalize()
+                    elif not self.root_cp_rot_x:
+                        # ZY plane
+                        rootmo_transf[1][0] = root_transp[1][0]
+                        rootmo_transf[2][0] = root_transp[2][0]
+
+                        z_axis = rootmo_transf[2].to_3d().normalized()
+                        up = root_transp[1].to_3d()
+                        x_axis = up.cross(z_axis).normalized()
+                        y_axis = z_axis.cross(x_axis)
+                        y_axis.normalize()
+                    else:
+                        # XZ plane
+                        rootmo_transf[2][1] = root_transp[2][1]
+                        rootmo_transf[0][1] = root_transp[0][1]
+
+                        z_axis = rootmo_transf[2].to_3d().normalized()
+                        up = root_transp[1].to_3d()
+                        x_axis = up.cross(z_axis).normalized()
+                        y_axis = z_axis.cross(x_axis)
+
+                    rootmo_transf[0] = x_axis.to_4d()
+                    rootmo_transf[1] = y_axis.to_4d()
+                    rootmo_transf[2] = z_axis.to_4d()
+
+                    rootmo_transf.transpose()
+
+            root_bone.matrix = rootmo_transf
             self.add_loc_rot_key(root_bone, frame_num, keyframe_options)
 
         for i, frame_num in enumerate(range(start + 1, end + 1)):
