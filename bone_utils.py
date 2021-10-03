@@ -76,13 +76,18 @@ def ebone_roll_to_vector(bone, align_axis, axis_only=False):
     align_axis_proj = align_axis - vec
 
     if axis_only:
-        if align_axis_proj.angle(mat[2]) > pi / 2:
-            align_axis_proj.negate()
+        try:
+            if align_axis_proj.angle(mat[2]) > pi / 2:
+                align_axis_proj.negate()
+        except ValueError:
+            return bone.roll
 
-    roll = align_axis_proj.angle(mat[2])
+    try:
+        roll = align_axis_proj.angle(mat[2])
+    except ValueError:
+        return bone.roll
 
     vec = mat[2].cross(align_axis_proj)
-
     if vec.dot(nor) < 0.0:
         return -roll
 
