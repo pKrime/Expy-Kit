@@ -137,7 +137,7 @@ class HumanSkeleton:
                 bone_map[bone_name] = trg_name
 
         if self.root:
-            bone_mapping[self.root] = target_skeleton.root
+            bone_map[self.root] = target_skeleton.root
 
         for limb_name, bone_name in self.spine.items():
             bone_mapping('spine', limb_name, bone_name)

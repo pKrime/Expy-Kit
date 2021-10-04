@@ -950,7 +950,7 @@ class ConstrainToArmature(bpy.types.Operator):
                 for src_name, trg_name in bone_names_map.items():
                     if not src_name:
                         continue
-                    trg_name = prefix + trg_name
+                    trg_name = str(prefix) + str(trg_name)
                     if not trg_name:
                         continue
                     new_bone_name = bone_utils.copy_bone_to_arm(ob, trg_ob, src_name, suffix=cp_suffix)
@@ -1190,8 +1190,15 @@ class AddRootMotion(bpy.types.Operator):
                            name="Rig Type",
                            default='--')
 
+    new_anim_suffix: StringProperty(name="Suffix",
+                                    default="_RM",
+                                    description="Suffix of the duplicate animation, leave empty to overwrite")
+
     root_bone_name: StringProperty(name="Root Bone", default='root')
     hip_bone_name: StringProperty(name="Hip Bone", default='torso')
+
+    keep_offset: BoolProperty(name="Keep Offset", default=True)
+
     root_cp_loc_x: BoolProperty(name="Root Copy Loc X", description="Copy Root X Location", default=False)
     root_cp_loc_y: BoolProperty(name="Root Copy Loc y", description="Copy Root Y Location", default=True)
     root_cp_loc_z: BoolProperty(name="Root Copy Loc Z", description="Copy Root Z Location", default=False)
@@ -1232,7 +1239,16 @@ class AddRootMotion(bpy.types.Operator):
         row.label(text="Hip Bone")
         row.prop_search(self, 'hip_bone_name', context.active_object.data, "bones", text="")
 
+        row = column.split(factor=0.25, align=True)
+        row.label(text="Suffix:")
+        row.prop(self, 'new_anim_suffix', text="")
+
         column.separator()
+
+        # # Not showing Keep Offset yet: need to key first frame in order to use
+        # row = column.split(factor=0.25, align=True)
+        # row.label(text="Keep Offset")
+        # row.prop(self, "keep_offset", text="")
 
         row = column.row(align=True)
         row.label(text="Location")
@@ -1268,6 +1284,14 @@ class AddRootMotion(bpy.types.Operator):
             return {'FINISHED'}
 
         self._armature = context.active_object
+
+        if self.new_anim_suffix:
+            action_dupli = self._armature.animation_data.action.copy()
+
+            action_name = self._armature.animation_data.action.name
+            action_dupli.name = f'{action_name}{self.new_anim_suffix}'
+            self._armature.animation_data.action = action_dupli
+
         self.action_offs()
 
         return {'FINISHED'}
@@ -1296,6 +1320,10 @@ class AddRootMotion(bpy.types.Operator):
         bpy.context.scene.frame_set(start)
         start_mat = hip_bone.matrix.copy()
         start_mat_inverse = start_mat.inverted()
+        if self.keep_offset:
+            offset_mat = self._armature.data.bones[hip_bone.name].matrix_local.inverted()
+        else:
+            offset_mat = Matrix()
 
         root_bone = self._armature.pose.bones[self.root_bone_name]
         skeleton = skeleton_from_type(self.rig_type)
@@ -1322,15 +1350,13 @@ class AddRootMotion(bpy.types.Operator):
         for i, frame_num in enumerate(range(start + 1, end + 1)):
             bpy.context.scene.frame_set(frame_num)
 
-            rootmo_transf = start_mat_inverse @ hip_bone_transfs[i]
+            rootmo_transf = offset_mat @ hip_bone_transfs[i]
             if not self.root_cp_loc_x:
                 rootmo_transf[0][3] = root_bone.matrix[0][3]
             if not self.root_cp_loc_y:
                 rootmo_transf[1][3] = root_bone.matrix[1][3]
             if not self.root_cp_loc_z:
                 rootmo_transf[2][3] = root_bone.matrix[2][3]
-
-            # TODO: Make sure motion is correct whan anim is on  two axis
 
             if not all((self.root_cp_rot_x, self.root_cp_rot_y, self.root_cp_rot_z)):
                 if self.root_cp_rot_x + self.root_cp_rot_y + self.root_cp_rot_z < 2:
