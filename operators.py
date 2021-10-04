@@ -889,6 +889,9 @@ class ConstrainToArmature(bpy.types.Operator):
         row.separator()
         row.prop(self, 'mismatch_threshold')
 
+        # omit experimental Root constraints for now
+        return
+
         row = column.split(factor=0.25, align=True)
         row.label(text="Root Motion Bone (Experimental)")
         row.prop_search(self, 'root_motion_bone',
@@ -1182,8 +1185,8 @@ def crv_bone_name(fcurve):
 
 class AddRootMotion(bpy.types.Operator):
     bl_idname = "armature.expykit_add_rootmotion"
-    bl_label = "Add Root Motion"
-    bl_description = "Updates Root Motion Bone To Animation"
+    bl_label = "Hip to Root Motion"
+    bl_description = "Bring Hip Motion to Root Bone"
     bl_options = {'REGISTER', 'UNDO'}
 
     rig_type: EnumProperty(items=skeleton_types,
@@ -1198,10 +1201,32 @@ class AddRootMotion(bpy.types.Operator):
     hip_bone_name: StringProperty(name="Hip Bone", default='torso')
 
     keep_offset: BoolProperty(name="Keep Offset", default=True)
+    offset_type: EnumProperty(items=[
+        ('rest', "Rest Pose", "Offset to Rest Pose"),
+        ('start', "Action Start", "Offset to Start Pose"),
+        ('end', "Action End", "Offset to End Pose")],
+                              name="Offset",
+                              default='rest')
 
     root_cp_loc_x: BoolProperty(name="Root Copy Loc X", description="Copy Root X Location", default=False)
     root_cp_loc_y: BoolProperty(name="Root Copy Loc y", description="Copy Root Y Location", default=True)
     root_cp_loc_z: BoolProperty(name="Root Copy Loc Z", description="Copy Root Z Location", default=False)
+
+    root_use_loc_min_x: BoolProperty(name="Use Root Min X", description="Minimum Root X", default=False)
+    root_use_loc_min_y: BoolProperty(name="Use Root Min Y", description="Minimum Root Y", default=False)
+    root_use_loc_min_z: BoolProperty(name="Use Root Min Z", description="Minimum Root Z", default=True)
+
+    root_loc_min_x: FloatProperty(name="Root Min X", description="Minimum Root X", default=0.0)
+    root_loc_min_y: FloatProperty(name="Root Min Y", description="Minimum Root Y", default=0.0)
+    root_loc_min_z: FloatProperty(name="Root Min Z", description="Minimum Root Z", default=0.0)
+
+    root_use_loc_max_x: BoolProperty(name="Use Root Max X", description="Maximum Root X", default=False)
+    root_use_loc_max_y: BoolProperty(name="Use Root Max Y", description="Maximum Root Y", default=False)
+    root_use_loc_max_z: BoolProperty(name="Use Root Max Z", description="Maximum Root Z", default=False)
+
+    root_loc_max_x: FloatProperty(name="Root Max X", description="Maximum Root X", default=0.0)
+    root_loc_max_y: FloatProperty(name="Root Max Y", description="Maximum Root Y", default=0.0)
+    root_loc_max_z: FloatProperty(name="Root Max Z", description="Maximum Root Z", default=0.0)
 
     root_cp_rot_x: BoolProperty(name="Root Copy Rot X", description="Copy Root X Rotation", default=True)
     root_cp_rot_y: BoolProperty(name="Root Copy Rot y", description="Copy Root Y Rotation", default=True)
@@ -1245,10 +1270,11 @@ class AddRootMotion(bpy.types.Operator):
 
         column.separator()
 
-        # # Not showing Keep Offset yet: need to key first frame in order to use
-        # row = column.split(factor=0.25, align=True)
-        # row.label(text="Keep Offset")
-        # row.prop(self, "keep_offset", text="")
+        row = column.row(align=False)
+        row.prop(self, "keep_offset")
+        subcol = row.column()
+        subcol.prop(self, "offset_type", text="Match ")
+        subcol.enabled = self.keep_offset
 
         row = column.row(align=True)
         row.label(text="Location")
@@ -1262,8 +1288,52 @@ class AddRootMotion(bpy.types.Operator):
         row.prop(self, "root_cp_rot_y", text="Y", toggle=True)
         row.prop(self, "root_cp_rot_z", text="Z", toggle=True)
 
-        # TODO: location min/max
-        # TODO: rotation axis
+        column.separator()
+
+        # Min/Max X
+        row = column.row(align=True)
+        row.prop(self, "root_use_loc_min_x", text="Min X")
+
+        subcol = row.column()
+        subcol.prop(self, "root_loc_min_x", text="")
+        subcol.enabled = self.root_use_loc_min_x
+
+        row.separator()
+        row.prop(self, "root_use_loc_max_x", text="Max X")
+        subcol = row.column()
+        subcol.prop(self, "root_loc_max_x", text="")
+        subcol.enabled = self.root_use_loc_max_x
+        row.enabled = self.root_cp_loc_x
+
+        # Min/Max Y
+        row = column.row(align=True)
+        row.prop(self, "root_use_loc_min_y", text="Min Y")
+
+        subcol = row.column()
+        subcol.prop(self, "root_loc_min_y", text="")
+        subcol.enabled = self.root_use_loc_min_y
+
+        row.separator()
+        row.prop(self, "root_use_loc_max_y", text="Max Y")
+        subcol = row.column()
+        subcol.prop(self, "root_loc_max_y", text="")
+        subcol.enabled = self.root_use_loc_max_y
+        row.enabled = self.root_cp_loc_y
+
+        # Min/Max Z
+        row = column.row(align=True)
+        row.prop(self, "root_use_loc_min_z", text="Min Z")
+
+        subcol = row.column()
+        subcol.prop(self, "root_loc_min_z", text="")
+        subcol.enabled = self.root_use_loc_min_z
+
+        row.separator()
+        row.prop(self, "root_use_loc_max_z", text="Max Z")
+        subcol = row.column()
+        subcol.prop(self, "root_loc_max_z", text="")
+        subcol.enabled = self.root_use_loc_max_z
+        row.enabled = self.root_cp_loc_z
 
     @staticmethod
     def add_loc_rot_key(bone, frame, options):
@@ -1290,6 +1360,7 @@ class AddRootMotion(bpy.types.Operator):
 
             action_name = self._armature.animation_data.action.name
             action_dupli.name = f'{action_name}{self.new_anim_suffix}'
+            action_dupli.use_fake_user = self._armature.animation_data.action.use_fake_user
             self._armature.animation_data.action = action_dupli
 
         self.action_offs()
@@ -1317,11 +1388,22 @@ class AddRootMotion(bpy.types.Operator):
 
         hip_bone = self._armature.pose.bones[self.hip_bone_name]
 
+        if self.keep_offset and self.offset_type == 'end':
+            bpy.context.scene.frame_set(end)
+            end_mat = hip_bone.matrix.copy()
+        else:
+            end_mat = Matrix()
+
         bpy.context.scene.frame_set(start)
         start_mat = hip_bone.matrix.copy()
         start_mat_inverse = start_mat.inverted()
         if self.keep_offset:
-            offset_mat = self._armature.data.bones[hip_bone.name].matrix_local.inverted()
+            if self.offset_type == 'rest':
+                offset_mat = self._armature.data.bones[hip_bone.name].matrix_local.inverted()
+            elif self.offset_type == 'start':
+                offset_mat = start_mat_inverse
+            elif self.offset_type == 'end':
+                offset_mat = end_mat.inverted()
         else:
             offset_mat = Matrix()
 
@@ -1336,7 +1418,7 @@ class AddRootMotion(bpy.types.Operator):
         rootmo_transfs = []
         hip_bone_transfs = []
         all_floating_mats = []
-        for frame_num in range(start + 1, end + 1):
+        for frame_num in range(start, end + 1):
             bpy.context.scene.frame_set(frame_num)
 
             all_floating_mats.append(list([b.matrix.copy() for b in floating_bones]))
@@ -1347,15 +1429,30 @@ class AddRootMotion(bpy.types.Operator):
         keyframe_options = {'INSERTKEY_VISUAL', 'INSERTKEY_CYCLE_AWARE'}
         self.add_loc_rot_key(root_bone, start, keyframe_options)
 
-        for i, frame_num in enumerate(range(start + 1, end + 1)):
+        for i, frame_num in enumerate(range(start, end + 1)):
             bpy.context.scene.frame_set(frame_num)
 
             rootmo_transf = offset_mat @ hip_bone_transfs[i]
-            if not self.root_cp_loc_x:
+            if self.root_cp_loc_x:
+                if self.root_use_loc_min_x:
+                    rootmo_transf[0][3] = max(rootmo_transf[0][3], self.root_loc_min_x)
+                if self.root_use_loc_max_x:
+                    rootmo_transf[0][3] = min(rootmo_transf[0][3], self.root_loc_max_x)
+            else:
                 rootmo_transf[0][3] = root_bone.matrix[0][3]
-            if not self.root_cp_loc_y:
+            if self.root_cp_loc_y:
+                if self.root_use_loc_min_y:
+                    rootmo_transf[1][3] = max(rootmo_transf[1][3], self.root_loc_min_y)
+                if self.root_use_loc_max_y:
+                    rootmo_transf[1][3] = min(rootmo_transf[1][3], self.root_loc_max_y)
+            else:
                 rootmo_transf[1][3] = root_bone.matrix[1][3]
-            if not self.root_cp_loc_z:
+            if self.root_cp_loc_z:
+                if self.root_use_loc_min_z:
+                    rootmo_transf[2][3] = max(rootmo_transf[2][3], self.root_loc_min_z)
+                if self.root_use_loc_max_z:
+                    rootmo_transf[2][3] = min(rootmo_transf[2][3], self.root_loc_max_z)
+            else:
                 rootmo_transf[2][3] = root_bone.matrix[2][3]
 
             if not all((self.root_cp_rot_x, self.root_cp_rot_y, self.root_cp_rot_z)):
@@ -1413,7 +1510,7 @@ class AddRootMotion(bpy.types.Operator):
             root_bone.matrix = rootmo_transf
             self.add_loc_rot_key(root_bone, frame_num, keyframe_options)
 
-        for i, frame_num in enumerate(range(start + 1, end + 1)):
+        for i, frame_num in enumerate(range(start, end + 1)):
             bpy.context.scene.frame_set(frame_num)
 
             floating_mats = all_floating_mats[i]
