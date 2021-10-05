@@ -1197,16 +1197,15 @@ class AddRootMotion(bpy.types.Operator):
                                     default="_RM",
                                     description="Suffix of the duplicate animation, leave empty to overwrite")
 
-    root_bone_name: StringProperty(name="Root Bone", default='root')
-    hip_bone_name: StringProperty(name="Hip Bone", default='torso')
-
     keep_offset: BoolProperty(name="Keep Offset", default=True)
     offset_type: EnumProperty(items=[
-        ('rest', "Rest Pose", "Offset to Rest Pose"),
         ('start', "Action Start", "Offset to Start Pose"),
-        ('end', "Action End", "Offset to End Pose")],
+        ('end', "Action End", "Offset to Match End Pose"),
+        ('rest', "Rest Pose", "Offset to Match Rest Pose")],
                               name="Offset",
-                              default='rest')
+                              default='start')
+
+    # TODO: offset_type start/end: matches first frame at start, last frame at end, weighted average inbetween
 
     root_cp_loc_x: BoolProperty(name="Root Copy Loc X", description="Copy Root X Location", default=False)
     root_cp_loc_y: BoolProperty(name="Root Copy Loc y", description="Copy Root Y Location", default=True)
@@ -1255,14 +1254,6 @@ class AddRootMotion(bpy.types.Operator):
         row = column.split(factor=0.25, align=True)
         row.label(text="Rig Type")
         row.prop(self, 'rig_type', text="")
-
-        row = column.split(factor=0.25, align=True)
-        row.label(text="Root Bone")
-        row.prop_search(self, 'root_bone_name', context.active_object.data, "bones", text="")
-
-        row = column.split(factor=0.25, align=True)
-        row.label(text="Hip Bone")
-        row.prop_search(self, 'hip_bone_name', context.active_object.data, "bones", text="")
 
         row = column.split(factor=0.25, align=True)
         row.label(text="Suffix:")
@@ -1354,7 +1345,6 @@ class AddRootMotion(bpy.types.Operator):
             return {'FINISHED'}
 
         self._armature = context.active_object
-
         if self.new_anim_suffix:
             action_dupli = self._armature.animation_data.action.copy()
 
@@ -1363,14 +1353,15 @@ class AddRootMotion(bpy.types.Operator):
             action_dupli.use_fake_user = self._armature.animation_data.action.use_fake_user
             self._armature.animation_data.action = action_dupli
 
-        self.action_offs()
+        rig_map = skeleton_from_type(self.rig_type)
+        self.action_offs(rig_map.root, rig_map.spine.hips)
 
         return {'FINISHED'}
 
-    def is_bone_floating(self, bone):
+    def is_bone_floating(self, bone, hips_bone_name):
         binding_constrs = ['COPY_LOCATION', 'COPY_ROTATION', 'COPY_TRANSFORMS']
         while bone.parent:
-            if bone.parent.name == self.hip_bone_name:
+            if bone.parent.name == hips_bone_name:
                 return False
             for constr in bone.constraints:
                 if constr.type in binding_constrs:
@@ -1379,14 +1370,14 @@ class AddRootMotion(bpy.types.Operator):
 
         return True
 
-    def action_offs(self):
+    def action_offs(self, root_bone_name, hips_bone_name):
         action = self._armature.animation_data.action
         start, end = action.frame_range
         start = int(start)
         end = int(end)
         current = bpy.context.scene.frame_current
 
-        hip_bone = self._armature.pose.bones[self.hip_bone_name]
+        hip_bone = self._armature.pose.bones[hips_bone_name]
 
         if self.keep_offset and self.offset_type == 'end':
             bpy.context.scene.frame_set(end)
@@ -1407,13 +1398,13 @@ class AddRootMotion(bpy.types.Operator):
         else:
             offset_mat = Matrix()
 
-        root_bone = self._armature.pose.bones[self.root_bone_name]
+        root_bone = self._armature.pose.bones[root_bone_name]
         skeleton = skeleton_from_type(self.rig_type)
 
         # TODO: check controls with animation curves instead
 
-        rig_bones = [self._armature.pose.bones[b_name] for b_name in skeleton.bone_names() if b_name and b_name != self.root_bone_name]
-        floating_bones = list([bone for bone in rig_bones if self.is_bone_floating(bone)])
+        rig_bones = [self._armature.pose.bones[b_name] for b_name in skeleton.bone_names() if b_name and b_name != root_bone_name]
+        floating_bones = list([bone for bone in rig_bones if self.is_bone_floating(bone, hips_bone_name)])
 
         rootmo_transfs = []
         hip_bone_transfs = []
@@ -1423,7 +1414,7 @@ class AddRootMotion(bpy.types.Operator):
 
             all_floating_mats.append(list([b.matrix.copy() for b in floating_bones]))
             hip_bone_transfs.append(hip_bone.matrix.copy())
-            rootmo_transfs.append(start_mat_inverse @ hip_bone.matrix)
+            rootmo_transfs.append(hip_bone.matrix @ start_mat_inverse)
 
         bpy.context.scene.frame_set(start)
         keyframe_options = {'INSERTKEY_VISUAL', 'INSERTKEY_CYCLE_AWARE'}
@@ -1432,7 +1423,7 @@ class AddRootMotion(bpy.types.Operator):
         for i, frame_num in enumerate(range(start, end + 1)):
             bpy.context.scene.frame_set(frame_num)
 
-            rootmo_transf = offset_mat @ hip_bone_transfs[i]
+            rootmo_transf = hip_bone_transfs[i] @ offset_mat
             if self.root_cp_loc_x:
                 if self.root_use_loc_min_x:
                     rootmo_transf[0][3] = max(rootmo_transf[0][3], self.root_loc_min_x)
