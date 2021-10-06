@@ -820,34 +820,45 @@ class ConstrainToArmature(bpy.types.Operator):
                                description="Correct chain direction based on mid limb (Useful for IK)",
                                default=False)
 
+    constrain_root: EnumProperty(items=[
+        ('None', "No Root", "Don't constrain root bone"),
+        ('Bone', "Bone", "Constrain root to bone"),
+        ('Object', "Object", "Constrain root to object")
+    ],
+        name="Constrain Root",
+        default='Bone')
+
     root_motion_bone: StringProperty(name="Root Motion",
                                      description="Constrain Root bone to Hip motion",
                                      default="")
 
-    limit_root_height_min: BoolProperty(name="Limit Min Height", description="Limit root bone min height",
-                                        default=False)
+    root_cp_loc_x: BoolProperty(name="Root Copy Loc X", description="Copy Root X Location", default=False)
+    root_cp_loc_y: BoolProperty(name="Root Copy Loc y", description="Copy Root Y Location", default=True)
+    root_cp_loc_z: BoolProperty(name="Root Copy Loc Z", description="Copy Root Z Location", default=False)
 
-    root_height_min: FloatProperty(name="Root Min Height",
-                                   description="Prevent Root Bone from going below this height")
+    root_use_loc_min_x: BoolProperty(name="Use Root Min X", description="Minimum Root X", default=False)
+    root_use_loc_min_y: BoolProperty(name="Use Root Min Y", description="Minimum Root Y", default=False)
+    root_use_loc_min_z: BoolProperty(name="Use Root Min Z", description="Minimum Root Z", default=True)
 
-    limit_root_height_max: BoolProperty(name="Limit Max Height", description="Limit root bone max height",
-                                        default=False)
+    root_loc_min_x: FloatProperty(name="Root Min X", description="Minimum Root X", default=0.0)
+    root_loc_min_y: FloatProperty(name="Root Min Y", description="Minimum Root Y", default=0.0)
+    root_loc_min_z: FloatProperty(name="Root Min Z", description="Minimum Root Z", default=0.0)
 
-    root_height_max: FloatProperty(name="Root Max Height",
-                                   description="Prevent Root Bone from going above this height")
+    root_use_loc_max_x: BoolProperty(name="Use Root Max X", description="Maximum Root X", default=False)
+    root_use_loc_max_y: BoolProperty(name="Use Root Max Y", description="Maximum Root Y", default=False)
+    root_use_loc_max_z: BoolProperty(name="Use Root Max Z", description="Maximum Root Z", default=False)
 
-    mismatch_threshold: FloatProperty(
-        name="Mismatching Threshold",
-        description="Match target bone if not farthest than this value",
-        default=0.0
-    )
+    root_loc_max_x: FloatProperty(name="Root Max X", description="Maximum Root X", default=0.0)
+    root_loc_max_y: FloatProperty(name="Root Max Y", description="Maximum Root Y", default=0.0)
+    root_loc_max_z: FloatProperty(name="Root Max Z", description="Maximum Root Z", default=0.0)
 
-    root_cp_rot_x: BoolProperty(name="Root Copy Rot X", description="Constrain Root X Rotation", default=True)
-    root_cp_rot_y: BoolProperty(name="Root Copy Rot y", description="Constrain Root Y Rotation", default=True)
-    root_cp_rot_z: BoolProperty(name="Root Copy Rot Z", description="Constrain Root Z Rotation", default=True)
+    root_cp_rot_x: BoolProperty(name="Root Copy Rot X", description="Copy Root X Rotation", default=False)
+    root_cp_rot_y: BoolProperty(name="Root Copy Rot y", description="Copy Root Y Rotation", default=False)
+    root_cp_rot_z: BoolProperty(name="Root Copy Rot Z", description="Copy Root Z Rotation", default=False)
 
     check_prefix = BoolProperty(default=False, name="Check Prefix")
     _separator = ":"  # TODO: StringProperty
+    _autovars_unset = True
 
     @classmethod
     def poll(cls, context):
@@ -886,34 +897,81 @@ class ConstrainToArmature(bpy.types.Operator):
         row.prop(self, 'math_look_at')
 
         row = column.split(factor=0.25, align=True)
-        row.separator()
-        row.prop(self, 'mismatch_threshold')
+        row.label(text="Root Animation")
+        row.prop(self, 'constrain_root', text="")
 
-        # omit experimental Root constraints for now
-        return
+        if self.constrain_root == 'Bone':
+            row = column.split(factor=0.25, align=True)
+            row.label(text="")
+            row.prop_search(self, 'root_motion_bone',
+                            context.active_object.data,
+                            "bones", text="")
 
-        row = column.split(factor=0.25, align=True)
-        row.label(text="Root Motion Bone (Experimental)")
-        row.prop_search(self, 'root_motion_bone',
-                        next(ob.data for ob in context.selected_objects if ob != context.active_object),
-                        "bones", text="")
+        if self.constrain_root != 'None':
+            row = column.row(align=True)
+            row.label(text="Location")
+            row.prop(self, "root_cp_loc_x", text="X", toggle=True)
+            row.prop(self, "root_cp_loc_y", text="Y", toggle=True)
+            row.prop(self, "root_cp_loc_z", text="Z", toggle=True)
 
-        row = column.split(factor=0.25, align=True)
-        row.prop(self, 'limit_root_height_min', text="Min Height")
-        row.prop(self, 'root_height_min', text="")
-        row.enabled = bool(self.root_motion_bone)
+            if any((self.root_cp_loc_x, self.root_cp_loc_y, self.root_cp_loc_z)):
+                column.separator()
 
-        row = column.split(factor=0.25, align=True)
-        row.prop(self, 'limit_root_height_max', text="Max Height")
-        row.prop(self, 'root_height_max', text="")
-        row.enabled = bool(self.root_motion_bone)
+                # Min/Max X
+                if self.root_cp_loc_x:
+                    row = column.row(align=True)
+                    row.prop(self, "root_use_loc_min_x", text="Min X")
 
-        row = column.row(align=True)
-        row.label(text="Rotation")
-        row.prop(self, "root_cp_rot_x", text="X", toggle=True)
-        row.prop(self, "root_cp_rot_y", text="Y", toggle=True)
-        row.prop(self, "root_cp_rot_z", text="Z", toggle=True)
-        row.enabled = bool(self.root_motion_bone)
+                    subcol = row.column()
+                    subcol.prop(self, "root_loc_min_x", text="")
+                    subcol.enabled = self.root_use_loc_min_x
+
+                    row.separator()
+                    row.prop(self, "root_use_loc_max_x", text="Max X")
+                    subcol = row.column()
+                    subcol.prop(self, "root_loc_max_x", text="")
+                    subcol.enabled = self.root_use_loc_max_x
+                    row.enabled = self.root_cp_loc_x
+
+                # Min/Max Y
+                if self.root_cp_loc_y:
+                    row = column.row(align=True)
+                    row.prop(self, "root_use_loc_min_y", text="Min Y")
+
+                    subcol = row.column()
+                    subcol.prop(self, "root_loc_min_y", text="")
+                    subcol.enabled = self.root_use_loc_min_y
+
+                    row.separator()
+                    row.prop(self, "root_use_loc_max_y", text="Max Y")
+                    subcol = row.column()
+                    subcol.prop(self, "root_loc_max_y", text="")
+                    subcol.enabled = self.root_use_loc_max_y
+                    row.enabled = self.root_cp_loc_y
+
+                # Min/Max Z
+                if self.root_cp_loc_z:
+                    row = column.row(align=True)
+                    row.prop(self, "root_use_loc_min_z", text="Min Z")
+
+                    subcol = row.column()
+                    subcol.prop(self, "root_loc_min_z", text="")
+                    subcol.enabled = self.root_use_loc_min_z
+
+                    row.separator()
+                    row.prop(self, "root_use_loc_max_z", text="Max Z")
+                    subcol = row.column()
+                    subcol.prop(self, "root_loc_max_z", text="")
+                    subcol.enabled = self.root_use_loc_max_z
+                    row.enabled = self.root_cp_loc_z
+
+                column.separator()
+
+            row = column.row(align=True)
+            row.label(text="Rotation")
+            row.prop(self, "root_cp_rot_x", text="X", toggle=True)
+            row.prop(self, "root_cp_rot_y", text="Y", toggle=True)
+            row.prop(self, "root_cp_rot_z", text="Z", toggle=True)
 
     def execute(self, context):
         src_skeleton = skeleton_from_type(self.source)
@@ -928,6 +986,14 @@ class ConstrainToArmature(bpy.types.Operator):
         deformation_map = src_skeleton.deformation_bone_map
 
         trg_ob = context.active_object
+        # if self._autovars_unset:
+        #     # try automatic settings on first executions
+        #     if trg_skeleton.root:
+        #         self.root_motion_bone = trg_skeleton.root
+        #     if src_skeleton.root in trg_ob.data.bones:
+        #         self.root_motion_bone = src_skeleton.root
+        #
+        #     self._autovars_unset = False
 
         cp_suffix = 'RET'
 
@@ -944,8 +1010,13 @@ class ConstrainToArmature(bpy.types.Operator):
 
             look_ats = {}
 
-            if self.root_motion_bone:
-                bone_names_map[self.root_motion_bone] = trg_skeleton.spine.hips
+            if self.constrain_root == 'None':
+                try:
+                    del bone_names_map[src_skeleton.root]
+                except KeyError:
+                    pass
+            elif self.constrain_root == 'Bone':
+                bone_names_map[src_skeleton.root] = self.root_motion_bone
 
             if f'{next(iter(bone_names_map))}_{cp_suffix}' not in trg_ob.data.bones:
                 # create Retarget bones
@@ -953,25 +1024,25 @@ class ConstrainToArmature(bpy.types.Operator):
                 for src_name, trg_name in bone_names_map.items():
                     if not src_name:
                         continue
-                    trg_name = str(prefix) + str(trg_name)
-                    if not trg_name:
+
+                    is_object_root = src_name == src_skeleton.root and self.constrain_root == 'Object'
+                    if not trg_name and not is_object_root:
                         continue
+
+                    trg_name = str(prefix) + str(trg_name)
                     new_bone_name = bone_utils.copy_bone_to_arm(ob, trg_ob, src_name, suffix=cp_suffix)
                     if not new_bone_name:
                         continue
                     try:
                         new_parent = trg_ob.data.edit_bones[trg_name]
                     except KeyError:
-                        self.report({'WARNING'}, f"{trg_name} not found in target")
-                        continue
+                        if is_object_root:
+                            new_parent = None
+                        else:
+                            self.report({'WARNING'}, f"{trg_name} not found in target")
+                            continue
 
                     new_bone = trg_ob.data.edit_bones[new_bone_name]
-                    mismatch = new_parent.head - new_bone.head
-
-                    if 0.0 < mismatch.length < self.mismatch_threshold:
-                        new_bone.head = new_parent.head
-                        new_bone.tail += mismatch
-
                     new_bone.parent = new_parent
 
                     if self.match_target_matrix and deformation_map:
@@ -980,6 +1051,11 @@ class ConstrainToArmature(bpy.types.Operator):
                             def_bone = ob.data.edit_bones[deformation_map[src_name]]
                         except KeyError:
                             continue
+                        try:
+                            trg_ed_bone = trg_ob.data.edit_bones[trg_name]
+                        except KeyError:
+                            continue
+
                         new_bone.transform(def_bone.matrix.inverted())
 
                         # even transform
@@ -987,7 +1063,7 @@ class ConstrainToArmature(bpy.types.Operator):
                         # counter target transform
                         new_bone.transform(trg_ob.matrix_world.inverted())
                         # bring under trg_bone
-                        new_bone.transform(trg_ob.data.edit_bones[trg_name].matrix)
+                        new_bone.transform(trg_ed_bone.matrix)
 
                         # orient to TARGET bone
                         trg_bone = trg_ob.data.bones[trg_name]
@@ -1059,6 +1135,11 @@ class ConstrainToArmature(bpy.types.Operator):
             for src_name in bone_names_map.keys():
                 if not src_name:
                     continue
+                if src_name == src_skeleton.root:
+                    if self.constrain_root == "None":
+                        continue
+                    if self.constrain_root == "Bone" and not self.root_motion_bone:
+                        continue
                 try:
                     src_pbone = ob.pose.bones[src_name]
                 except KeyError:
@@ -1068,27 +1149,40 @@ class ConstrainToArmature(bpy.types.Operator):
                     for constr_type in 'COPY_ROTATION', 'COPY_LOCATION':
                         constr = src_pbone.constraints.new(type=constr_type)
                         constr.target = trg_ob
-                        constr.subtarget = f'{src_name}_{cp_suffix}'
 
-            if self.root_motion_bone:
-                rbone = ob.pose.bones[self.root_motion_bone]
-                if self.limit_root_height_max or self.limit_root_height_min:
+                        subtarget_name = f'{src_name}_{cp_suffix}'
+                        if subtarget_name in trg_ob.data.bones:
+                            constr.subtarget = subtarget_name
 
-                    constr = rbone.constraints.new('LIMIT_LOCATION')
-                    constr.use_min_z = self.limit_root_height_min
-                    constr.use_max_z = self.limit_root_height_max
+                if self.constrain_root != 'None' and src_name == src_skeleton.root:
+                    if any((self.root_use_loc_min_x, self.root_use_loc_min_y, self.root_use_loc_min_z,
+                           self.root_use_loc_max_x, self.root_use_loc_max_y, self.root_use_loc_max_z))\
+                            or not all((self.root_cp_loc_x, self.root_cp_loc_y, self.root_cp_loc_z)):
 
-                    constr.min_z = self.root_height_min
-                    constr.max_z = self.root_height_max
+                        constr = src_pbone.constraints.new('LIMIT_LOCATION')
 
-                try:
-                    constr = next(c for c in rbone.constraints if c.type == 'COPY_ROTATION')
-                except StopIteration:
-                    pass
-                else:
-                    constr.use_x = self.root_cp_rot_x
-                    constr.use_y = self.root_cp_rot_y
-                    constr.use_z = self.root_cp_rot_z
+                        constr.use_min_x = self.root_use_loc_min_x or not self.root_cp_loc_x
+                        constr.use_min_y = self.root_use_loc_min_y or not self.root_cp_loc_y
+                        constr.use_min_z = self.root_use_loc_min_z or not self.root_cp_loc_z
+
+                        constr.use_max_x = self.root_use_loc_max_x or not self.root_cp_loc_x
+                        constr.use_max_y = self.root_use_loc_max_y or not self.root_cp_loc_y
+                        constr.use_max_z = self.root_use_loc_max_z or not self.root_cp_loc_z
+
+                        constr.min_x = self.root_loc_min_x if self.root_cp_loc_x and self.root_use_loc_min_x else 0.0
+                        constr.min_y = self.root_loc_min_y if self.root_cp_loc_y and self.root_use_loc_min_y else 0.0
+                        constr.min_z = self.root_loc_min_z if self.root_cp_loc_z and self.root_use_loc_min_z else 0.0
+
+                        constr.max_x = self.root_loc_max_x if self.root_cp_loc_x and self.root_use_loc_max_x else 0.0
+                        constr.max_y = self.root_loc_max_y if self.root_cp_loc_y and self.root_use_loc_max_y else 0.0
+                        constr.max_z = self.root_loc_max_z if self.root_cp_loc_z and self.root_use_loc_max_z else 0.0
+
+                    if not all((self.root_cp_rot_x, self.root_cp_rot_y, self.root_cp_rot_z)):
+                        constr = src_pbone.constraints.new('LIMIT_ROTATION')
+
+                        constr.use_limit_x = not self.root_cp_rot_x
+                        constr.use_limit_y = not self.root_cp_rot_y
+                        constr.use_limit_z = not self.root_cp_rot_z
 
         return {'FINISHED'}
 
@@ -1119,7 +1213,7 @@ class BakeConstrainedActions(bpy.types.Operator):
                                   default=True)
 
     fake_user_new: BoolProperty(name="Save New Action User",
-                              default=True)
+                                default=True)
 
     @classmethod
     def poll(cls, context):
