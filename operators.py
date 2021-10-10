@@ -1627,7 +1627,7 @@ class RenameActionsFromFbxFiles(bpy.types.Operator, ImportHelper):
         type=bpy.types.OperatorFileListElement,
     )
 
-    suffix: StringProperty(default="")
+    starts_with: StringProperty(default="Action", name="Starts With")
 
     def execute(self, context):
         fbx_durations = dict()
@@ -1652,6 +1652,8 @@ class RenameActionsFromFbxFiles(bpy.types.Operator, ImportHelper):
 
         path_resolve = context.object.path_resolve
         for action in bpy.data.actions:
+            if self.starts_with and not action.name.startswith(self.starts_with):
+                continue
             if not validate_actions(action, path_resolve):
                 continue
 
