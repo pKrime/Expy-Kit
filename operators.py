@@ -238,8 +238,11 @@ class CreateTransformOffset(bpy.types.Operator):
 
     container_name: StringProperty(name="Name", description="Name of the transform container", default="EMP-Offset")
     container_scale: FloatProperty(name="Scale", description="Scale of the transform container", default=0.01)
+    fix_animations: BoolProperty(name="Fix Animations", description="Apply Offset to character animations", default=True)
+    do_parent: BoolProperty(name="Execute and Exit", description="Parent to the new offset and exit",
+                            default=False, options={'SKIP_SAVE'})
 
-    _allowed_modes = ['OBJECT']
+    _allowed_modes = ['OBJECT', 'POSE']
 
     @classmethod
     def poll(cls, context):
@@ -261,7 +264,8 @@ class CreateTransformOffset(bpy.types.Operator):
 
         transform = Matrix().to_3x3() * self.container_scale
         emp_ob.matrix_world = transform.to_4x4()
-        arm_ob.parent = emp_ob
+        if self.do_parent:
+            arm_ob.parent = emp_ob
 
         inverted = emp_ob.matrix_world.inverted()
         arm_ob.data.transform(inverted)
@@ -273,7 +277,8 @@ class CreateTransformOffset(bpy.types.Operator):
         except (StopIteration, AttributeError):  # Attribute Error if Rigify is not loaded
             pass
         else:
-            metarig.parent = emp_ob
+            if self.do_parent:
+                metarig.parent = emp_ob
             metarig.data.transform(inverted)
             metarig.update_tag()
 
@@ -289,7 +294,11 @@ class CreateTransformOffset(bpy.types.Operator):
                            None))
 
         for ob in rigged:
-            ob.data.transform(inverted)
+            if ob.data.shape_keys:
+                # cannot transform objects with shape keys
+                ob.scale /= self.container_scale
+            else:
+                ob.data.transform(inverted)
             # fix scale dependent attrs in modifiers
             for mod in ob.modifiers:
                 if mod.type == 'DISPLACE':
@@ -297,7 +306,22 @@ class CreateTransformOffset(bpy.types.Operator):
                 elif mod.type == 'SOLIDIFY':
                     mod.thickness /= self.container_scale
 
-        context.view_layer.update()
+        if self.fix_animations:
+            path_resolve = arm_ob.path_resolve
+
+            for action in bpy.data.actions:
+                if not validate_actions(action, path_resolve):
+                    continue
+
+                for fc in action.fcurves:
+                    data_path = fc.data_path
+
+                    if not data_path.endswith('location'):
+                        continue
+
+                    for kf in fc.keyframe_points:
+                        kf.co[1] /= self.container_scale
+
         return {'FINISHED'}
 
 
@@ -1277,6 +1301,34 @@ def crv_bone_name(fcurve):
     return data_path[len(p_bone_prefix):].rsplit('"]', 1)[0].strip('"[')
 
 
+def is_bone_floating(bone, hips_bone_name):
+    binding_constrs = ['COPY_LOCATION', 'COPY_ROTATION', 'COPY_TRANSFORMS']
+    while bone.parent:
+        if bone.parent.name == hips_bone_name:
+            return False
+        for constr in bone.constraints:
+            if constr.type in binding_constrs:
+                return False
+        bone = bone.parent
+
+    return True
+
+
+def add_loc_key(bone, frame, options):
+    bone.keyframe_insert('location', index=0, frame=frame, options=options)
+    bone.keyframe_insert('location', index=1, frame=frame, options=options)
+    bone.keyframe_insert('location', index=2, frame=frame, options=options)
+
+
+def add_loc_rot_key(bone, frame, options):
+    add_loc_key(bone, frame, options)
+
+    bone.keyframe_insert('rotation_quaternion', index=0, frame=frame, options=options)
+    bone.keyframe_insert('rotation_quaternion', index=1, frame=frame, options=options)
+    bone.keyframe_insert('rotation_quaternion', index=2, frame=frame, options=options)
+    bone.keyframe_insert('rotation_quaternion', index=3, frame=frame, options=options)
+
+
 class AddRootMotion(bpy.types.Operator):
     bl_idname = "armature.expykit_add_rootmotion"
     bl_label = "Hip to Root Motion"
@@ -1420,17 +1472,6 @@ class AddRootMotion(bpy.types.Operator):
         subcol.enabled = self.root_use_loc_max_z
         row.enabled = self.root_cp_loc_z
 
-    @staticmethod
-    def add_loc_rot_key(bone, frame, options):
-        bone.keyframe_insert('location', index=0, frame=frame, options=options)
-        bone.keyframe_insert('location', index=1, frame=frame, options=options)
-        bone.keyframe_insert('location', index=2, frame=frame, options=options)
-
-        bone.keyframe_insert('rotation_quaternion', index=0, frame=frame, options=options)
-        bone.keyframe_insert('rotation_quaternion', index=1, frame=frame, options=options)
-        bone.keyframe_insert('rotation_quaternion', index=2, frame=frame, options=options)
-        bone.keyframe_insert('rotation_quaternion', index=3, frame=frame, options=options)
-
     def execute(self, context):
         if not self.rig_type:
             return {'FINISHED'}
@@ -1451,18 +1492,6 @@ class AddRootMotion(bpy.types.Operator):
         self.action_offs(rig_map.root, rig_map.spine.hips)
 
         return {'FINISHED'}
-
-    def is_bone_floating(self, bone, hips_bone_name):
-        binding_constrs = ['COPY_LOCATION', 'COPY_ROTATION', 'COPY_TRANSFORMS']
-        while bone.parent:
-            if bone.parent.name == hips_bone_name:
-                return False
-            for constr in bone.constraints:
-                if constr.type in binding_constrs:
-                    return False
-            bone = bone.parent
-
-        return True
 
     def action_offs(self, root_bone_name, hips_bone_name):
         action = self._armature.animation_data.action
@@ -1498,7 +1527,7 @@ class AddRootMotion(bpy.types.Operator):
         # TODO: check controls with animation curves instead
 
         rig_bones = [self._armature.pose.bones[b_name] for b_name in skeleton.bone_names() if b_name and b_name != root_bone_name]
-        floating_bones = list([bone for bone in rig_bones if self.is_bone_floating(bone, hips_bone_name)])
+        floating_bones = list([bone for bone in rig_bones if is_bone_floating(bone, hips_bone_name)])
 
         rootmo_transfs = []
         hip_bone_transfs = []
@@ -1512,7 +1541,7 @@ class AddRootMotion(bpy.types.Operator):
 
         bpy.context.scene.frame_set(start)
         keyframe_options = {'INSERTKEY_VISUAL', 'INSERTKEY_CYCLE_AWARE'}
-        self.add_loc_rot_key(root_bone, start, keyframe_options)
+        add_loc_rot_key(root_bone, start, keyframe_options)
 
         for i, frame_num in enumerate(range(start, end + 1)):
             bpy.context.scene.frame_set(frame_num)
@@ -1593,7 +1622,7 @@ class AddRootMotion(bpy.types.Operator):
                     rootmo_transf.transpose()
 
             root_bone.matrix = rootmo_transf
-            self.add_loc_rot_key(root_bone, frame_num, keyframe_options)
+            add_loc_rot_key(root_bone, frame_num, keyframe_options)
 
         for i, frame_num in enumerate(range(start, end + 1)):
             bpy.context.scene.frame_set(frame_num)
@@ -1602,7 +1631,7 @@ class AddRootMotion(bpy.types.Operator):
             for bone, mat in zip(floating_bones, floating_mats):
                 bone.matrix = mat
 
-                self.add_loc_rot_key(bone, frame_num, set())
+                add_loc_rot_key(bone, frame_num, set())
 
         bpy.context.scene.frame_set(current)
 
