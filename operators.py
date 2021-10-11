@@ -11,7 +11,7 @@ from bpy_extras.io_utils import ImportHelper
 
 from itertools import chain
 
-from . import bone_mapping
+from .rig_mapping import bone_mapping
 from . import bone_utils
 from . import fbx_helper
 
@@ -1286,7 +1286,10 @@ class BakeConstrainedActions(bpy.types.Operator):
 
             # delete Constraints
             for bone_name in bone_names:
-                pbone = ob.pose.bones[bone_name]
+                try:
+                    pbone = ob.pose.bones[bone_name]
+                except KeyError:
+                    continue
                 for constr in reversed(pbone.constraints):
                     pbone.constraints.remove(constr)
 
