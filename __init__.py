@@ -29,6 +29,8 @@ bl_info = {
 import bpy
 from . import operators
 from . import ui
+from . import preferences
+from .preferences import ExpyPrefs, ExpyToClipboard
 
 from importlib import reload
 reload(operators)
@@ -36,6 +38,8 @@ reload(ui)
 
 
 def register():
+    bpy.utils.register_class(ExpyPrefs)
+    bpy.utils.register_class(ExpyToClipboard)
     bpy.utils.register_class(operators.ActionRangeToScene)
     bpy.utils.register_class(operators.ConstraintStatus)
     bpy.utils.register_class(operators.SelectConstrainedControls)
@@ -86,3 +90,5 @@ def unregister():
     bpy.utils.unregister_class(operators.RenameActionsFromFbxFiles)
     bpy.utils.unregister_class(operators.CreateTransformOffset)
     bpy.utils.unregister_class(operators.AddRootMotion)
+    bpy.utils.unregister_class(ExpyToClipboard)
+    bpy.utils.unregister_class(ExpyPrefs)

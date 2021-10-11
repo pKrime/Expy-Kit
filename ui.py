@@ -51,6 +51,9 @@ def pose_context_options(self, context):
     row = layout.row()
     row.operator(operators.ConvertGameFriendly.bl_idname)
 
+    row = layout.row()
+    row.operator(operators.CreateTransformOffset.bl_idname)
+
     layout.separator()
 
     row = layout.row()
@@ -65,9 +68,6 @@ def pose_context_options(self, context):
 
     row = layout.row()
     row.operator(operators.AddRootMotion.bl_idname)
-
-    row = layout.row()
-    row.operator(operators.CreateTransformOffset.bl_idname)
 
 
 def armature_context_options(self, context):
