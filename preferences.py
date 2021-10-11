@@ -44,6 +44,6 @@ class ExpyPrefs(bpy.types.AddonPreferences):
         sp_col = split.column()
 
         script_path = os.path.dirname(__file__)
-        script_path = os.path.join(script_path, 'unreal_mapping.py')
+        script_path = os.path.join(script_path, 'rig_mapping', 'unreal_mapping.py')
         op = sp_col.operator(ExpyToClipboard.bl_idname, text='Path of "Unreal Mapping" to Clipboard')
         op.clip_text = script_path
