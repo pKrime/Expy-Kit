@@ -263,7 +263,10 @@ def get_deform_hips_name(ob, bone_name=None):
     if not bone_name:
         bone_name = get_deform_root_name(ob)
 
-    bone = ob.data.edit_bones[bone_name]
+    try:
+        bone = ob.data.edit_bones[bone_name]
+    except KeyError:
+        return
 
     if len(bone.children) > 1:
         return bone_name
@@ -356,6 +359,9 @@ def fix_tail_direction(ob):
     """Make the hips the actual root and parent the tail to it (Rigify tails are the other way around"""
     def_root_name = get_deform_root_name(ob)
     def_hips_name = get_deform_hips_name(ob, def_root_name)
+
+    if not def_hips_name:
+        return
 
     if def_root_name == def_hips_name:
 

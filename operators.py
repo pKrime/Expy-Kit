@@ -203,6 +203,10 @@ class ConvertBoneNaming(bpy.types.Operator):
                     bone.name = bone.name.rsplit(self._separator, 1)[1]
 
             for src_name, trg_name in bone_names_map.items():
+                if not trg_name:
+                    continue
+                if not src_name:
+                    continue
                 try:
                     src_bone = context.object.data.bones.get(src_name, None)
                 except SystemError:
