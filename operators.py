@@ -915,6 +915,7 @@ class ConstrainToArmature(bpy.types.Operator):
     check_prefix = BoolProperty(default=False, name="Check Prefix")
     _separator = ":"  # TODO: StringProperty
     _autovars_unset = True
+    _constrained_root = None
 
     @classmethod
     def poll(cls, context):
@@ -956,7 +957,7 @@ class ConstrainToArmature(bpy.types.Operator):
         row.label(text="Root Animation")
         row.prop(self, 'constrain_root', text="")
 
-        if self.constrain_root == 'Bone':
+        if self.constrain_root != 'None':
             row = column.split(factor=0.25, align=True)
             row.label(text="")
             row.prop_search(self, 'root_motion_bone',
@@ -1071,6 +1072,7 @@ class ConstrainToArmature(bpy.types.Operator):
                     del bone_names_map[src_skeleton.root]
                 except KeyError:
                     pass
+                self._constrained_root = None
             elif self.constrain_root == 'Bone':
                 bone_names_map[src_skeleton.root] = self.root_motion_bone
 
@@ -1210,35 +1212,50 @@ class ConstrainToArmature(bpy.types.Operator):
                         if subtarget_name in trg_ob.data.bones:
                             constr.subtarget = subtarget_name
 
-                if self.constrain_root != 'None' and src_name == src_skeleton.root:
-                    if any((self.root_use_loc_min_x, self.root_use_loc_min_y, self.root_use_loc_min_z,
-                           self.root_use_loc_max_x, self.root_use_loc_max_y, self.root_use_loc_max_z))\
-                            or not all((self.root_cp_loc_x, self.root_cp_loc_y, self.root_cp_loc_z)):
+                if self.constrain_root == 'Bone' and src_name == src_skeleton.root:
+                    self._constrained_root = src_pbone
 
-                        constr = src_pbone.constraints.new('LIMIT_LOCATION')
+            if self.constrain_root == 'Object' and self.root_motion_bone:
+                constr_types = ['COPY_LOCATION']
+                if any([self.root_cp_rot_x, self.root_cp_rot_y, self.root_cp_rot_z]):
+                    constr_types.append('COPY_ROTATION')
+                for constr_type in constr_types:
+                    constr = ob.constraints.new(type=constr_type)
+                    constr.target = trg_ob
 
-                        constr.use_min_x = self.root_use_loc_min_x or not self.root_cp_loc_x
-                        constr.use_min_y = self.root_use_loc_min_y or not self.root_cp_loc_y
-                        constr.use_min_z = self.root_use_loc_min_z or not self.root_cp_loc_z
+                    constr.subtarget = self.root_motion_bone
 
-                        constr.use_max_x = self.root_use_loc_max_x or not self.root_cp_loc_x
-                        constr.use_max_y = self.root_use_loc_max_y or not self.root_cp_loc_y
-                        constr.use_max_z = self.root_use_loc_max_z or not self.root_cp_loc_z
+                self._constrained_root = ob
 
-                        constr.min_x = self.root_loc_min_x if self.root_cp_loc_x and self.root_use_loc_min_x else 0.0
-                        constr.min_y = self.root_loc_min_y if self.root_cp_loc_y and self.root_use_loc_min_y else 0.0
-                        constr.min_z = self.root_loc_min_z if self.root_cp_loc_z and self.root_use_loc_min_z else 0.0
+            if self._constrained_root:
+                if any((self.root_use_loc_min_x, self.root_use_loc_min_y, self.root_use_loc_min_z,
+                        self.root_use_loc_max_x, self.root_use_loc_max_y, self.root_use_loc_max_z))\
+                        or not all((self.root_cp_loc_x, self.root_cp_loc_y, self.root_cp_loc_z)):
 
-                        constr.max_x = self.root_loc_max_x if self.root_cp_loc_x and self.root_use_loc_max_x else 0.0
-                        constr.max_y = self.root_loc_max_y if self.root_cp_loc_y and self.root_use_loc_max_y else 0.0
-                        constr.max_z = self.root_loc_max_z if self.root_cp_loc_z and self.root_use_loc_max_z else 0.0
+                    constr = self._constrained_root.constraints.new('LIMIT_LOCATION')
 
-                    if not all((self.root_cp_rot_x, self.root_cp_rot_y, self.root_cp_rot_z)):
-                        constr = src_pbone.constraints.new('LIMIT_ROTATION')
+                    constr.use_min_x = self.root_use_loc_min_x or not self.root_cp_loc_x
+                    constr.use_min_y = self.root_use_loc_min_y or not self.root_cp_loc_y
+                    constr.use_min_z = self.root_use_loc_min_z or not self.root_cp_loc_z
 
-                        constr.use_limit_x = not self.root_cp_rot_x
-                        constr.use_limit_y = not self.root_cp_rot_y
-                        constr.use_limit_z = not self.root_cp_rot_z
+                    constr.use_max_x = self.root_use_loc_max_x or not self.root_cp_loc_x
+                    constr.use_max_y = self.root_use_loc_max_y or not self.root_cp_loc_y
+                    constr.use_max_z = self.root_use_loc_max_z or not self.root_cp_loc_z
+
+                    constr.min_x = self.root_loc_min_x if self.root_cp_loc_x and self.root_use_loc_min_x else 0.0
+                    constr.min_y = self.root_loc_min_y if self.root_cp_loc_y and self.root_use_loc_min_y else 0.0
+                    constr.min_z = self.root_loc_min_z if self.root_cp_loc_z and self.root_use_loc_min_z else 0.0
+
+                    constr.max_x = self.root_loc_max_x if self.root_cp_loc_x and self.root_use_loc_max_x else 0.0
+                    constr.max_y = self.root_loc_max_y if self.root_cp_loc_y and self.root_use_loc_max_y else 0.0
+                    constr.max_z = self.root_loc_max_z if self.root_cp_loc_z and self.root_use_loc_max_z else 0.0
+
+            if self._constrained_root and not all((self.root_cp_rot_x, self.root_cp_rot_y, self.root_cp_rot_z)):
+                constr = self._constrained_root.constraints.new('LIMIT_ROTATION')
+
+                constr.use_limit_x = not self.root_cp_rot_x
+                constr.use_limit_y = not self.root_cp_rot_y
+                constr.use_limit_z = not self.root_cp_rot_z
 
         return {'FINISHED'}
 
