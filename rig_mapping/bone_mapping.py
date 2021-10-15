@@ -83,6 +83,11 @@ class HumanSkeleton:
     left_leg = None
     right_leg = None
 
+    left_arm_IK = None
+    right_arm_IK = None
+    left_leg_IK = None
+    right_leg_IK = None
+
     left_fingers = None
     right_fingers = None
 
@@ -109,6 +114,25 @@ class HumanSkeleton:
 
         for limb_name, bone_name in self.right_leg.items():
             yield bone_name
+
+        for limb_name, bone_name in self.left_arm_IK.items():
+            yield bone_name
+
+        if self.left_arm_IK:
+            for limb_name, bone_name in self.left_arm_IK.items():
+                yield bone_name
+
+        if self.right_arm_IK:
+            for limb_name, bone_name in self.right_arm_IK.items():
+                yield bone_name
+
+        if self.left_leg_IK:
+            for limb_name, bone_name in self.left_leg_IK.items():
+                yield bone_name
+
+        if self.right_leg_IK:
+            for limb_name, bone_name in self.right_leg_IK.items():
+                yield bone_name
 
         for limb_name, bone_names in self.left_fingers.items():
             for bone_name in bone_names:
@@ -153,6 +177,22 @@ class HumanSkeleton:
 
         for limb_name, bone_name in self.right_leg.items():
             bone_mapping('right_leg', limb_name, bone_name)
+
+        if self.left_arm_IK:
+            for limb_name, bone_name in self.left_arm_IK.items():
+                bone_mapping('left_arm_IK', limb_name, bone_name)
+
+        if self.right_arm_IK:
+            for limb_name, bone_name in self.right_arm_IK.items():
+                bone_mapping('right_arm_IK', limb_name, bone_name)
+
+        if self.left_leg_IK:
+            for limb_name, bone_name in self.left_leg_IK.items():
+                bone_mapping('left_leg_IK', limb_name, bone_name)
+
+        if self.right_leg_IK:
+            for limb_name, bone_name in self.right_leg_IK.items():
+                bone_mapping('right_leg_IK', limb_name, bone_name)
 
         def fingers_mapping(src_fingers, trg_fingers):
             for finger, bone_names in src_fingers.items():
@@ -219,6 +259,47 @@ class MixamoSkeleton(HumanSkeleton):
                                   leg="{0}Leg".format(side),
                                   foot="{0}Foot".format(side),
                                   toe="{0}ToeBase".format(side))
+
+
+class DazGenesis8(HumanSkeleton):
+    def __init__(self):
+        self.spine = HumanSpine(
+            head='head',
+            neck='neckLower',
+            spine2='chestLower',
+            spine1='abdomenUpper',
+            spine='abdomenLower',
+            hips='hip'
+        )
+        self.root = 'root'
+
+        for side, side_letter in zip(('left', 'right'), ('l', 'r')):
+            arm = HumanArm(shoulder="{0}Collar".format(side_letter),
+                           arm="{0}ShldrBend".format(side_letter),
+                           forearm="{0}ForearmBend".format(side_letter),
+                           hand="{0}Hand".format(side_letter))
+
+            arm.arm_twist = arm.arm.replace("Bend", "Twist")
+            arm.forearm_twist = arm.forearm.replace("Bend", "Twist")
+            setattr(self, f'{side}_arm', arm)
+
+            fingers = HumanFingers(
+                thumb=["{0}Thumb{1}".format(side_letter, i) for i in range(1, 4)],
+                index=["{0}Index{1}".format(side_letter, i) for i in range(1, 4)],
+                middle=["{0}Mid{1}".format(side_letter, i) for i in range(1, 4)],
+                ring=["{0}Ring{1}".format(side_letter, i) for i in range(1, 4)],
+                pinky=["{0}Pinky{1}".format(side_letter, i) for i in range(1, 4)],
+            )
+            setattr(self, side + "_fingers", fingers)
+
+            leg = HumanLeg(upleg="{0}ThighBend".format(side_letter),
+                           leg="{0}Shin".format(side_letter),
+                           foot="{0}Foot".format(side_letter),
+                           toe="{0}Toe".format(side_letter))
+
+            leg.upleg_twist = leg.upleg.replace("Bend", "Twist")
+            leg.leg_twist = leg.leg.replace("Bend", "Twist")
+            setattr(self, side + "_leg", leg)
 
 
 class RigifySkeleton(HumanSkeleton):

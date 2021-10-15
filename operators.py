@@ -41,6 +41,7 @@ skeleton_types = (
     ('rigify_fk', "Rigify FK Controls", "Rigify FK"),
     ('rigify_ik', "Rigify IK Controls", "Rigify IK"),
     ('mixamo', "Mixamo", "Mixamo Skeleton"),
+    ('daz-gen8', "Daz Genesis 8", "Daz Genesis 8 Skeleton"),
     ('--', "--", "None")
 )
 
@@ -174,6 +175,12 @@ class ConvertBoneNaming(bpy.types.Operator):
         default=True
     )
 
+    anim_tracks: BoolProperty(
+        name="Convert Animations",
+        description="Convert Animation Tracks",
+        default=True
+    )
+
     # TODO: separator as a string property
     _separator = ":"
 
@@ -193,6 +200,11 @@ class ConvertBoneNaming(bpy.types.Operator):
         trg_skeleton = skeleton_from_type(self.target)
 
         if all((src_skeleton, trg_skeleton, src_skeleton != trg_skeleton)):
+            if self.anim_tracks:
+                actions = [action for action in bpy.data.actions if validate_actions(action, context.object.path_resolve)]
+            else:
+                actions = []
+
             bone_names_map = src_skeleton.conversion_map(trg_skeleton)
 
             if self.strip_prefix:
@@ -219,7 +231,6 @@ class ConvertBoneNaming(bpy.types.Operator):
                 for driver in chain(context.object.animation_data.drivers, context.object.data.animation_data.drivers):
                     try:
                         driver_bone = driver.data_path.split('"')[1]
-
                     except IndexError:
                         continue
 
@@ -230,6 +241,21 @@ class ConvertBoneNaming(bpy.types.Operator):
 
                     driver.data_path = driver.data_path.replace('bones["{0}"'.format(driver_bone),
                                                                 'bones["{0}"'.format(trg_name))
+
+            for action in actions:
+                for fc in action.fcurves:
+                    try:
+                        track_bone = fc.data_path.split('"')[1]
+                    except IndexError:
+                        continue
+
+                    try:
+                        trg_name = bone_names_map[track_bone]
+                    except KeyError:
+                        continue
+
+                    fc.data_path = fc.data_path.replace('bones["{0}"'.format(track_bone),
+                                                        'bones["{0}"'.format(trg_name))
 
         return {'FINISHED'}
 
@@ -343,6 +369,8 @@ def skeleton_from_type(skeleton_type):
         return bone_mapping.RigifyCtrlsIK()
     if skeleton_type == 'unreal':
         return bone_mapping.UnrealSkeleton()
+    if skeleton_type == 'daz-gen8':
+        return bone_mapping.DazGenesis8()
 
 
 def align_to_closer_axis(src_bone, trg_bone):
