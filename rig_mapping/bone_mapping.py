@@ -115,9 +115,6 @@ class HumanSkeleton:
         for limb_name, bone_name in self.right_leg.items():
             yield bone_name
 
-        for limb_name, bone_name in self.left_arm_IK.items():
-            yield bone_name
-
         if self.left_arm_IK:
             for limb_name, bone_name in self.left_arm_IK.items():
                 yield bone_name

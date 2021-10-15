@@ -1556,7 +1556,12 @@ class AddRootMotion(bpy.types.Operator):
         else:
             offset_mat = Matrix()
 
-        root_bone = self._armature.pose.bones[root_bone_name]
+        try:
+            root_bone = self._armature.pose.bones[root_bone_name]
+        except (TypeError, KeyError):
+            self.report({'WARNING'}, f"{root_bone_name} not found in target")
+            return
+
         skeleton = skeleton_from_type(self.rig_type)
 
         # TODO: check controls with animation curves instead
