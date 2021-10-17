@@ -868,9 +868,13 @@ class ConstrainToArmature(bpy.types.Operator):
                                  min=0, max=29, default=24,
                                  description="Armature Layer to use for connection bones")
 
-    match_target_matrix: BoolProperty(name="Match target transform",
-                                      description="Retarget bone rotations",
-                                      default=False)
+    match_transform: EnumProperty(items=[
+        ('None', "No Matching", "Don't match any transform"),
+        ('Bone', "Match Bone Transform", "Match target bones at rest"),
+        ('Object', "Match Object Transform", "Match target object transform")
+    ],
+        name="Match Transform",
+        default='None')
 
     math_look_at: BoolProperty(name="Chain Look At",
                                description="Correct chain direction based on mid limb (Useful for IK)",
@@ -946,8 +950,8 @@ class ConstrainToArmature(bpy.types.Operator):
         row.prop(self, 'ret_bones_layer')
 
         row = column.split(factor=0.25, align=True)
-        row.separator()
-        row.prop(self, 'match_target_matrix')
+        row.label(text="Match Transform")
+        row.prop(self, 'match_transform', text='')
 
         row = column.split(factor=0.25, align=True)
         row.separator()
@@ -1103,7 +1107,7 @@ class ConstrainToArmature(bpy.types.Operator):
                     new_bone = trg_ob.data.edit_bones[new_bone_name]
                     new_bone.parent = new_parent
 
-                    if self.match_target_matrix and deformation_map:
+                    if self.match_transform == 'Bone' and deformation_map:
                         # counter deformation bone transform
                         try:
                             def_bone = ob.data.edit_bones[deformation_map[src_name]]
@@ -1141,8 +1145,9 @@ class ConstrainToArmature(bpy.types.Operator):
 
                         new_bone.roll = bone_utils.ebone_roll_to_vector(new_bone, src_x_axis)
 
-                        new_bone.transform(ob.matrix_world)
-                        new_bone.transform(trg_ob.matrix_world.inverted())
+                        if self.match_transform == 'Object':
+                            new_bone.transform(ob.matrix_world)
+                            new_bone.transform(trg_ob.matrix_world.inverted())
 
                     new_bone.layers[self.ret_bones_layer] = True
                     for i, L in enumerate(new_bone.layers):
