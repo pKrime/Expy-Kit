@@ -263,7 +263,7 @@ class ConvertBoneNaming(bpy.types.Operator):
 class CreateTransformOffset(bpy.types.Operator):
     """Scale the Character and setup an Empty to preserve final transform"""
     bl_idname = "object.expykit_create_offset"
-    bl_label = "Create Offset"
+    bl_label = "Create Scale Offset"
     bl_options = {'REGISTER', 'UNDO'}
 
     container_name: StringProperty(name="Name", description="Name of the transform container", default="EMP-Offset")
@@ -773,10 +773,10 @@ class ConvertGameFriendly(bpy.types.Operator):
         description="Keep copy of datablock",
         default=True
     )
-    rename: BoolProperty(
+    rename: StringProperty(
         name="Rename",
         description="Rename rig to 'Armature'",
-        default=True
+        default="Armature"
     )
     eye_bones: BoolProperty(
         name="Keep eye bones",
@@ -818,8 +818,8 @@ class ConvertGameFriendly(bpy.types.Operator):
             backup_data.use_fake_user = True
 
         if self.rename:
-            ob.name = 'Armature'
-            ob.data.name = 'Armature'
+            ob.name = self.rename
+            ob.data.name = self.rename
 
             try:
                 metarig = next(
@@ -827,7 +827,7 @@ class ConvertGameFriendly(bpy.types.Operator):
             except (StopIteration, AttributeError):  # Attribute Error if Rigify is not loaded
                 pass
             else:
-                metarig.data.rigify_rig_basename = "Armature"
+                metarig.data.rigify_rig_basename = self.rename
                 print("Metarig Base Name", metarig.data.rigify_rig_basename)
 
         if self.eye_bones:
