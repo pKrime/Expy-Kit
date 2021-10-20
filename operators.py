@@ -1299,7 +1299,7 @@ class BakeConstrainedActions(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     skeleton_type: EnumProperty(items=skeleton_types,
-                                name="Skeleton Type",
+                                name="Skeleton Type to Bake",
                                 default='--')
 
     clear_users_old: BoolProperty(name="Clear original Action Users",
@@ -1308,7 +1308,7 @@ class BakeConstrainedActions(bpy.types.Operator):
     fake_user_new: BoolProperty(name="Save New Action User",
                                 default=True)
 
-    do_bake: BoolProperty(name="Bake and Exit", description="Con to the new offset and exit",
+    do_bake: BoolProperty(name="Bake and Exit", description="Constrain to the new offset and exit",
                           default=False, options={'SKIP_SAVE'})
 
     @classmethod
