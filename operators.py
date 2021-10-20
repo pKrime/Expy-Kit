@@ -431,6 +431,9 @@ class ExtractMetarig(bpy.types.Operator):
     forward_spine_roll: BoolProperty(name='Align spine frontally', default=False,
                                      description='Spine Z will face the Y axis')
 
+    apply_transforms: BoolProperty(name='Apply Transform', default=True,
+                                   description='Apply current transforms before extraction')
+
     @classmethod
     def poll(cls, context):
         if not context.object:
@@ -449,6 +452,17 @@ class ExtractMetarig(bpy.types.Operator):
 
         if not src_skeleton:
             return {'FINISHED'}
+
+        # TODO: remove action, bring to rest pose
+        if self.apply_transforms:
+            rigged = (ob for ob in bpy.data.objects if
+                      next((mod for mod in ob.modifiers if mod.type == 'ARMATURE' and mod.object == src_object),
+                           None))
+            for ob in rigged:
+                ob.data.transform(src_object.matrix_local)
+
+            src_armature.transform(src_object.matrix_local)
+            src_object.matrix_local = Matrix()
 
         if self.skeleton_type != 'rigify' and self.rigify_names:
             bpy.ops.object.expykit_convert_bone_names(source=self.skeleton_type, target='rigify')
@@ -917,6 +931,7 @@ class ConstrainToArmature(bpy.types.Operator):
     root_cp_rot_z: BoolProperty(name="Root Copy Rot Z", description="Copy Root Z Rotation", default=False)
 
     check_prefix = BoolProperty(default=False, name="Check Prefix")
+
     _separator = ":"  # TODO: StringProperty
     _autovars_unset = True
     _constrained_root = None
@@ -1293,6 +1308,9 @@ class BakeConstrainedActions(bpy.types.Operator):
     fake_user_new: BoolProperty(name="Save New Action User",
                                 default=True)
 
+    do_bake: BoolProperty(name="Bake and Exit", description="Con to the new offset and exit",
+                          default=False, options={'SKIP_SAVE'})
+
     @classmethod
     def poll(cls, context):
         if len(context.selected_objects) != 2:
@@ -1306,6 +1324,9 @@ class BakeConstrainedActions(bpy.types.Operator):
         return True
 
     def execute(self, context):
+        if not self.do_bake:
+            return {'FINISHED'}
+
         src_skeleton = skeleton_from_type(self.skeleton_type)
         if not src_skeleton:
             return {'FINISHED'}
