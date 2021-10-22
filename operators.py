@@ -83,11 +83,18 @@ class ConstraintStatus(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SelectConstrainedControls(bpy.types.Operator, ImportHelper):
+class SelectConstrainedControls(bpy.types.Operator):
     bl_idname = "armature.expykit_select_constrained_ctrls"
     bl_label = "Select constrained controls"
-    bl_description = "Select bone controls with constraint"
-    bl_options = {'PRESET', 'UNDO'}
+    bl_description = "Select bone controls with constraints or animations"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    select_type: EnumProperty(items=[
+        ('constr', "Constrained", "Select constrained controls"),
+        ('anim', "Animated", "Select animated controls"),
+    ],
+        name="Select if",
+        default='constr')
 
     @classmethod
     def poll(cls, context):
@@ -103,16 +110,32 @@ class SelectConstrainedControls(bpy.types.Operator, ImportHelper):
     def execute(self, context):
         ob = context.object
 
-        for bone in ob.data.bones:
-            if bone.use_deform:
-                bone.select = False
-                continue
-            pbone = ob.pose.bones[bone.name]
-            if len(pbone.constraints) == 0:
-                bone.select = False
-                continue
+        if self.select_type == 'constr':
+            for bone in ob.data.bones:
+                if bone.use_deform:  # FIXME: ik controls might have use_deform just to be exported for games
+                    bone.select = False
+                    continue
+                pbone = ob.pose.bones[bone.name]
+                if len(pbone.constraints) == 0:
+                    bone.select = False
+                    continue
 
-            bone.select = bool(pbone.custom_shape)
+                bone.select = bool(pbone.custom_shape)
+        elif self.select_type == 'anim':
+            if not ob.animation_data:
+                return {'FINISHED'}
+            if not ob.animation_data.action:
+                return {'FINISHED'}
+
+            for fc in ob.animation_data.action.fcurves:
+                bone_name = crv_bone_name(fc)
+                if not bone_name:
+                    continue
+                try:
+                    bone = ob.data.bones[bone_name]
+                except KeyError:
+                    continue
+                bone.select = True
 
         return {'FINISHED'}
 
