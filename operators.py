@@ -889,7 +889,7 @@ class ConvertGameFriendly(bpy.types.Operator):
 
 class ConstrainToArmature(bpy.types.Operator):
     bl_idname = "armature.expykit_constrain_to_armature"
-    bl_label = "Constrain to Active Armature"
+    bl_label = "Bind to Active Armature"
     bl_description = "Constrain bones of selected armatures to active armature"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -1432,8 +1432,8 @@ def add_loc_rot_key(bone, frame, options):
 
 class AddRootMotion(bpy.types.Operator):
     bl_idname = "armature.expykit_add_rootmotion"
-    bl_label = "Hip to Root Motion"
-    bl_description = "Bring Hip Motion to Root Bone"
+    bl_label = "Hips to Root Motion"
+    bl_description = "Bring Hips Motion to Root Bone"
     bl_options = {'REGISTER', 'UNDO'}
 
     rig_type: EnumProperty(items=skeleton_types,
