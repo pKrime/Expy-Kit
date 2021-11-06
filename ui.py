@@ -22,52 +22,81 @@ def object_context_options(self, context):
     row.operator(operators.CreateTransformOffset.bl_idname)
 
 
+class BindingsMenu(bpy.types.Menu):
+    bl_label = "Binding"
+    bl_idname = "object.expykit_binding_menu"
+
+    def draw(self, context):
+        layout = self.layout
+
+        row = layout.row()
+        row.operator(operators.ConstrainToArmature.bl_idname)
+
+        row = layout.row()
+        row.operator(operators.ConstraintStatus.bl_idname)
+
+        row = layout.row()
+        row.operator(operators.SelectConstrainedControls.bl_idname)
+
+
+class ConvertMenu(bpy.types.Menu):
+    bl_label = "Conversion"
+    bl_idname = "object.expykit_convert_menu"
+
+    def draw(self, context):
+        layout = self.layout
+
+        row = layout.row()
+        row.operator(operators.RevertDotBoneNames.bl_idname)
+
+        row = layout.row()
+        row.operator(operators.ConvertBoneNaming.bl_idname)
+
+        row = layout.row()
+        row.operator(operators.ConvertGameFriendly.bl_idname)
+
+        row = layout.row()
+        row.operator(operators.ExtractMetarig.bl_idname)
+
+
+class AnimMenu(bpy.types.Menu):
+    bl_label = "Animation"
+    bl_idname = "object.expykit_anim_menu"
+
+    def draw(self, context):
+        layout = self.layout
+
+        row = layout.row()
+        row.operator(operators.ActionRangeToScene.bl_idname)
+
+        row = layout.row()
+        row.operator(operators.BakeConstrainedActions.bl_idname)
+
+        row = layout.row()
+        row.operator_context = 'INVOKE_DEFAULT'
+        row.operator(operators.RenameActionsFromFbxFiles.bl_idname)
+
+        row = layout.row()
+        row.operator(operators.AddRootMotion.bl_idname)
+
+        row = layout.row()
+        op = row.operator(operators.SelectConstrainedControls.bl_idname, text="Select Animated Controls")
+        op.select_type = 'anim'
+
+
 def pose_context_options(self, context):
     layout = self.layout
     menu_header(layout)
 
-    row = layout.row()
-    row.operator(operators.ConstrainToArmature.bl_idname)
-
-    row = layout.row()
-    row.operator(operators.ConstraintStatus.bl_idname)
-
-    row = layout.row()
-    row.operator(operators.SelectConstrainedControls.bl_idname)
-
-    layout.separator()
-
-    row = layout.row()
-    row.operator(operators.RevertDotBoneNames.bl_idname)
-
-    row = layout.row()
-    row.operator(operators.ConvertBoneNaming.bl_idname)
-
-    layout.separator()
-
-    row = layout.row()
-    row.operator(operators.ExtractMetarig.bl_idname)
-
-    row = layout.row()
-    row.operator(operators.ConvertGameFriendly.bl_idname)
+    # use an operator enum property to populate a sub-menu
+    layout.menu(BindingsMenu.bl_idname)
+    layout.menu(ConvertMenu.bl_idname)
+    layout.menu(AnimMenu.bl_idname)
 
     row = layout.row()
     row.operator(operators.CreateTransformOffset.bl_idname)
 
     layout.separator()
-
-    row = layout.row()
-    row.operator(operators.ActionRangeToScene.bl_idname)
-
-    row = layout.row()
-    row.operator(operators.BakeConstrainedActions.bl_idname)
-
-    row = layout.row()
-    row.operator_context = 'INVOKE_DEFAULT'
-    row.operator(operators.RenameActionsFromFbxFiles.bl_idname)
-
-    row = layout.row()
-    row.operator(operators.AddRootMotion.bl_idname)
 
 
 def armature_context_options(self, context):

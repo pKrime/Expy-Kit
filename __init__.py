@@ -55,6 +55,9 @@ def register():
     bpy.utils.register_class(operators.AddRootMotion)
 
     bpy.utils.register_class(operators.ActionNameCandidates)
+    bpy.utils.register_class(ui.BindingsMenu)
+    bpy.utils.register_class(ui.ConvertMenu)
+    bpy.utils.register_class(ui.AnimMenu)
     bpy.utils.register_class(ui.ActionRenameSimple)
     bpy.utils.register_class(ui.DATA_PT_expy_buttons)
 
@@ -76,6 +79,9 @@ def unregister():
 
     bpy.utils.unregister_class(ui.DATA_PT_expy_buttons)
     bpy.utils.unregister_class(ui.ActionRenameSimple)
+    bpy.utils.unregister_class(ui.BindingsMenu)
+    bpy.utils.unregister_class(ui.ConvertMenu)
+    bpy.utils.unregister_class(ui.AnimMenu)
     bpy.utils.unregister_class(operators.ActionNameCandidates)
     bpy.utils.unregister_class(operators.ActionRangeToScene)
     bpy.utils.unregister_class(operators.ConstraintStatus)
