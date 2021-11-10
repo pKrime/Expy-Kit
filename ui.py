@@ -47,16 +47,19 @@ class ConvertMenu(bpy.types.Menu):
         layout = self.layout
 
         row = layout.row()
+        row.operator(operators.ConvertGameFriendly.bl_idname)
+
+        row = layout.row()
         row.operator(operators.RevertDotBoneNames.bl_idname)
 
         row = layout.row()
         row.operator(operators.ConvertBoneNaming.bl_idname)
 
         row = layout.row()
-        row.operator(operators.ConvertGameFriendly.bl_idname)
+        row.operator(operators.ExtractMetarig.bl_idname)
 
         row = layout.row()
-        row.operator(operators.ExtractMetarig.bl_idname)
+        row.operator(operators.CreateTransformOffset.bl_idname)
 
 
 class AnimMenu(bpy.types.Menu):
@@ -92,9 +95,6 @@ def pose_context_options(self, context):
     layout.menu(BindingsMenu.bl_idname)
     layout.menu(ConvertMenu.bl_idname)
     layout.menu(AnimMenu.bl_idname)
-
-    row = layout.row()
-    row.operator(operators.CreateTransformOffset.bl_idname)
 
     layout.separator()
 

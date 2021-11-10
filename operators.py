@@ -894,11 +894,11 @@ class ConstrainToArmature(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     source: EnumProperty(items=skeleton_types,
-                         name="Source Type",
+                         name="To Animate",
                          default='--')
 
     skeleton_type: EnumProperty(items=skeleton_types,
-                                name="Target Type",
+                                name="Animated Type",
                                 default='--')
 
     ret_bones_layer: IntProperty(name="Binding-Bones layer",
@@ -976,11 +976,11 @@ class ConstrainToArmature(bpy.types.Operator):
         column = layout.column()
 
         row = column.split(factor=0.25, align=True)
-        row.label(text="Source Type")
+        row.label(text="To Animate")
         row.prop(self, 'source', text="")
 
         row = column.split(factor=0.25, align=True)
-        row.label(text="Target Type")
+        row.label(text="Animated Type")
         row.prop(self, 'skeleton_type', text="")
 
         row = column.split(factor=0.25, align=True)
@@ -1521,7 +1521,7 @@ class AddRootMotion(bpy.types.Operator):
         row.prop(self, "root_cp_loc_z", text="Z", toggle=True)
 
         row = column.row(align=True)
-        row.label(text="Rotation")
+        row.label(text="Rotation Plane")
         row.prop(self, "root_cp_rot_x", text="X", toggle=True)
         row.prop(self, "root_cp_rot_y", text="Y", toggle=True)
         row.prop(self, "root_cp_rot_z", text="Z", toggle=True)
