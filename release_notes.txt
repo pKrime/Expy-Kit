@@ -1,0 +1,11 @@
+version 0.2
+
+- Root Motion Binding
+- Root Motion Extraction
+- Genesis 8 bone mapping
+- Rigify Mapping for Unreal Engine
+- Scale with Offset operator
+- Name Conversion also convert animations
+- Select animated controls
+- Grouped Menu entries
+- Unified Rigify IK and FK control maps

@@ -21,28 +21,23 @@ Click the **Code** button and choose **Download Zip**, then install via the blen
 
 Or git-clone to your `Scripts/addons` path if u're a gangsta
 
-Once enabled, the script will add the following actions to the pose menu (mouse right click in **pose mode**)
+Once enabled, the script will add the following entries to the pose menu (mouse right click in **pose mode**)
 
+* Binding
+    * Bind to Active Armature
+    * Enable/disable constraints
+    * Select Constrained Controls
 
-* Enable/disable constraints
+* Conversion
+    * Rigify Game Friendly
+    * Revert dots in Names
+    * Convert Bone Names
+    * Extract Metarig
+    * Create Scale Offset
     
-    options:
-    * Status: enabled/disabled/remove (careful with the last one)
-    * Only Selected: affect only selected bones if checked
-
-* Revert dots in Names: Unreal Engine doesn't like dots in name and will convert "bone.L" to "bone_L".
-                        Bring 'em dots back using this fine operator
-
-    options:
-    * Only Side Letters: will only revert side identifiers, like "_L" to ".R", but will leave
-                         the rest of the name untouched, i.e. "bone_name" won't become "bone.name".
-                         This is better left on, but hey, it's your rig after all.
-    * Only Selected: as you certainly guess, only selected bones get to be renamed
-    
-* Convert Bone Names: Renames a standard hierarchy to another, i.e. Rigify skeleton to Mixamo skeleton
-    options:
-    * Source Type
-    * Target Type
- 
- * Rigify Game Friendly: bring rigify deform bones under a single hierarchy,
-  making the rig suitable for game engines
+* Animation
+    * Action Range to Scene
+    * Bake Constrained Actions
+    * Rename Actions from .fbx data
+    * Hips to Root Motion
+    * Select Animated Controls

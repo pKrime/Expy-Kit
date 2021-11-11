@@ -83,10 +83,11 @@ class HumanSkeleton:
     left_leg = None
     right_leg = None
 
-    left_arm_IK = None
-    right_arm_IK = None
-    left_leg_IK = None
-    right_leg_IK = None
+    _left_arm_IK = None
+    _right_arm_IK = None
+    _left_leg_IK = None
+    _right_leg_IK = None
+    _fk_as_ik = True
 
     left_fingers = None
     right_fingers = None
@@ -95,6 +96,62 @@ class HumanSkeleton:
     def deformation_bone_map(self):
         """Property for control skeletons"""
         return None
+
+    @property
+    def left_arm_IK(self):
+        if self._left_arm_IK:
+            return self._left_arm_IK
+
+        if self._fk_as_ik:
+            return self.left_arm
+
+        return None
+
+    @property
+    def right_arm_IK(self):
+        if self._right_arm_IK:
+            return self._right_arm_IK
+
+        if self._fk_as_ik:
+            return self.right_arm
+
+        return None
+
+    @property
+    def left_leg_IK(self):
+        if self._left_leg_IK:
+            return self._left_leg_IK
+
+        if self._fk_as_ik:
+            return self.left_leg
+
+        return None
+
+    @property
+    def right_leg_IK(self):
+        if self._right_leg_IK:
+            return self._right_leg_IK
+
+        if self._fk_as_ik:
+            return self.right_leg
+
+        return None
+
+    @left_arm_IK.setter
+    def left_arm_IK(self, value):
+        self._left_arm_IK = value
+
+    @right_arm_IK.setter
+    def right_arm_IK(self, value):
+        self._right_arm_IK = value
+
+    @left_leg_IK.setter
+    def left_leg_IK(self, value):
+        self._left_leg_IK = value
+
+    @right_leg_IK.setter
+    def right_leg_IK(self, value):
+        self._right_leg_IK = value
 
     def bone_names(self):
         if self.root:
@@ -141,7 +198,7 @@ class HumanSkeleton:
 
     def conversion_map(self, target_skeleton):
         """Return a dictionary that maps skeleton bone names to target bone names
-        >>> rigify = RigifySkeleton()
+        >>> = RigifySkeleton()
         >>> rigify.conversion_map(MixamoSkeleton())
         {'DEF-spine.006': 'Head', 'DEF-spine.004': 'Neck', 'DEF-spine.003'...
         """
@@ -425,7 +482,7 @@ class RigifyCtrlsBase(HumanSkeleton):
         return self.conversion_map(RigifySkeleton())
 
 
-class RigifyCtrlsFK(RigifyCtrlsBase):
+class RigifyCtrls(RigifyCtrlsBase):
     def __init__(self):
         super().__init__()
 
@@ -440,6 +497,14 @@ class RigifyCtrlsFK(RigifyCtrlsBase):
                                  foot="foot_fk.{0}".format(side),
                                  toe="toe.{0}".format(side))
 
+        self.left_arm_IK = HumanArm(shoulder="shoulder.{0}".format(side),
+                                 arm="upper_arm_ik.{0}".format(side),
+                                 hand="hand_ik.{0}".format(side))
+
+        self.left_leg_IK = HumanLeg(upleg="thigh_ik.{0}".format(side),
+                                 foot="foot_ik.{0}".format(side),
+                                 toe="toe.{0}".format(side))
+
         side = 'R'
         self.right_arm = HumanArm(shoulder="shoulder.{0}".format(side),
                                   arm="upper_arm_fk.{0}".format(side),
@@ -451,26 +516,11 @@ class RigifyCtrlsFK(RigifyCtrlsBase):
                                   foot="foot_fk.{0}".format(side),
                                   toe="toe.{0}".format(side))
 
-
-class RigifyCtrlsIK(RigifyCtrlsBase):
-    def __init__(self):
-        super().__init__()
-
-        side = 'L'
-        self.left_arm = HumanArm(shoulder="shoulder.{0}".format(side),
-                                 arm="upper_arm_ik.{0}".format(side),
-                                 hand="hand_ik.{0}".format(side))
-
-        self.left_leg = HumanLeg(upleg="thigh_ik.{0}".format(side),
-                                 foot="foot_ik.{0}".format(side),
-                                 toe="toe.{0}".format(side))
-
-        side = 'R'
-        self.right_arm = HumanArm(shoulder="shoulder.{0}".format(side),
+        self.right_arm_IK = HumanArm(shoulder="shoulder.{0}".format(side),
                                   arm="upper_arm_ik.{0}".format(side),
                                   hand="hand_ik.{0}".format(side))
 
-        self.right_leg = HumanLeg(upleg="thigh_ik.{0}".format(side),
+        self.right_leg_IK = HumanLeg(upleg="thigh_ik.{0}".format(side),
                                   foot="foot_ik.{0}".format(side),
                                   toe="toe.{0}".format(side))
 

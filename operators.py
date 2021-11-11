@@ -38,8 +38,7 @@ skeleton_types = (
     ('unreal', "Unreal", "UE4 Skeleton"),
     ('rigify', "Rigify", "Rigify Skeleton"),
     ('rigify_meta', "Rigify Metarig", "Rigify Metarig"),
-    ('rigify_fk', "Rigify FK Controls", "Rigify FK"),
-    ('rigify_ik', "Rigify IK Controls", "Rigify IK"),
+    ('rigify_ctrls', "Rigify Controls", "Rigify CTRLS"),
     ('mixamo', "Mixamo", "Mixamo Skeleton"),
     ('daz-gen8', "Daz Genesis 8", "Daz Genesis 8 Skeleton"),
     ('--', "--", "None")
@@ -386,10 +385,8 @@ def skeleton_from_type(skeleton_type):
         return bone_mapping.RigifySkeleton()
     if skeleton_type == 'rigify_meta':
         return bone_mapping.RigifyMeta()
-    if skeleton_type == 'rigify_fk':
-        return bone_mapping.RigifyCtrlsFK()
-    if skeleton_type == 'rigify_ik':
-        return bone_mapping.RigifyCtrlsIK()
+    if skeleton_type == 'rigify_ctrls':
+        return bone_mapping.RigifyCtrls()
     if skeleton_type == 'unreal':
         return bone_mapping.UnrealSkeleton()
     if skeleton_type == 'daz-gen8':
@@ -894,11 +891,11 @@ class ConstrainToArmature(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     source: EnumProperty(items=skeleton_types,
-                         name="To Animate",
+                         name="To Bind",
                          default='--')
 
     skeleton_type: EnumProperty(items=skeleton_types,
-                                name="Animated Type",
+                                name="Bind Target",
                                 default='--')
 
     ret_bones_layer: IntProperty(name="Binding-Bones layer",
@@ -976,11 +973,11 @@ class ConstrainToArmature(bpy.types.Operator):
         column = layout.column()
 
         row = column.split(factor=0.25, align=True)
-        row.label(text="To Animate")
+        row.label(text="To Bind")
         row.prop(self, 'source', text="")
 
         row = column.split(factor=0.25, align=True)
-        row.label(text="Animated Type")
+        row.label(text="Bind Target")
         row.prop(self, 'skeleton_type', text="")
 
         row = column.split(factor=0.25, align=True)
@@ -1194,14 +1191,14 @@ class ConstrainToArmature(bpy.types.Operator):
                         new_bone.layers[i] = False
 
                     if self.math_look_at:
-                        if src_name == src_skeleton.right_arm.arm:
-                            start_bone_name = trg_skeleton.right_arm.forearm
-                        elif src_name == src_skeleton.left_arm.arm:
-                            start_bone_name = trg_skeleton.left_arm.forearm
-                        elif src_name == src_skeleton.right_leg.upleg:
-                            start_bone_name = trg_skeleton.right_leg.leg
-                        elif src_name == src_skeleton.left_leg.upleg:
-                            start_bone_name = trg_skeleton.left_leg.leg
+                        if src_name == src_skeleton.right_arm_IK.arm:
+                            start_bone_name = trg_skeleton.right_arm_IK.forearm
+                        elif src_name == src_skeleton.left_arm_IK.arm:
+                            start_bone_name = trg_skeleton.left_arm_IK.forearm
+                        elif src_name == src_skeleton.right_leg_IK.upleg:
+                            start_bone_name = trg_skeleton.right_leg_IK.leg
+                        elif src_name == src_skeleton.left_leg_IK.upleg:
+                            start_bone_name = trg_skeleton.left_leg_IK.leg
                         else:
                             start_bone_name = ""
 
