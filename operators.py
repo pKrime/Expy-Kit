@@ -309,6 +309,26 @@ class CreateTransformOffset(bpy.types.Operator):
 
         return True
 
+    def draw(self, context):
+        layout = self.layout
+        column = layout.column()
+
+        row = column.split(factor=0.2, align=True)
+        row.label(text="Name")
+        row.prop(self, 'container_name', text="")
+
+        row = column.split(factor=0.2, align=True)
+        row.label(text="Scale")
+        row.prop(self, "container_scale", text="")
+
+        row = column.split(factor=0.2, align=True)
+        row.label(text="")
+        row.prop(self, "fix_animations")
+
+        row = column.split(factor=0.2, align=True)
+        row.label(text="")
+        row.prop(self, "do_parent", toggle=True)
+
     def execute(self, context):
         arm_ob = context.object
         emp_ob = bpy.data.objects.new(self.container_name, None)
@@ -1330,6 +1350,26 @@ class BakeConstrainedActions(bpy.types.Operator):
 
     do_bake: BoolProperty(name="Bake and Exit", description="Constrain to the new offset and exit",
                           default=False, options={'SKIP_SAVE'})
+
+    def draw(self, context):
+        layout = self.layout
+        column = layout.column()
+
+        row = column.split(factor=0.30, align=True)
+        row.label(text="Type to Bake")
+        row.prop(self, 'skeleton_type', text="")
+
+        row = column.split(factor=0.30, align=True)
+        row.label(text="")
+        row.prop(self, "clear_users_old")
+
+        row = column.split(factor=0.30, align=True)
+        row.label(text="")
+        row.prop(self, "fake_user_new")
+
+        row = column.split(factor=0.30, align=True)
+        row.label(text="")
+        row.prop(self, "do_bake", toggle=True)
 
     @classmethod
     def poll(cls, context):
