@@ -5,7 +5,9 @@ version 0.2
 - Genesis 8 bone mapping
 - Rigify Mapping for Unreal Engine
 - Scale with Offset operator
-- Name Conversion also convert animations
+- Name Conversion also converts animations
 - Select animated controls
-- Grouped Menu entries
 - Unified Rigify IK and FK control maps
+- Grouped Menu entries
+- GameFriendly also renames the metarig target
+

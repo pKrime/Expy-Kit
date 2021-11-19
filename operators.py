@@ -359,6 +359,8 @@ class CreateTransformOffset(bpy.types.Operator):
             for constr in pbone.constraints:
                 if constr.type == 'STRETCH_TO':
                     constr.rest_length /= self.container_scale
+                elif constr.type == 'LIMIT_DISTANCE':
+                    constr.distance /= self.container_scale
 
         # scale rigged meshes as well
         rigged = (ob for ob in bpy.data.objects if
@@ -510,8 +512,9 @@ class ExtractMetarig(bpy.types.Operator):
 
         try:
             metarig = next(ob for ob in bpy.data.objects if ob.type == 'ARMATURE' and ob.data.rigify_target_rig == src_object)
-            met_armature = metarig.data
-            create_metarig = False
+        except AttributeError:
+            self.report({'WARNING'}, 'Rigify Add-On not enabled')
+            return {'CANCELLED'}
         except StopIteration:
             create_metarig = True
             met_armature = bpy.data.armatures.new('metarig')
@@ -519,6 +522,9 @@ class ExtractMetarig(bpy.types.Operator):
             metarig.data.rigify_rig_basename = src_object.name
 
             context.collection.objects.link(metarig)
+        else:
+            met_armature = metarig.data
+            create_metarig = False
 
         bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.select_all(action='DESELECT')
