@@ -291,6 +291,7 @@ class CreateTransformOffset(bpy.types.Operator):
     container_name: StringProperty(name="Name", description="Name of the transform container", default="EMP-Offset")
     container_scale: FloatProperty(name="Scale", description="Scale of the transform container", default=0.01)
     fix_animations: BoolProperty(name="Fix Animations", description="Apply Offset to character animations", default=True)
+    fix_constraints: BoolProperty(name="Fix Constraints", description="Apply Offset to character constraints", default=True)
     do_parent: BoolProperty(name="Execute and Exit", description="Parent to the new offset and exit",
                             default=False, options={'SKIP_SAVE'})
 
@@ -327,6 +328,10 @@ class CreateTransformOffset(bpy.types.Operator):
 
         row = column.split(factor=0.2, align=True)
         row.label(text="")
+        row.prop(self, "fix_constraints")
+
+        row = column.split(factor=0.2, align=True)
+        row.label(text="")
         row.prop(self, "do_parent", toggle=True)
 
     def execute(self, context):
@@ -354,13 +359,27 @@ class CreateTransformOffset(bpy.types.Operator):
             metarig.data.transform(inverted)
             metarig.update_tag()
 
-        # fix constraints rest lenghts
-        for pbone in arm_ob.pose.bones:
-            for constr in pbone.constraints:
-                if constr.type == 'STRETCH_TO':
-                    constr.rest_length /= self.container_scale
-                elif constr.type == 'LIMIT_DISTANCE':
-                    constr.distance /= self.container_scale
+        if self.fix_constraints:
+            # fix constraints rest lenghts
+            for pbone in arm_ob.pose.bones:
+                for constr in pbone.constraints:
+                    if constr.type == 'STRETCH_TO':
+                        constr.rest_length /= self.container_scale
+                    elif constr.type == 'LIMIT_DISTANCE':
+                        constr.distance /= self.container_scale
+                    elif constr.type == 'ACTION':
+                        if constr.target == arm_ob and constr.transform_channel.startswith('LOCATION'):
+                            if constr.target_space != 'WORLD':
+                                constr.min /= self.container_scale
+                                constr.max /= self.container_scale
+                    elif constr.type == 'LIMIT_LOCATION' and constr.owner_space != 'WORLD':
+                        constr.min_x /= self.container_scale
+                        constr.min_y /= self.container_scale
+                        constr.min_z /= self.container_scale
+
+                        constr.max_x /= self.container_scale
+                        constr.max_y /= self.container_scale
+                        constr.max_z /= self.container_scale
 
         # scale rigged meshes as well
         rigged = (ob for ob in bpy.data.objects if
@@ -934,7 +953,7 @@ class ConstrainToArmature(bpy.types.Operator):
         ('Object', "Match Object Transform", "Match target object transform")
     ],
         name="Match Transform",
-        default='None')
+        default='Object')
 
     math_look_at: BoolProperty(name="Chain Look At",
                                description="Correct chain direction based on mid limb (Useful for IK)",
