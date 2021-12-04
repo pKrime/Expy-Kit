@@ -279,6 +279,11 @@ class ConvertBoneNaming(bpy.types.Operator):
                     fc.data_path = fc.data_path.replace('bones["{0}"'.format(track_bone),
                                                         'bones["{0}"'.format(trg_name))
 
+        if bpy.app.version[0] > 2:
+            # blender 3.0 objects do not immediately update renamed vertex groups
+            for ob in bone_utils.iterate_rigged_obs(context.object):
+                ob.data.update()
+
         return {'FINISHED'}
 
 
@@ -1512,7 +1517,7 @@ class AddRootMotion(bpy.types.Operator):
         ('end', "Action End", "Offset to Match End Pose"),
         ('rest', "Rest Pose", "Offset to Match Rest Pose")],
                               name="Offset",
-                              default='start')
+                              default='rest')
 
     # TODO: offset_type start/end: matches first frame at start, last frame at end, weighted average inbetween
 
