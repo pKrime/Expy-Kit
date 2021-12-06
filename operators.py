@@ -672,8 +672,6 @@ class ExtractMetarig(bpy.types.Operator):
                 if met_bone.parent.name in met_bone_names and met_bone.children:
                     met_bone.head += offset_fingers
                     met_bone.tail += offset_fingers
-                    # met_bone.head += offset/100
-                    # met_bone.tail += offset/100
 
         for bone_attr in ['thumb', 'index', 'middle', 'ring', 'pinky']:
             match_meta_fingers(met_skeleton.right_fingers, src_skeleton.right_fingers, bone_attr)
@@ -1132,15 +1130,6 @@ class ConstrainToArmature(bpy.types.Operator):
         deformation_map = src_skeleton.deformation_bone_map
 
         trg_ob = context.active_object
-        # if self._autovars_unset:
-        #     # try automatic settings on first executions
-        #     if trg_skeleton.root:
-        #         self.root_motion_bone = trg_skeleton.root
-        #     if src_skeleton.root in trg_ob.data.bones:
-        #         self.root_motion_bone = src_skeleton.root
-        #
-        #     self._autovars_unset = False
-
         cp_suffix = 'RET'
 
         prefix = ""

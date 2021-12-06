@@ -10,4 +10,4 @@ version 0.2
 - Unified Rigify IK and FK control maps
 - Grouped Menu entries
 - GameFriendly also renames the metarig target
-
+- Enforce Mesh Vertex Group updates in Blender 3.0
