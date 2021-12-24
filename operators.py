@@ -543,7 +543,11 @@ class ExtractMetarig(bpy.types.Operator):
             create_metarig = True
             met_armature = bpy.data.armatures.new('metarig')
             metarig = bpy.data.objects.new("metarig", met_armature)
-            metarig.data.rigify_rig_basename = src_object.name
+            try:
+                metarig.data.rigify_rig_basename = src_object.name
+            except AttributeError:
+                # removed in rigify 0.6.4
+                pass
 
             context.collection.objects.link(metarig)
         else:
@@ -564,8 +568,11 @@ class ExtractMetarig(bpy.types.Operator):
         met_skeleton = bone_mapping.RigifyMeta()
 
         def match_meta_bone(met_bone_group, src_bone_group, bone_attr, axis=None):
-            met_bone = met_armature.edit_bones[getattr(met_bone_group, bone_attr)]
-            src_bone = src_armature.bones.get(getattr(src_bone_group, bone_attr), None)
+            try:
+                met_bone = met_armature.edit_bones[getattr(met_bone_group, bone_attr)]
+                src_bone = src_armature.bones.get(getattr(src_bone_group, bone_attr), None)
+            except KeyError:
+                return
 
             if not src_bone:
                 print(bone_attr, "not found in", src_armature)
@@ -611,12 +618,16 @@ class ExtractMetarig(bpy.types.Operator):
         for bone in right_leg, left_leg:
             bone.head += offset
 
-        right_knee = met_armature.edit_bones[met_skeleton.right_arm.forearm]
-        left_knee = met_armature.edit_bones[met_skeleton.left_arm.forearm]
-        offset = Vector((0.0, self.offset_elbow, 0.0))
+        try:
+            right_knee = met_armature.edit_bones[met_skeleton.right_arm.forearm]
+            left_knee = met_armature.edit_bones[met_skeleton.left_arm.forearm]
+        except KeyError:
+            pass
+        else:
+            offset = Vector((0.0, self.offset_elbow, 0.0))
 
-        for bone in right_knee, left_knee:
-            bone.head += offset
+            for bone in right_knee, left_knee:
+                bone.head += offset
 
         def match_meta_fingers(met_bone_group, src_bone_group, bone_attr):
             met_bone_names = getattr(met_bone_group, bone_attr)
@@ -630,19 +641,23 @@ class ExtractMetarig(bpy.types.Operator):
                 return
 
             if 'thumb' not in bone_attr:
-                met_bone = met_armature.edit_bones[met_bone_names[0]]
-                src_bone = src_armature.bones.get(src_bone_names[0], None)
-                if src_bone:
-                    palm_bone = met_bone.parent
+                try:
+                    met_bone = met_armature.edit_bones[met_bone_names[0]]
+                    src_bone = src_armature.bones.get(src_bone_names[0], None)
+                except KeyError:
+                    pass
+                else:
+                    if src_bone:
+                        palm_bone = met_bone.parent
 
-                    palm_bone.tail = src_bone.head_local
-                    hand_bone = palm_bone.parent
-                    palm_bone.head = hand_bone.head * 0.75 + src_bone.head_local * 0.25
-                    palm_bone.roll = 0
+                        palm_bone.tail = src_bone.head_local
+                        hand_bone = palm_bone.parent
+                        palm_bone.head = hand_bone.head * 0.75 + src_bone.head_local * 0.25
+                        palm_bone.roll = 0
 
             for met_bone_name, src_bone_name in zip(met_bone_names, src_bone_names):
-                met_bone = met_armature.edit_bones[met_bone_name]
                 try:
+                    met_bone = met_armature.edit_bones[met_bone_name]
                     src_bone = src_armature.bones[src_bone_name]
                 except KeyError:
                     print("source bone not found", src_bone_name)
@@ -677,8 +692,11 @@ class ExtractMetarig(bpy.types.Operator):
             match_meta_fingers(met_skeleton.right_fingers, src_skeleton.right_fingers, bone_attr)
             match_meta_fingers(met_skeleton.left_fingers, src_skeleton.left_fingers, bone_attr)
 
-        met_armature.edit_bones['spine.003'].tail = met_armature.edit_bones['spine.004'].head
-        met_armature.edit_bones['spine.005'].head = (met_armature.edit_bones['spine.004'].head + met_armature.edit_bones['spine.006'].head) / 2
+        try:
+            met_armature.edit_bones['spine.003'].tail = met_armature.edit_bones['spine.004'].head
+            met_armature.edit_bones['spine.005'].head = (met_armature.edit_bones['spine.004'].head + met_armature.edit_bones['spine.006'].head) / 2
+        except KeyError:
+            pass
 
         # find foot vertices
         foot_verts = {}
@@ -713,15 +731,23 @@ class ExtractMetarig(bpy.types.Operator):
                 heel_bone.head.x = heel_head
                 heel_bone.tail.x = heel_tail
 
-                spine_bone = met_armature.edit_bones['spine']
-                pelvis_bone = met_armature.edit_bones['pelvis.' + side]
-                pelvis_bone.head = spine_bone.head
-                pelvis_bone.tail.z = spine_bone.tail.z
+                try:
+                    spine_bone = met_armature.edit_bones['spine']
+                    pelvis_bone = met_armature.edit_bones['pelvis.' + side]
+                except KeyError:
+                    pass
+                else:
+                    pelvis_bone.head = spine_bone.head
+                    pelvis_bone.tail.z = spine_bone.tail.z
 
-                spine_bone = met_armature.edit_bones['spine.003']
-                breast_bone = met_armature.edit_bones['breast.' + side]
-                breast_bone.head.z = spine_bone.head.z
-                breast_bone.tail.z = spine_bone.head.z
+                try:
+                    spine_bone = met_armature.edit_bones['spine.003']
+                    breast_bone = met_armature.edit_bones['breast.' + side]
+                except KeyError:
+                    pass
+                else:
+                    breast_bone.head.z = spine_bone.head.z
+                    breast_bone.tail.z = spine_bone.head.z
 
         if self.no_face:
             for bone_name in bone_mapping.rigify_face_bones:
@@ -909,8 +935,11 @@ class ConvertGameFriendly(bpy.types.Operator):
             except (StopIteration, AttributeError):  # Attribute Error if Rigify is not loaded
                 pass
             else:
-                metarig.data.rigify_rig_basename = self.rename
-                print("Metarig Base Name", metarig.data.rigify_rig_basename)
+                try:
+                    metarig.data.rigify_rig_basename = self.rename
+                except AttributeError:
+                    # Removed in rigify 0.6.4
+                    pass
 
         if self.eye_bones:
             # Oddly, changes to use_deform are not kept
@@ -1688,7 +1717,12 @@ class AddRootMotion(bpy.types.Operator):
 
         # TODO: check controls with animation curves instead
 
-        rig_bones = [self._armature.pose.bones[b_name] for b_name in skeleton.bone_names() if b_name and b_name != root_bone_name]
+        def consider_bone(b_name):
+            if b_name == root_bone_name:
+                return False
+            return b_name in self._armature.pose.bones
+
+        rig_bones = [self._armature.pose.bones[b_name] for b_name in skeleton.bone_names() if b_name and consider_bone(b_name)]
         floating_bones = list([bone for bone in rig_bones if is_bone_floating(bone, hips_bone_name)])
 
         rootmo_transfs = []
