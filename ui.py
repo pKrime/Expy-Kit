@@ -187,3 +187,41 @@ class DATA_PT_expy_buttons(bpy.types.Panel):
             row = layout.row()
             op = row.operator(ActionRenameSimple.bl_idname, text=candidate.name)
             op.new_name = candidate.name
+
+
+class DATA_PT_expy_retarget(bpy.types.Panel):
+    bl_label = "Expy Retargeting"
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = "data"
+
+    @classmethod
+    def poll(cls, context):
+        if not context.object:
+            return False
+        if context.object.type != 'ARMATURE':
+            return False
+
+        return True
+
+    def draw(self, context):
+        ob = context.object
+        layout = self.layout
+
+        for slot in ('head', 'neck', 'spine2', 'spine1', 'spine', 'hips'):
+            row = layout.row()
+            row.prop_search(ob.data.expykit_retarget.spine, slot, ob.data, "bones")
+
+        layout.separator()
+
+        split = layout.split()
+
+        col = split.column()
+        for slot in ('shoulder', 'arm', 'arm_twist', 'forearm', 'forearm_twist', 'hand'):
+            row = col.row()
+            row.prop_search(ob.data.expykit_retarget.left_arm, slot, ob.data, "bones")
+
+        col = split.column()
+        for slot in ('shoulder', 'arm', 'arm_twist', 'forearm', 'forearm_twist', 'hand'):
+            row = col.row()
+            row.prop_search(ob.data.expykit_retarget.right_arm, slot, ob.data, "bones")

@@ -30,10 +30,12 @@ import bpy
 from . import operators
 from . import ui
 from . import preferences
+from . import properties
 from .preferences import ExpyPrefs, ExpyToClipboard
 
 from importlib import reload
 reload(operators)
+reload(properties)
 reload(ui)
 
 
@@ -60,11 +62,13 @@ def register():
     bpy.utils.register_class(ui.AnimMenu)
     bpy.utils.register_class(ui.ActionRenameSimple)
     bpy.utils.register_class(ui.DATA_PT_expy_buttons)
+    bpy.utils.register_class(ui.DATA_PT_expy_retarget)
 
     bpy.types.VIEW3D_MT_pose_context_menu.append(ui.pose_context_options)
     bpy.types.VIEW3D_MT_armature_context_menu.append(ui.armature_context_options)
     bpy.types.DOPESHEET_HT_header.append(ui.action_header_buttons)
 
+    properties.register_properties()
     bpy.types.Action.expykit_name_candidates = bpy.props.CollectionProperty(type=operators.ActionNameCandidates)
 
 
@@ -76,6 +80,7 @@ def unregister():
     bpy.types.DOPESHEET_HT_header.remove(ui.action_header_buttons)
 
     bpy.utils.unregister_class(ui.DATA_PT_expy_buttons)
+    bpy.utils.unregister_class(ui.DATA_PT_expy_retarget)
     bpy.utils.unregister_class(ui.ActionRenameSimple)
     bpy.utils.unregister_class(ui.BindingsMenu)
     bpy.utils.unregister_class(ui.ConvertMenu)
@@ -96,3 +101,5 @@ def unregister():
     bpy.utils.unregister_class(operators.AddRootMotion)
     bpy.utils.unregister_class(ExpyToClipboard)
     bpy.utils.unregister_class(ExpyPrefs)
+
+    properties.unregister_properties()
