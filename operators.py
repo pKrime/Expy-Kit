@@ -611,23 +611,26 @@ class ExtractMetarig(bpy.types.Operator):
             match_meta_bone(met_skeleton.right_leg, src_skeleton.right_leg, bone_attr)
             match_meta_bone(met_skeleton.left_leg, src_skeleton.left_leg, bone_attr)
 
-        right_leg = met_armature.edit_bones[met_skeleton.right_leg.leg]
-        left_leg = met_armature.edit_bones[met_skeleton.left_leg.leg]
-
-        offset = Vector((0.0, self.offset_knee, 0.0))
-        for bone in right_leg, left_leg:
-            bone.head += offset
-
         try:
-            right_knee = met_armature.edit_bones[met_skeleton.right_arm.forearm]
-            left_knee = met_armature.edit_bones[met_skeleton.left_arm.forearm]
+            right_leg = met_armature.edit_bones[met_skeleton.right_leg.leg]
+            left_leg = met_armature.edit_bones[met_skeleton.left_leg.leg]
         except KeyError:
             pass
         else:
-            offset = Vector((0.0, self.offset_elbow, 0.0))
-
-            for bone in right_knee, left_knee:
+            offset = Vector((0.0, self.offset_knee, 0.0))
+            for bone in right_leg, left_leg:
                 bone.head += offset
+
+            try:
+                right_knee = met_armature.edit_bones[met_skeleton.right_arm.forearm]
+                left_knee = met_armature.edit_bones[met_skeleton.left_arm.forearm]
+            except KeyError:
+                pass
+            else:
+                offset = Vector((0.0, self.offset_elbow, 0.0))
+
+                for bone in right_knee, left_knee:
+                    bone.head += offset
 
         def match_meta_fingers(met_bone_group, src_bone_group, bone_attr):
             met_bone_names = getattr(met_bone_group, bone_attr)
