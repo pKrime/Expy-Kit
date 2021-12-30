@@ -37,10 +37,14 @@ class RetargetSettings(PropertyGroup):
     left_arm: PointerProperty(type=RetargetArm)
     right_arm: PointerProperty(type=RetargetArm)
 
+    left_leg: PointerProperty(type=RetargetLeg)
+    right_leg: PointerProperty(type=RetargetLeg)
+
 
 def register_properties():
     bpy.utils.register_class(RetargetSpine)
     bpy.utils.register_class(RetargetArm)
+    bpy.utils.register_class(RetargetLeg)
 
     bpy.utils.register_class(RetargetSettings)
     bpy.types.Armature.expykit_retarget = bpy.props.PointerProperty(type=RetargetSettings)
@@ -50,5 +54,6 @@ def unregister_properties():
     del bpy.types.Armature.expykit_retarget
     bpy.utils.unregister_class(RetargetSpine)
     bpy.utils.unregister_class(RetargetArm)
+    bpy.utils.unregister_class(RetargetLeg)
 
     bpy.utils.unregister_class(RetargetSettings)

@@ -208,20 +208,44 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
         ob = context.object
         layout = self.layout
 
+        split = layout.split()
+
+        col = split.column()
+        arm_bones = ('shoulder', 'arm', 'arm_twist', 'forearm', 'forearm_twist', 'hand')
+        for slot in arm_bones:
+            row = col.row()
+            row.prop_search(ob.data.expykit_retarget.left_arm, slot, ob.data, "bones", text="")
+
+        col = split.column()
+        for slot in arm_bones:
+            row = col.row()
+            row.label(text=slot)
+
+        col = split.column()
+        for slot in arm_bones:
+            row = col.row()
+            row.prop_search(ob.data.expykit_retarget.right_arm, slot, ob.data, "bones", text="")
+
+        layout.separator()
         for slot in ('head', 'neck', 'spine2', 'spine1', 'spine', 'hips'):
             row = layout.row()
             row.prop_search(ob.data.expykit_retarget.spine, slot, ob.data, "bones")
 
         layout.separator()
-
         split = layout.split()
+        
+        col = split.column()
+        leg_bones = ('upleg', 'upleg_twist', 'leg', 'leg_twist', 'foot', 'toe')
+        for slot in leg_bones:
+            row = col.row()
+            row.prop_search(ob.data.expykit_retarget.left_leg, slot, ob.data, "bones", text="")
 
         col = split.column()
-        for slot in ('shoulder', 'arm', 'arm_twist', 'forearm', 'forearm_twist', 'hand'):
+        for slot in leg_bones:
             row = col.row()
-            row.prop_search(ob.data.expykit_retarget.left_arm, slot, ob.data, "bones")
+            row.label(text=slot)
 
         col = split.column()
-        for slot in ('shoulder', 'arm', 'arm_twist', 'forearm', 'forearm_twist', 'hand'):
+        for slot in leg_bones:
             row = col.row()
-            row.prop_search(ob.data.expykit_retarget.right_arm, slot, ob.data, "bones")
+            row.prop_search(ob.data.expykit_retarget.right_leg, slot, ob.data, "bones", text="")
