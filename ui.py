@@ -205,6 +205,21 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
 
         return True
 
+    def sided_rows(self, ob, limbs, bone_names):
+        split = self.layout.split()
+
+        labels = None
+        for group in limbs:
+            col = split.column()
+            labels = labels if labels else split.column()
+            for k in bone_names:
+                row = col.row()
+                row.prop_search(group, k, ob.data, "bones", text="")
+
+        for k in bone_names:
+            row = labels.row()
+            row.label(text=k.title())
+
     def draw(self, context):
         ob = context.object
         layout = self.layout
@@ -229,20 +244,8 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
                     row.prop_search(finger, slot, ob.data, "bones", text="")
 
         layout.separator()
-        split = layout.split()
-
-        labels = None
         arm_bones = ('shoulder', 'arm', 'arm_twist', 'forearm', 'forearm_twist', 'hand')
-        for group in skeleton.right_arm, skeleton.left_arm:
-            col = split.column()
-            labels = labels if labels else split.column()
-            for k in arm_bones:
-                row = col.row()
-                row.prop_search(group, k, ob.data, "bones", text="")
-
-        for k in arm_bones:
-            row = labels.row()
-            row.label(text=k.title())
+        self.sided_rows(ob, (skeleton.right_arm, skeleton.left_arm), arm_bones)
 
         layout.separator()
         for slot in ('head', 'neck', 'spine2', 'spine1', 'spine', 'hips'):
@@ -250,20 +253,6 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
             row.prop_search(ob.data.expykit_retarget.spine, slot, ob.data, "bones", text=slot.title())
 
         layout.separator()
-        split = layout.split()
-        
-        col = split.column()
+        layout.separator()
         leg_bones = ('upleg', 'upleg_twist', 'leg', 'leg_twist', 'foot', 'toe')
-        for slot in leg_bones:
-            row = col.row()
-            row.prop_search(ob.data.expykit_retarget.right_leg, slot, ob.data, "bones", text="")
-
-        col = split.column()
-        for slot in leg_bones:
-            row = col.row()
-            row.label(text=slot)
-
-        col = split.column()
-        for slot in leg_bones:
-            row = col.row()
-            row.prop_search(ob.data.expykit_retarget.left_leg, slot, ob.data, "bones", text="")
+        self.sided_rows(ob, (skeleton.right_leg, skeleton.left_leg), leg_bones)
