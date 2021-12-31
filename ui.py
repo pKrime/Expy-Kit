@@ -216,8 +216,8 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
 
         sides = "right", "left"
         finger_bones = ('a', 'b', 'c')
-        finger_groups = skeleton.right_fingers, skeleton.left_fingers
-        for side, group in zip(sides, finger_groups):
+
+        for side, group in zip(sides, [skeleton.right_fingers, skeleton.left_fingers]):
             col = split.column()
 
             for k in group.keys():
@@ -231,26 +231,23 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
         layout.separator()
         split = layout.split()
 
-        col = split.column()
+        labels = None
         arm_bones = ('shoulder', 'arm', 'arm_twist', 'forearm', 'forearm_twist', 'hand')
-        for slot in arm_bones:
-            row = col.row()
-            row.prop_search(ob.data.expykit_retarget.right_arm, slot, ob.data, "bones", text="")
+        for group in skeleton.right_arm, skeleton.left_arm:
+            col = split.column()
+            labels = labels if labels else split.column()
+            for k in arm_bones:
+                row = col.row()
+                row.prop_search(group, k, ob.data, "bones", text="")
 
-        col = split.column()
-        for slot in arm_bones:
-            row = col.row()
-            row.label(text=slot)
-
-        col = split.column()
-        for slot in arm_bones:
-            row = col.row()
-            row.prop_search(ob.data.expykit_retarget.left_arm, slot, ob.data, "bones", text="")
+        for k in arm_bones:
+            row = labels.row()
+            row.label(text=k.title())
 
         layout.separator()
         for slot in ('head', 'neck', 'spine2', 'spine1', 'spine', 'hips'):
             row = layout.row()
-            row.prop_search(ob.data.expykit_retarget.spine, slot, ob.data, "bones")
+            row.prop_search(ob.data.expykit_retarget.spine, slot, ob.data, "bones", text=slot.title())
 
         layout.separator()
         split = layout.split()
