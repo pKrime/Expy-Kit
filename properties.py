@@ -2,6 +2,7 @@ import bpy
 from bpy.types import PropertyGroup
 from bpy.props import StringProperty
 from bpy.props import PointerProperty
+from bpy.props import BoolProperty
 
 
 class RetargetSpine(PropertyGroup):
@@ -46,16 +47,21 @@ class RetargetFingers(PropertyGroup):
 
 
 class RetargetSettings(PropertyGroup):
+    advanced_on: BoolProperty(default=False)
     spine: PointerProperty(type=RetargetSpine)
 
     left_arm: PointerProperty(type=RetargetArm)
+    left_arm_ik: PointerProperty(type=RetargetArm)
     left_fingers: PointerProperty(type=RetargetFingers)
 
     right_arm: PointerProperty(type=RetargetArm)
+    right_arm_ik: PointerProperty(type=RetargetArm)
     right_fingers: PointerProperty(type=RetargetFingers)
 
     left_leg: PointerProperty(type=RetargetLeg)
+    left_leg_ik: PointerProperty(type=RetargetLeg)
     right_leg: PointerProperty(type=RetargetLeg)
+    right_leg_ik: PointerProperty(type=RetargetLeg)
 
 
 def register_properties():

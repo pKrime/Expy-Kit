@@ -205,46 +205,58 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
 
         return True
 
-    def sided_rows(self, ob, limbs, bone_names):
+    def sided_rows(self, ob, limbs, bone_names, suffix=""):
         split = self.layout.split()
 
         labels = None
         for group in limbs:
             col = split.column()
-            labels = labels if labels else split.column()
+            row = col.row()
+            if not labels:
+                row.label(text='Right')
+                labels = split.column()
+                row = labels.row()
+                row.label(text="")
+            else:
+                row.label(text='Left')
+
             for k in bone_names:
                 row = col.row()
                 row.prop_search(group, k, ob.data, "bones", text="")
 
         for k in bone_names:
             row = labels.row()
-            row.label(text=k.title())
+            row.label(text=(k + suffix).title())
 
     def draw(self, context):
         ob = context.object
         layout = self.layout
-
-        row = layout.row()
-
-        split = layout.split()
         skeleton = ob.data.expykit_retarget
 
-        sides = "right", "left"
-        finger_bones = ('a', 'b', 'c')
+        row = layout.row()
+        row.prop(skeleton, "advanced_on", text="Show All", toggle=True)
 
-        for side, group in zip(sides, [skeleton.right_fingers, skeleton.left_fingers]):
-            col = split.column()
+        if skeleton.advanced_on:
+            sides = "right", "left"
+            split = layout.split()
+            finger_bones = ('a', 'b', 'c')
+            for side, group in zip(sides, [skeleton.right_fingers, skeleton.left_fingers]):
+                col = split.column()
 
-            for k in group.keys():
-                row = col.row()
-                row.label(text=" ".join((side, k)).title())
-                finger = getattr(group, k)
-                for slot in finger_bones:
+                for k in group.keys():
                     row = col.row()
-                    row.prop_search(finger, slot, ob.data, "bones", text="")
+                    row.label(text=" ".join((side, k)).title())
+                    finger = getattr(group, k)
+                    for slot in finger_bones:
+                        row = col.row()
+                        row.prop_search(finger, slot, ob.data, "bones", text="")
+            layout.separator()
 
-        layout.separator()
-        arm_bones = ('shoulder', 'arm', 'arm_twist', 'forearm', 'forearm_twist', 'hand')
+        if skeleton.advanced_on:
+            arm_bones = ('shoulder', 'arm', 'arm_twist', 'forearm', 'forearm_twist', 'hand')
+            self.sided_rows(ob, (skeleton.right_arm_ik, skeleton.left_arm_ik), arm_bones, suffix=" IK")
+        else:
+            arm_bones = ('shoulder', 'arm', 'forearm', 'hand')
         self.sided_rows(ob, (skeleton.right_arm, skeleton.left_arm), arm_bones)
 
         layout.separator()
@@ -253,6 +265,9 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
             row.prop_search(ob.data.expykit_retarget.spine, slot, ob.data, "bones", text=slot.title())
 
         layout.separator()
-        layout.separator()
-        leg_bones = ('upleg', 'upleg_twist', 'leg', 'leg_twist', 'foot', 'toe')
+        if skeleton.advanced_on:
+            leg_bones = ('upleg', 'upleg_twist', 'leg', 'leg_twist', 'foot', 'toe')
+            self.sided_rows(ob, (skeleton.right_leg_ik, skeleton.left_leg_ik), leg_bones, suffix=" IK")
+        else:
+            leg_bones = ('upleg', 'leg', 'foot', 'toe')
         self.sided_rows(ob, (skeleton.right_leg, skeleton.left_leg), leg_bones)
