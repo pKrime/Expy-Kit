@@ -1,6 +1,5 @@
 import bpy
 from bpy.types import PropertyGroup
-from bpy.props import CollectionProperty
 from bpy.props import StringProperty
 from bpy.props import PointerProperty
 
@@ -32,10 +31,28 @@ class RetargetLeg(PropertyGroup):
     toe: StringProperty(name="toe")
 
 
+class RetargetFinger(PropertyGroup):
+    a: StringProperty(name="A")
+    b: StringProperty(name="B")
+    c: StringProperty(name="C")
+
+
+class RetargetFingers(PropertyGroup):
+    thumb: PointerProperty(type=RetargetFinger)
+    index: PointerProperty(type=RetargetFinger)
+    middle: PointerProperty(type=RetargetFinger)
+    ring: PointerProperty(type=RetargetFinger)
+    pinky: PointerProperty(type=RetargetFinger)
+
+
 class RetargetSettings(PropertyGroup):
     spine: PointerProperty(type=RetargetSpine)
+
     left_arm: PointerProperty(type=RetargetArm)
+    left_fingers: PointerProperty(type=RetargetFingers)
+
     right_arm: PointerProperty(type=RetargetArm)
+    right_fingers: PointerProperty(type=RetargetFingers)
 
     left_leg: PointerProperty(type=RetargetLeg)
     right_leg: PointerProperty(type=RetargetLeg)
@@ -45,6 +62,8 @@ def register_properties():
     bpy.utils.register_class(RetargetSpine)
     bpy.utils.register_class(RetargetArm)
     bpy.utils.register_class(RetargetLeg)
+    bpy.utils.register_class(RetargetFinger)
+    bpy.utils.register_class(RetargetFingers)
 
     bpy.utils.register_class(RetargetSettings)
     bpy.types.Armature.expykit_retarget = bpy.props.PointerProperty(type=RetargetSettings)
@@ -52,7 +71,10 @@ def register_properties():
 
 def unregister_properties():
     del bpy.types.Armature.expykit_retarget
+    bpy.utils.unregister_class(RetargetFinger)
+    bpy.utils.unregister_class(RetargetFingers)
     bpy.utils.unregister_class(RetargetSpine)
+
     bpy.utils.unregister_class(RetargetArm)
     bpy.utils.unregister_class(RetargetLeg)
 

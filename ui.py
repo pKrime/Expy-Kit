@@ -1,5 +1,6 @@
 import bpy
 from bpy.props import StringProperty
+from bpy.props import BoolProperty
 
 from . import operators
 from importlib import reload
@@ -208,13 +209,33 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
         ob = context.object
         layout = self.layout
 
+        row = layout.row()
+
+        split = layout.split()
+        skeleton = ob.data.expykit_retarget
+
+        sides = "right", "left"
+        finger_bones = ('a', 'b', 'c')
+        finger_groups = skeleton.right_fingers, skeleton.left_fingers
+        for side, group in zip(sides, finger_groups):
+            col = split.column()
+
+            for k in group.keys():
+                row = col.row()
+                row.label(text=" ".join((side, k)).title())
+                finger = getattr(group, k)
+                for slot in finger_bones:
+                    row = col.row()
+                    row.prop_search(finger, slot, ob.data, "bones", text="")
+
+        layout.separator()
         split = layout.split()
 
         col = split.column()
         arm_bones = ('shoulder', 'arm', 'arm_twist', 'forearm', 'forearm_twist', 'hand')
         for slot in arm_bones:
             row = col.row()
-            row.prop_search(ob.data.expykit_retarget.left_arm, slot, ob.data, "bones", text="")
+            row.prop_search(ob.data.expykit_retarget.right_arm, slot, ob.data, "bones", text="")
 
         col = split.column()
         for slot in arm_bones:
@@ -224,7 +245,7 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
         col = split.column()
         for slot in arm_bones:
             row = col.row()
-            row.prop_search(ob.data.expykit_retarget.right_arm, slot, ob.data, "bones", text="")
+            row.prop_search(ob.data.expykit_retarget.left_arm, slot, ob.data, "bones", text="")
 
         layout.separator()
         for slot in ('head', 'neck', 'spine2', 'spine1', 'spine', 'hips'):
@@ -238,7 +259,7 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
         leg_bones = ('upleg', 'upleg_twist', 'leg', 'leg_twist', 'foot', 'toe')
         for slot in leg_bones:
             row = col.row()
-            row.prop_search(ob.data.expykit_retarget.left_leg, slot, ob.data, "bones", text="")
+            row.prop_search(ob.data.expykit_retarget.right_leg, slot, ob.data, "bones", text="")
 
         col = split.column()
         for slot in leg_bones:
@@ -248,4 +269,4 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
         col = split.column()
         for slot in leg_bones:
             row = col.row()
-            row.prop_search(ob.data.expykit_retarget.right_leg, slot, ob.data, "bones", text="")
+            row.prop_search(ob.data.expykit_retarget.left_leg, slot, ob.data, "bones", text="")
