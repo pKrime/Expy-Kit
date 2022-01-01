@@ -219,6 +219,7 @@ class AddPresetArmatureRetarget(AddPresetBase, Operator):
         "skeleton.right_arm.forearm_twist",
         "skeleton.right_arm.hand",
 
+        "skeleton.left_arm.shoulder",
         "skeleton.left_arm.arm",
         "skeleton.left_arm.arm_twist",
         "skeleton.left_arm.forearm",
@@ -234,6 +235,42 @@ class AddPresetArmatureRetarget(AddPresetBase, Operator):
         "skeleton.left_leg.upleg_twist",
         "skeleton.left_leg.leg",
         "skeleton.left_leg.leg_twist",
+
+        "skeleton.left_fingers.thumb",
+        "skeleton.left_fingers.index",
+        "skeleton.left_fingers.middle",
+        "skeleton.left_fingers.ring",
+        "skeleton.left_fingers.pinky",
+
+        "skeleton.right_fingers.thumb",
+        "skeleton.right_fingers.index",
+        "skeleton.right_fingers.middle",
+        "skeleton.right_fingers.ring",
+        "skeleton.right_fingers.pinky",
+
+        "skeleton.right_arm.shoulder",
+        "skeleton.right_arm.arm",
+        "skeleton.right_arm.arm_twist",
+        "skeleton.right_arm.forearm",
+        "skeleton.right_arm.forearm_twist",
+        "skeleton.right_arm.hand",
+
+        "skeleton.left_arm_ik.shoulder",
+        "skeleton.left_arm_ik.arm",
+        "skeleton.left_arm_ik.arm_twist",
+        "skeleton.left_arm_ik.forearm",
+        "skeleton.left_arm_ik.forearm_twist",
+        "skeleton.left_arm_ik.hand",
+
+        "skeleton.right_leg_ik.upleg",
+        "skeleton.right_leg_ik.upleg_twist",
+        "skeleton.right_leg_ik.leg",
+        "skeleton.right_leg_ik.leg_twist",
+
+        "skeleton.left_leg_ik.upleg",
+        "skeleton.left_leg_ik.upleg_twist",
+        "skeleton.left_leg_ik.leg",
+        "skeleton.left_leg_ik.leg_twist",
     ]
 
     # where to store the preset
