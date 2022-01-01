@@ -205,72 +205,20 @@ class AddPresetArmatureRetarget(AddPresetBase, Operator):
 
     # properties to store in the preset
     preset_values = [
-        "skeleton.spine.head",
-        "skeleton.spine.neck",
-        "skeleton.spine.spine2",
-        "skeleton.spine.spine1",
-        "skeleton.spine.spine",
-        "skeleton.spine.hips",
+        "skeleton.spine",
+        "skeleton.right_arm",
+        "skeleton.left_arm",
+        "skeleton.right_leg",
+        "skeleton.left_leg",
 
-        "skeleton.right_arm.shoulder",
-        "skeleton.right_arm.arm",
-        "skeleton.right_arm.arm_twist",
-        "skeleton.right_arm.forearm",
-        "skeleton.right_arm.forearm_twist",
-        "skeleton.right_arm.hand",
+        "skeleton.left_fingers",
+        "skeleton.right_fingers",
 
-        "skeleton.left_arm.shoulder",
-        "skeleton.left_arm.arm",
-        "skeleton.left_arm.arm_twist",
-        "skeleton.left_arm.forearm",
-        "skeleton.left_arm.forearm_twist",
-        "skeleton.left_arm.hand",
+        "skeleton.right_arm_ik",
+        "skeleton.left_arm_ik",
 
-        "skeleton.right_leg.upleg",
-        "skeleton.right_leg.upleg_twist",
-        "skeleton.right_leg.leg",
-        "skeleton.right_leg.leg_twist",
-
-        "skeleton.left_leg.upleg",
-        "skeleton.left_leg.upleg_twist",
-        "skeleton.left_leg.leg",
-        "skeleton.left_leg.leg_twist",
-
-        "skeleton.left_fingers.thumb",
-        "skeleton.left_fingers.index",
-        "skeleton.left_fingers.middle",
-        "skeleton.left_fingers.ring",
-        "skeleton.left_fingers.pinky",
-
-        "skeleton.right_fingers.thumb",
-        "skeleton.right_fingers.index",
-        "skeleton.right_fingers.middle",
-        "skeleton.right_fingers.ring",
-        "skeleton.right_fingers.pinky",
-
-        "skeleton.right_arm.shoulder",
-        "skeleton.right_arm.arm",
-        "skeleton.right_arm.arm_twist",
-        "skeleton.right_arm.forearm",
-        "skeleton.right_arm.forearm_twist",
-        "skeleton.right_arm.hand",
-
-        "skeleton.left_arm_ik.shoulder",
-        "skeleton.left_arm_ik.arm",
-        "skeleton.left_arm_ik.arm_twist",
-        "skeleton.left_arm_ik.forearm",
-        "skeleton.left_arm_ik.forearm_twist",
-        "skeleton.left_arm_ik.hand",
-
-        "skeleton.right_leg_ik.upleg",
-        "skeleton.right_leg_ik.upleg_twist",
-        "skeleton.right_leg_ik.leg",
-        "skeleton.right_leg_ik.leg_twist",
-
-        "skeleton.left_leg_ik.upleg",
-        "skeleton.left_leg_ik.upleg_twist",
-        "skeleton.left_leg_ik.leg",
-        "skeleton.left_leg_ik.leg_twist",
+        "skeleton.right_leg_ik",
+        "skeleton.left_leg_ik",
     ]
 
     # where to store the preset
