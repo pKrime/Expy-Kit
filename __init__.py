@@ -69,6 +69,7 @@ def register():
     bpy.types.DOPESHEET_HT_header.append(ui.action_header_buttons)
 
     properties.register_properties()
+    ui.register_properties()
     bpy.types.Action.expykit_name_candidates = bpy.props.CollectionProperty(type=operators.ActionNameCandidates)
 
 
@@ -103,3 +104,4 @@ def unregister():
     bpy.utils.unregister_class(ExpyPrefs)
 
     properties.unregister_properties()
+    ui.unregister_properties()
