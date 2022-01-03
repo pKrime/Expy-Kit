@@ -1,3 +1,8 @@
+import ast
+from math import pi
+import os
+import typing
+
 import bpy
 from bpy.props import BoolProperty
 from bpy.props import EnumProperty
@@ -15,7 +20,6 @@ from .rig_mapping import bone_mapping
 from . import bone_utils
 from . import fbx_helper
 from . import preferences
-from .ui import get_preset_skel
 
 from importlib import reload
 reload(bone_mapping)
@@ -25,9 +29,8 @@ reload(preferences)
 
 from mathutils import Vector
 from mathutils import Matrix
-from math import pi
-import os
-import typing
+
+from .rig_mapping.bone_mapping import HumanSpine, HumanArm, HumanLeg, HumanFingers, HumanSkeleton
 
 
 status_types = (
@@ -180,15 +183,68 @@ class RevertDotBoneNames(bpy.types.Operator):
         return {'FINISHED'}
 
 
+
+class PresetFinger:
+    def __init__(self):
+        self.a = ""
+        self.b = ""
+        self.c = ""
+
+
+class PresetSkeleton:
+    def __init__(self):
+        self.spine = HumanSpine()
+
+        self.left_arm = HumanArm()
+        self.left_arm_ik = HumanArm()
+        self.right_arm = HumanArm()
+        self.right_arm_ik = HumanArm()
+
+        self.right_leg = HumanLeg()
+        self.right_leg_ik = HumanLeg()
+        self.left_leg = HumanLeg()
+        self.left_leg_ik = HumanLeg()
+
+        self.left_fingers = HumanFingers(thumb=PresetFinger(), index=PresetFinger(), middle=PresetFinger(), ring=PresetFinger(), pinky=PresetFinger())
+        self.right_fingers = HumanFingers(thumb=PresetFinger(), index=PresetFinger(), middle=PresetFinger(), ring=PresetFinger(), pinky=PresetFinger())
+
+
+def get_settings_skel(settings):
+    mapping = HumanSkeleton(preset=settings)
+    return mapping
+
+
+def get_preset_skel(preset):
+    if not preset:
+        return
+    if not preset.endswith(".py"):
+        return
+
+    preset_path = os.path.join(preferences.get_retarget_dir(), preset)
+    if not os.path.isfile(preset_path):
+        return
+
+    # HACKISH: executing the preset would apply it to the current armature. Use ast instead
+    # TODO: better solution: save settings to PresetSkeleton, then execute the preset
+    code = ast.parse(open(preset_path).read())
+    code.body.pop(0)
+    code.body.pop(0)
+
+    skeleton = PresetSkeleton()
+    eval(compile(code, '', 'exec'))
+
+    mapping = HumanSkeleton(preset=skeleton)
+    del skeleton
+    return mapping
+
+
 class ConvertBoneNaming(bpy.types.Operator):
     """Convert Bone Names between Naming Convention"""
     bl_idname = "object.expykit_convert_bone_names"
     bl_label = "Convert Bone Names"
     bl_options = {'REGISTER', 'UNDO'}
 
-    source: EnumProperty(items=skeleton_types,
-                         name="Source Type",
-                         default='--')
+    #TODO: src_preset, in case skeleton is not set
 
     trg_preset: EnumProperty(items=preferences.iterate_presets,
                              name="Target Preset",
@@ -221,7 +277,7 @@ class ConvertBoneNaming(bpy.types.Operator):
         return True
 
     def execute(self, context):
-        src_skeleton = skeleton_from_type(self.source)
+        src_skeleton = get_settings_skel(context.object.data.expykit_retarget)
         trg_skeleton = get_preset_skel(self.trg_preset)
 
         if all((src_skeleton, trg_skeleton, src_skeleton != trg_skeleton)):

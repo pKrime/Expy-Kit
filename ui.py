@@ -229,54 +229,6 @@ class AddPresetArmatureRetarget(AddPresetBase, Operator):
     preset_subdir = "armature/retarget"
 
 
-class PresetFinger:
-    def __init__(self):
-        self.a = ""
-        self.b = ""
-        self.c = ""
-
-
-class PresetSkeleton:
-    def __init__(self):
-        self.spine = HumanSpine()
-
-        self.left_arm = HumanArm()
-        self.left_arm_ik = HumanArm()
-        self.right_arm = HumanArm()
-        self.right_arm_ik = HumanArm()
-
-        self.right_leg = HumanLeg()
-        self.right_leg_ik = HumanLeg()
-        self.left_leg = HumanLeg()
-        self.left_leg_ik = HumanLeg()
-
-        self.left_fingers = HumanFingers(thumb=PresetFinger(), index=PresetFinger(), middle=PresetFinger(), ring=PresetFinger(), pinky=PresetFinger())
-        self.right_fingers = HumanFingers(thumb=PresetFinger(), index=PresetFinger(), middle=PresetFinger(), ring=PresetFinger(), pinky=PresetFinger())
-
-
-def get_preset_skel(preset):
-    if not preset:
-        return
-    if not preset.endswith(".py"):
-        return
-
-    preset_path = os.path.join(preferences.get_retarget_dir(), preset)
-    if not os.path.isfile(preset_path):
-        return
-
-    # HACKISH: executing the preset would apply it to the current armature. Use ast instead
-    code = ast.parse(open(preset_path).read())
-    code.body.pop(0)
-    code.body.pop(0)
-
-    skeleton = PresetSkeleton()
-    eval(compile(code, '', 'exec'))
-
-    mapping = HumanSkeleton(preset=skeleton)
-    del skeleton
-    return mapping
-
-
 class ClearArmatureRetarget(Operator):
     bl_idname = "object.expy_kit_armature_clear"
     bl_label = "Clear Retarget Settings"
