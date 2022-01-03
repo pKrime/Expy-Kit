@@ -1,9 +1,14 @@
+import ast
+import os
+
 import bpy
 from bpy.props import StringProperty
 from bpy.types import Operator, Menu
 from bl_operators.presets import AddPresetBase
 
 from . import operators
+from . import preferences
+from .rig_mapping.bone_mapping import HumanLeg, HumanArm, HumanSpine, HumanFingers
 from importlib import reload
 reload(operators)
 
@@ -222,6 +227,51 @@ class AddPresetArmatureRetarget(AddPresetBase, Operator):
 
     # where to store the preset
     preset_subdir = "armature/retarget"
+
+
+class PresetFinger:
+    def __init__(self):
+        self.a = ""
+        self.b = ""
+        self.c = ""
+
+
+class PresetSkeleton:
+    def __init__(self):
+        self.spine = HumanSpine()
+
+        self.left_arm = HumanArm()
+        self.left_arm_ik = HumanArm()
+        self.right_arm = HumanArm()
+        self.right_arm_ik = HumanArm()
+
+        self.right_leg = HumanLeg()
+        self.right_leg_ik = HumanLeg()
+        self.left_leg = HumanLeg()
+        self.left_leg_ik = HumanLeg()
+
+        self.left_fingers = HumanFingers(thumb=PresetFinger(), index=PresetFinger(), middle=PresetFinger(), ring=PresetFinger(), pinky=PresetFinger())
+        self.right_fingers = HumanFingers(thumb=PresetFinger(), index=PresetFinger(), middle=PresetFinger(), ring=PresetFinger(), pinky=PresetFinger())
+
+
+def get_preset_skel(preset):
+    if not preset:
+        return
+    if not preset.endswith(".py"):
+        return
+
+    preset_path = os.path.join(preferences.get_retarget_dir(), preset)
+    if not os.path.isfile(preset_path):
+        return
+
+    code = ast.parse(open(preset_path).read())
+    code.body.pop(0)
+    code.body.pop(0)
+
+    skeleton = PresetSkeleton()
+    eval(compile(code, '', 'exec'))
+
+    return skeleton
 
 
 class ClearArmatureRetarget(Operator):

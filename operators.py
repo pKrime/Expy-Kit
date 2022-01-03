@@ -14,11 +14,13 @@ from itertools import chain
 from .rig_mapping import bone_mapping
 from . import bone_utils
 from . import fbx_helper
+from . import preferences
 
 from importlib import reload
 reload(bone_mapping)
 reload(bone_utils)
 reload(fbx_helper)
+reload(preferences)
 
 from mathutils import Vector
 from mathutils import Matrix
@@ -190,6 +192,10 @@ class ConvertBoneNaming(bpy.types.Operator):
     target: EnumProperty(items=skeleton_types,
                          name="Target Type",
                          default='--')
+
+    trg_preset: EnumProperty(items=preferences.iterate_presets,
+                             name="Target Preset",
+                             )
 
     strip_prefix: BoolProperty(
         name="Strip Prefix",
