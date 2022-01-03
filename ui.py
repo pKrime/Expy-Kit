@@ -363,13 +363,35 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
         row.operator(ClearArmatureRetarget.bl_idname, text="Clear All")
 
 
-def register_properties():
+def register_classes():
     bpy.utils.register_class(ClearArmatureRetarget)
     bpy.utils.register_class(DATA_MT_retarget_presets)
     bpy.utils.register_class(AddPresetArmatureRetarget)
 
+    bpy.utils.register_class(BindingsMenu)
+    bpy.utils.register_class(ConvertMenu)
+    bpy.utils.register_class(AnimMenu)
+    bpy.utils.register_class(ActionRenameSimple)
+    bpy.utils.register_class(DATA_PT_expy_buttons)
+    bpy.utils.register_class(DATA_PT_expy_retarget)
 
-def unregister_properties():
+    bpy.types.VIEW3D_MT_pose_context_menu.append(pose_context_options)
+    bpy.types.VIEW3D_MT_armature_context_menu.append(armature_context_options)
+    bpy.types.DOPESHEET_HT_header.append(action_header_buttons)
+
+
+def unregister_classes():
     bpy.utils.unregister_class(DATA_MT_retarget_presets)
     bpy.utils.unregister_class(AddPresetArmatureRetarget)
     bpy.utils.unregister_class(ClearArmatureRetarget)
+
+    bpy.types.VIEW3D_MT_pose_context_menu.remove(pose_context_options)
+    bpy.types.VIEW3D_MT_armature_context_menu.remove(armature_context_options)
+    bpy.types.DOPESHEET_HT_header.remove(action_header_buttons)
+
+    bpy.utils.unregister_class(BindingsMenu)
+    bpy.utils.unregister_class(ConvertMenu)
+    bpy.utils.unregister_class(AnimMenu)
+    bpy.utils.unregister_class(ActionRenameSimple)
+    bpy.utils.unregister_class(DATA_PT_expy_buttons)
+    bpy.utils.unregister_class(DATA_PT_expy_retarget)

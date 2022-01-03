@@ -1909,3 +1909,41 @@ class RenameActionsFromFbxFiles(bpy.types.Operator, ImportHelper):
             action.name = fbx_match
 
         return {'FINISHED'}
+
+
+def register_classes():
+    bpy.utils.register_class(ActionRangeToScene)
+    bpy.utils.register_class(ConstraintStatus)
+    bpy.utils.register_class(SelectConstrainedControls)
+    bpy.utils.register_class(ConvertBoneNaming)
+    bpy.utils.register_class(ConvertGameFriendly)
+    bpy.utils.register_class(ExtractMetarig)
+    bpy.utils.register_class(MergeHeadTails)
+    bpy.utils.register_class(RevertDotBoneNames)
+    bpy.utils.register_class(ConstrainToArmature)
+    bpy.utils.register_class(BakeConstrainedActions)
+    bpy.utils.register_class(RenameActionsFromFbxFiles)
+    bpy.utils.register_class(CreateTransformOffset)
+    bpy.utils.register_class(AddRootMotion)
+    bpy.utils.register_class(ActionNameCandidates)
+
+    bpy.types.Action.expykit_name_candidates = bpy.props.CollectionProperty(type=ActionNameCandidates)
+
+
+def unregister_classes():
+    del bpy.types.Action.expykit_name_candidates
+
+    bpy.utils.unregister_class(ActionRangeToScene)
+    bpy.utils.unregister_class(ConstraintStatus)
+    bpy.utils.unregister_class(SelectConstrainedControls)
+    bpy.utils.unregister_class(ConvertBoneNaming)
+    bpy.utils.unregister_class(ConvertGameFriendly)
+    bpy.utils.unregister_class(ExtractMetarig)
+    bpy.utils.unregister_class(MergeHeadTails)
+    bpy.utils.unregister_class(RevertDotBoneNames)
+    bpy.utils.unregister_class(ConstrainToArmature)
+    bpy.utils.unregister_class(BakeConstrainedActions)
+    bpy.utils.unregister_class(RenameActionsFromFbxFiles)
+    bpy.utils.unregister_class(CreateTransformOffset)
+    bpy.utils.unregister_class(AddRootMotion)
+    bpy.utils.unregister_class(ActionNameCandidates)
