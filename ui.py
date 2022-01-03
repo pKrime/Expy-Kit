@@ -313,11 +313,12 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
 
         skeleton = ob.data.expykit_retarget
 
-        row = layout.row()
-        row.prop(skeleton, "advanced_on", text="Show All", toggle=True)
-        row.operator(ClearArmatureRetarget.bl_idname, text="", icon='PANEL_CLOSE')
+        row = layout.row(align=True)
+        row.prop(skeleton, "twist_on", text="Twist", toggle=True)
+        row.prop(skeleton, "fingers_on", text="Fingers", toggle=True)
+        row.prop(skeleton, "ik_on", text="IK", toggle=True)
 
-        if skeleton.advanced_on:
+        if skeleton.fingers_on:
             sides = "right", "left"
             split = layout.split()
             finger_bones = ('a', 'b', 'c')
@@ -335,11 +336,12 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
                         row.prop_search(finger, slot, ob.data, "bones", text="")
             layout.separator()
 
-        if skeleton.advanced_on:
+        if skeleton.twist_on:
             arm_bones = ('shoulder', 'arm', 'arm_twist', 'forearm', 'forearm_twist', 'hand')
-            self.sided_rows(ob, (skeleton.right_arm_ik, skeleton.left_arm_ik), arm_bones, suffix=" IK")
         else:
             arm_bones = ('shoulder', 'arm', 'forearm', 'hand')
+        if skeleton.ik_on:
+            self.sided_rows(ob, (skeleton.right_arm_ik, skeleton.left_arm_ik), arm_bones, suffix=" IK")
         self.sided_rows(ob, (skeleton.right_arm, skeleton.left_arm), arm_bones)
 
         layout.separator()
@@ -348,12 +350,16 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
             row.prop_search(ob.data.expykit_retarget.spine, slot, ob.data, "bones", text=slot.title())
 
         layout.separator()
-        if skeleton.advanced_on:
+        if skeleton.twist_on:
             leg_bones = ('upleg', 'upleg_twist', 'leg', 'leg_twist', 'foot', 'toe')
             self.sided_rows(ob, (skeleton.right_leg_ik, skeleton.left_leg_ik), leg_bones, suffix=" IK")
         else:
             leg_bones = ('upleg', 'leg', 'foot', 'toe')
         self.sided_rows(ob, (skeleton.right_leg, skeleton.left_leg), leg_bones)
+
+        layout.separator()
+        row = layout.row()
+        row.operator(ClearArmatureRetarget.bl_idname, text="Clear All")
 
 
 def register_properties():

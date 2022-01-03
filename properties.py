@@ -47,7 +47,10 @@ class RetargetFingers(PropertyGroup):
 
 
 class RetargetSettings(PropertyGroup):
-    advanced_on: BoolProperty(default=False)
+    twist_on: BoolProperty(default=False)
+    ik_on: BoolProperty(default=False)
+    fingers_on: BoolProperty(default=False)
+
     spine: PointerProperty(type=RetargetSpine)
 
     left_arm: PointerProperty(type=RetargetArm)
