@@ -34,6 +34,9 @@ class HumanLimb:
     def items(self):
         return self.__dict__.items()
 
+    def keys(self):
+        return self.__dict__.keys()
+
 
 class HumanSpine(HumanLimb):
     def __init__(self, head='', neck='', spine2='', spine1='', spine='', hips=''):

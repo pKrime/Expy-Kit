@@ -1,7 +1,8 @@
-import ast
 from math import pi
 import os
 import typing
+
+import importlib.util
 
 import bpy
 from bpy.props import BoolProperty
@@ -208,6 +209,14 @@ class PresetSkeleton:
         self.left_fingers = HumanFingers(thumb=PresetFinger(), index=PresetFinger(), middle=PresetFinger(), ring=PresetFinger(), pinky=PresetFinger())
         self.right_fingers = HumanFingers(thumb=PresetFinger(), index=PresetFinger(), middle=PresetFinger(), ring=PresetFinger(), pinky=PresetFinger())
 
+    def copy(self, settings):
+        for group in ('spine', 'left_arm', 'left_arm_ik', 'right_arm', 'right_arm_ik',
+                      'right_leg', 'right_leg_ik', 'left_leg', 'left_leg_ik'):
+            setting = getattr(self, group)
+            trg_setting = getattr(settings, group)
+            for k in setting.keys():
+                setattr(setting, k, getattr(trg_setting, k))
+
 
 def get_settings_skel(settings):
     mapping = HumanSkeleton(preset=settings)
@@ -224,17 +233,11 @@ def get_preset_skel(preset):
     if not os.path.isfile(preset_path):
         return
 
-    # HACKISH: executing the preset would apply it to the current armature. Use ast instead
-    # TODO: better solution: save settings to PresetSkeleton, then execute the preset
-    code = ast.parse(open(preset_path).read())
-    code.body.pop(0)
-    code.body.pop(0)
+    spec = importlib.util.spec_from_file_location("sel_preset", preset_path)
+    preset_mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(preset_mod)
 
-    skeleton = PresetSkeleton()
-    eval(compile(code, '', 'exec'))
-
-    mapping = HumanSkeleton(preset=skeleton)
-    del skeleton
+    mapping = get_settings_skel(bpy.context.object.data.expykit_retarget)
     return mapping
 
 
@@ -277,7 +280,9 @@ class ConvertBoneNaming(bpy.types.Operator):
         return True
 
     def execute(self, context):
-        src_skeleton = get_settings_skel(context.object.data.expykit_retarget)
+        src_preset = PresetSkeleton()
+        src_preset.copy(context.object.data.expykit_retarget)
+        src_skeleton = get_settings_skel(src_preset)
         trg_skeleton = get_preset_skel(self.trg_preset)
 
         if all((src_skeleton, trg_skeleton, src_skeleton != trg_skeleton)):
