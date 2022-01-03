@@ -1,14 +1,10 @@
-import ast
-import os
-
 import bpy
 from bpy.props import StringProperty
 from bpy.types import Operator, Menu
 from bl_operators.presets import AddPresetBase
 
 from . import operators
-from . import preferences
-from .rig_mapping.bone_mapping import HumanLeg, HumanArm, HumanSpine, HumanFingers, HumanSkeleton
+from . import preset_handler
 from importlib import reload
 reload(operators)
 
@@ -226,7 +222,7 @@ class AddPresetArmatureRetarget(AddPresetBase, Operator):
     ]
 
     # where to store the preset
-    preset_subdir = "armature/retarget"
+    preset_subdir = preset_handler.PRESETS_SUBDIR
 
 
 class ClearArmatureRetarget(Operator):

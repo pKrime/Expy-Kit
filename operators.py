@@ -2,8 +2,6 @@ from math import pi
 import os
 import typing
 
-import importlib.util
-
 import bpy
 from bpy.props import BoolProperty
 from bpy.props import EnumProperty
@@ -18,20 +16,17 @@ from bpy_extras.io_utils import ImportHelper
 from itertools import chain
 
 from .rig_mapping import bone_mapping
+from . import preset_handler
 from . import bone_utils
 from . import fbx_helper
-from . import preferences
 
 from importlib import reload
 reload(bone_mapping)
 reload(bone_utils)
 reload(fbx_helper)
-reload(preferences)
 
 from mathutils import Vector
 from mathutils import Matrix
-
-from .rig_mapping.bone_mapping import HumanSpine, HumanArm, HumanLeg, HumanFingers, HumanSkeleton
 
 
 status_types = (
@@ -184,76 +179,6 @@ class RevertDotBoneNames(bpy.types.Operator):
         return {'FINISHED'}
 
 
-
-class PresetFinger:
-    def __init__(self):
-        self.a = ""
-        self.b = ""
-        self.c = ""
-
-
-class PresetSkeleton:
-    def __init__(self):
-        self.spine = HumanSpine()
-
-        self.left_arm = HumanArm()
-        self.left_arm_ik = HumanArm()
-        self.right_arm = HumanArm()
-        self.right_arm_ik = HumanArm()
-
-        self.right_leg = HumanLeg()
-        self.right_leg_ik = HumanLeg()
-        self.left_leg = HumanLeg()
-        self.left_leg_ik = HumanLeg()
-
-        self.left_fingers = HumanFingers(thumb=PresetFinger(), index=PresetFinger(), middle=PresetFinger(), ring=PresetFinger(), pinky=PresetFinger())
-        self.right_fingers = HumanFingers(thumb=PresetFinger(), index=PresetFinger(), middle=PresetFinger(), ring=PresetFinger(), pinky=PresetFinger())
-
-    def copy(self, settings):
-        for group in ('spine', 'left_arm', 'left_arm_ik', 'right_arm', 'right_arm_ik',
-                      'right_leg', 'right_leg_ik', 'left_leg', 'left_leg_ik'):
-            setting = getattr(self, group)
-            trg_setting = getattr(settings, group)
-            for k in setting.keys():
-                setattr(setting, k, getattr(trg_setting, k))
-
-        finger_bones = 'a', 'b', 'c'
-        for group, trg_grp in zip((self.left_fingers, self.right_fingers),
-                                  (settings.left_fingers, settings.right_fingers)):
-            for k in group.keys():
-                if k == 'name':  # skip Property Group name
-                    continue
-
-                finger = getattr(group, k)
-                trg_finger = getattr(trg_grp, k)
-
-                for i, slot in enumerate(finger_bones):
-                    setattr(finger, slot, getattr(trg_finger, slot))
-
-
-def get_settings_skel(settings):
-    mapping = HumanSkeleton(preset=settings)
-    return mapping
-
-
-def get_preset_skel(preset):
-    if not preset:
-        return
-    if not preset.endswith(".py"):
-        return
-
-    preset_path = os.path.join(preferences.get_retarget_dir(), preset)
-    if not os.path.isfile(preset_path):
-        return
-
-    spec = importlib.util.spec_from_file_location("sel_preset", preset_path)
-    preset_mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(preset_mod)
-
-    mapping = get_settings_skel(bpy.context.object.data.expykit_retarget)
-    return mapping
-
-
 class ConvertBoneNaming(bpy.types.Operator):
     """Convert Bone Names between Naming Convention"""
     bl_idname = "object.expykit_convert_bone_names"
@@ -262,7 +187,7 @@ class ConvertBoneNaming(bpy.types.Operator):
 
     #TODO: src_preset, in case skeleton is not set
 
-    trg_preset: EnumProperty(items=preferences.iterate_presets,
+    trg_preset: EnumProperty(items=preset_handler.iterate_presets,
                              name="Target Preset",
                              )
 
@@ -293,10 +218,10 @@ class ConvertBoneNaming(bpy.types.Operator):
         return True
 
     def execute(self, context):
-        src_preset = PresetSkeleton()
+        src_preset = preset_handler.PresetSkeleton()
         src_preset.copy(context.object.data.expykit_retarget)
-        src_skeleton = get_settings_skel(src_preset)
-        trg_skeleton = get_preset_skel(self.trg_preset)
+        src_skeleton = preset_handler.get_settings_skel(src_preset)
+        trg_skeleton = preset_handler.get_preset_skel(self.trg_preset)
 
         if all((src_skeleton, trg_skeleton, src_skeleton != trg_skeleton)):
             if self.anim_tracks:

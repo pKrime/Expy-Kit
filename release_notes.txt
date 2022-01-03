@@ -1,3 +1,9 @@
+
+version #upcoming#
+
+- Extract Metarig from incomplete characters
+
+
 version 0.2
 
 - Root Motion Binding

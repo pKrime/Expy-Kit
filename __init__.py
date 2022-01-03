@@ -18,7 +18,7 @@
 
 bl_info = {
     "name": "Expy Kit",
-    "version": (0, 2, 1),
+    "version": (0, 2, 2),
     "author": "Paolo Acampora",
     "blender": (2, 90, 0),
     "description": "Tools for Character Rig Conversion",
@@ -30,6 +30,7 @@ import bpy
 from . import operators
 from . import ui
 from . import preferences
+from . import preset_handler
 from . import properties
 from .preferences import ExpyPrefs, ExpyToClipboard
 
@@ -70,7 +71,7 @@ def register():
 
     properties.register_properties()
     ui.register_properties()
-    preferences.install_presets()
+    preset_handler.install_presets()
     bpy.types.Action.expykit_name_candidates = bpy.props.CollectionProperty(type=operators.ActionNameCandidates)
 
 
