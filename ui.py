@@ -8,7 +8,7 @@ from bl_operators.presets import AddPresetBase
 
 from . import operators
 from . import preferences
-from .rig_mapping.bone_mapping import HumanLeg, HumanArm, HumanSpine, HumanFingers
+from .rig_mapping.bone_mapping import HumanLeg, HumanArm, HumanSpine, HumanFingers, HumanSkeleton
 from importlib import reload
 reload(operators)
 
@@ -264,6 +264,7 @@ def get_preset_skel(preset):
     if not os.path.isfile(preset_path):
         return
 
+    # HACKISH: executing the preset would apply it to the current armature. Use ast instead
     code = ast.parse(open(preset_path).read())
     code.body.pop(0)
     code.body.pop(0)
@@ -271,7 +272,9 @@ def get_preset_skel(preset):
     skeleton = PresetSkeleton()
     eval(compile(code, '', 'exec'))
 
-    return skeleton
+    mapping = HumanSkeleton(preset=skeleton)
+    del skeleton
+    return mapping
 
 
 class ClearArmatureRetarget(Operator):

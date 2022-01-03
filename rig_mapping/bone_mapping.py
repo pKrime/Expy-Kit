@@ -66,12 +66,19 @@ class HumanLeg(HumanLimb):
 
 
 class HumanFingers(HumanLimb):
-    def __init__(self, thumb=[''] * 3, index=[''] * 3, middle=[''] * 3, ring=[''] * 3, pinky=[''] * 3):
-        self.thumb = thumb
-        self.index = index
-        self.middle = middle
-        self.ring = ring
-        self.pinky = pinky
+    def __init__(self, thumb=[''] * 3, index=[''] * 3, middle=[''] * 3, ring=[''] * 3, pinky=[''] * 3, preset=None):
+        if preset:
+            self.thumb = [preset.thumb.a, preset.thumb.b, preset.thumb.c]
+            self.index = [preset.index.a, preset.index.b, preset.index.c]
+            self.middle = [preset.thumb.a, preset.thumb.b, preset.thumb.c]
+            self.ring = [preset.ring.a, preset.ring.b, preset.ring.c]
+            self.pinky = [preset.pinky.a, preset.pinky.b, preset.pinky.c]
+        else:
+            self.thumb = thumb
+            self.index = index
+            self.middle = middle
+            self.ring = ring
+            self.pinky = pinky
 
 
 class HumanSkeleton:
@@ -91,6 +98,22 @@ class HumanSkeleton:
 
     left_fingers = None
     right_fingers = None
+
+    def __init__(self, preset=None):
+        if preset:
+            self.spine = preset.spine
+            self.left_arm = preset.left_arm
+            self.left_arm_ik = preset.left_arm_ik
+            self.left_leg = preset.left_leg
+            self.left_leg_ik = preset.left_leg_ik
+
+            self.right_arm = preset.right_arm
+            self.right_arm_ik = preset.right_arm_ik
+            self.right_leg = preset.right_leg
+            self.right_leg_ik = preset.right_leg_ik
+
+            self.left_fingers = HumanFingers(preset=preset.left_fingers)
+            self.right_fingers = HumanFingers(preset=preset.right_fingers)
 
     @property
     def deformation_bone_map(self):

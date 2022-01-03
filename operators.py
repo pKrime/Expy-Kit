@@ -15,6 +15,7 @@ from .rig_mapping import bone_mapping
 from . import bone_utils
 from . import fbx_helper
 from . import preferences
+from .ui import get_preset_skel
 
 from importlib import reload
 reload(bone_mapping)
@@ -189,10 +190,6 @@ class ConvertBoneNaming(bpy.types.Operator):
                          name="Source Type",
                          default='--')
 
-    target: EnumProperty(items=skeleton_types,
-                         name="Target Type",
-                         default='--')
-
     trg_preset: EnumProperty(items=preferences.iterate_presets,
                              name="Target Preset",
                              )
@@ -225,7 +222,7 @@ class ConvertBoneNaming(bpy.types.Operator):
 
     def execute(self, context):
         src_skeleton = skeleton_from_type(self.source)
-        trg_skeleton = skeleton_from_type(self.target)
+        trg_skeleton = get_preset_skel(self.trg_preset)
 
         if all((src_skeleton, trg_skeleton, src_skeleton != trg_skeleton)):
             if self.anim_tracks:
