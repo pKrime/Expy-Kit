@@ -1,6 +1,5 @@
 import bpy
 from bpy.props import StringProperty
-
 from bpy.types import Operator, Menu
 from bl_operators.presets import AddPresetBase
 
@@ -227,7 +226,7 @@ class AddPresetArmatureRetarget(AddPresetBase, Operator):
 
 class DATA_MT_retarget_presets(Menu):
     bl_label = "Retarget Presets"
-    preset_subdir = "armature/retarget"
+    preset_subdir = AddPresetArmatureRetarget.preset_subdir
     preset_operator = "script.execute_preset"
     draw = Menu.draw_preset
 
@@ -326,6 +325,7 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
 def register_properties():
     bpy.utils.register_class(DATA_MT_retarget_presets)
     bpy.utils.register_class(AddPresetArmatureRetarget)
+
 
 def unregister_properties():
     bpy.utils.unregister_class(DATA_MT_retarget_presets)

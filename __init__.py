@@ -70,6 +70,7 @@ def register():
 
     properties.register_properties()
     ui.register_properties()
+    preferences.install_presets()
     bpy.types.Action.expykit_name_candidates = bpy.props.CollectionProperty(type=operators.ActionNameCandidates)
 
 

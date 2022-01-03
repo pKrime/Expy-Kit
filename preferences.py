@@ -1,7 +1,10 @@
+import os
+import shutil
+
 import bpy
 from bpy.props import StringProperty
 
-import os
+from .ui import AddPresetArmatureRetarget
 
 
 class ExpyToClipboard(bpy.types.Operator):
@@ -47,3 +50,13 @@ class ExpyPrefs(bpy.types.AddonPreferences):
         script_path = os.path.join(script_path, 'rig_mapping', 'unreal_mapping.py')
         op = sp_col.operator(ExpyToClipboard.bl_idname, text='Path of "Unreal Mapping" to Clipboard')
         op.clip_text = script_path
+
+
+def install_presets():
+    presets_dir = bpy.utils.user_resource('SCRIPTS', path="presets")
+    retarget_dir = os.path.join(presets_dir, AddPresetArmatureRetarget.preset_subdir)
+    bundled_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "rig_mapping", "presets")
+
+    os.makedirs(retarget_dir, exist_ok=True)
+    for f in os.listdir(bundled_dir):
+        shutil.copy2(os.path.join(bundled_dir, f), retarget_dir)
