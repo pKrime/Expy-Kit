@@ -224,6 +224,38 @@ class AddPresetArmatureRetarget(AddPresetBase, Operator):
     preset_subdir = "armature/retarget"
 
 
+class ClearArmatureRetarget(Operator):
+    bl_idname = "object.expy_kit_armature_clear"
+    bl_label = "Clear Retarget Settings"
+
+    @classmethod
+    def poll(cls, context):
+        if not context.object:
+            return False
+        if context.object.type != 'ARMATURE':
+            return False
+
+        return True
+
+    def execute(self, context):
+        skeleton = context.object.data.expykit_retarget
+        for setting in (skeleton.right_arm, skeleton.left_arm, skeleton.spine, skeleton.right_leg,
+                        skeleton.left_leg, skeleton.right_arm_ik, skeleton.left_arm_ik,
+                        skeleton.right_leg_ik, skeleton.left_leg_ik):
+            for k in setting.keys():
+                setattr(setting, k, '')
+
+        for settings in (skeleton.right_fingers, skeleton.left_fingers):
+            for setting in [getattr(settings, k) for k in settings.keys()]:
+                try:
+                    for k in setting.keys():
+                        setattr(setting, k, '')
+                except AttributeError:
+                    continue
+
+        return {'FINISHED'}
+
+
 class DATA_MT_retarget_presets(Menu):
     bl_label = "Retarget Presets"
     preset_subdir = AddPresetArmatureRetarget.preset_subdir
@@ -273,15 +305,17 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
         ob = context.object
         layout = self.layout
 
-        row = layout.row(align=True)
-        row.menu(DATA_MT_retarget_presets.__name__, text=DATA_MT_retarget_presets.bl_label)
-        row.operator(AddPresetArmatureRetarget.bl_idname, text="", icon='ZOOM_IN')
-        row.operator(AddPresetArmatureRetarget.bl_idname, text="", icon='ZOOM_OUT').remove_active = True
+        split = layout.split(factor=0.75)
+        split.menu(DATA_MT_retarget_presets.__name__, text=DATA_MT_retarget_presets.bl_label)
+        row = split.row(align=True)
+        row.operator(AddPresetArmatureRetarget.bl_idname, text="+")
+        row.operator(AddPresetArmatureRetarget.bl_idname, text="-").remove_active = True
 
         skeleton = ob.data.expykit_retarget
 
         row = layout.row()
         row.prop(skeleton, "advanced_on", text="Show All", toggle=True)
+        row.operator(ClearArmatureRetarget.bl_idname, text="", icon='PANEL_CLOSE')
 
         if skeleton.advanced_on:
             sides = "right", "left"
@@ -323,6 +357,7 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
 
 
 def register_properties():
+    bpy.utils.register_class(ClearArmatureRetarget)
     bpy.utils.register_class(DATA_MT_retarget_presets)
     bpy.utils.register_class(AddPresetArmatureRetarget)
 
@@ -330,3 +365,4 @@ def register_properties():
 def unregister_properties():
     bpy.utils.unregister_class(DATA_MT_retarget_presets)
     bpy.utils.unregister_class(AddPresetArmatureRetarget)
+    bpy.utils.unregister_class(ClearArmatureRetarget)
