@@ -292,6 +292,8 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
                 col = split.column()
 
                 for k in group.keys():
+                    if k == 'name':  # skip Property Group name
+                        continue
                     row = col.row()
                     row.label(text=" ".join((side, k)).title())
                     finger = getattr(group, k)
