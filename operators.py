@@ -217,6 +217,19 @@ class PresetSkeleton:
             for k in setting.keys():
                 setattr(setting, k, getattr(trg_setting, k))
 
+        finger_bones = 'a', 'b', 'c'
+        for group, trg_grp in zip((self.left_fingers, self.right_fingers),
+                                  (settings.left_fingers, settings.right_fingers)):
+            for k in group.keys():
+                if k == 'name':  # skip Property Group name
+                    continue
+
+                finger = getattr(group, k)
+                trg_finger = getattr(trg_grp, k)
+
+                for i, slot in enumerate(finger_bones):
+                    setattr(finger, slot, getattr(trg_finger, slot))
+
 
 def get_settings_skel(settings):
     mapping = HumanSkeleton(preset=settings)
