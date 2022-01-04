@@ -94,7 +94,6 @@ def ebone_roll_to_vector(bone, align_axis, axis_only=False):
     return roll
 
 
-
 def copy_bone_constraints(bone_a, bone_b):
     """Copy all bone constraints from bone_A to bone_b and sets their writable attributes.
        Doesn't delete constraints that already exist
@@ -575,3 +574,29 @@ def get_group_verts(obj, vertex_group, threshold=0.1):
         weighted_verts.append(i)
 
     return weighted_verts
+
+
+def align_to_closer_axis(src_bone, trg_bone):
+    src_rot = src_bone.matrix_local.to_3x3().inverted()
+    src_x_axis = src_rot[0]
+    src_y_axis = src_rot[1]
+    src_z_axis = src_rot[2]
+
+    bone_direction = trg_bone.parent.vector.normalized()
+    dot_x = abs(bone_direction.dot(src_x_axis))
+    dot_y = abs(bone_direction.dot(src_y_axis))
+    dot_z = abs(bone_direction.dot(src_z_axis))
+
+    matching_dot = max(dot_x, dot_y, dot_z)
+    if matching_dot == dot_x:
+        closer_axis = src_x_axis
+    elif matching_dot == dot_y:
+        closer_axis = src_y_axis
+    else:
+        closer_axis = src_z_axis
+
+    offset = closer_axis * src_bone.length
+    if closer_axis.dot(bone_direction) < 0:
+        offset *= -1
+
+    trg_bone.tail = trg_bone.head + offset

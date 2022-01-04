@@ -221,7 +221,7 @@ class ConvertBoneNaming(bpy.types.Operator):
             self.report({'WARNING'}, 'Set Starting Skeleton First')
             preset_handler.set_preset_skel(self.trg_preset)
             return {'FINISHED'}
-        
+
         src_preset = preset_handler.PresetSkeleton()
         src_preset.copy(current_preset)
 
@@ -446,32 +446,6 @@ def skeleton_from_type(skeleton_type):
         return bone_mapping.DazGenesis8()
 
 
-def align_to_closer_axis(src_bone, trg_bone):
-    src_rot = src_bone.matrix_local.to_3x3().inverted()
-    src_x_axis = src_rot[0]
-    src_y_axis = src_rot[1]
-    src_z_axis = src_rot[2]
-
-    bone_direction = trg_bone.parent.vector.normalized()
-    dot_x = abs(bone_direction.dot(src_x_axis))
-    dot_y = abs(bone_direction.dot(src_y_axis))
-    dot_z = abs(bone_direction.dot(src_z_axis))
-
-    matching_dot = max(dot_x, dot_y, dot_z)
-    if matching_dot == dot_x:
-        closer_axis = src_x_axis
-    elif matching_dot == dot_y:
-        closer_axis = src_y_axis
-    else:
-        closer_axis = src_z_axis
-
-    offset = closer_axis * src_bone.length
-    if closer_axis.dot(bone_direction) < 0:
-        offset *= -1
-
-    trg_bone.tail = trg_bone.head + offset
-
-
 class ExtractMetarig(bpy.types.Operator):
     """Create Metarig from current object"""
     bl_idname = "object.expykit_extract_metarig"
@@ -677,7 +651,7 @@ class ExtractMetarig(bpy.types.Operator):
                 try:
                     met_bone.tail = src_bone.children[0].head_local
                 except IndexError:
-                    align_to_closer_axis(src_bone, met_bone)
+                    bone_utils.align_to_closer_axis(src_bone, met_bone)
 
                 met_bone.roll = 0.0
 
