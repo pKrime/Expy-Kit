@@ -5,7 +5,17 @@ from bpy.props import PointerProperty
 from bpy.props import BoolProperty
 
 
-class RetargetSpine(PropertyGroup):
+class RetargetBase(PropertyGroup):
+    def has_settings(self):
+        for k, v in self.items():
+            if k == 'name':
+                continue
+            if v:
+                return True
+        return False
+
+
+class RetargetSpine(RetargetBase):
     head: StringProperty(name="head")
     neck: StringProperty(name="neck")
     spine2: StringProperty(name="spine2")
@@ -14,7 +24,7 @@ class RetargetSpine(PropertyGroup):
     hips: StringProperty(name="hips")
 
 
-class RetargetArm(PropertyGroup):
+class RetargetArm(RetargetBase):
     shoulder: StringProperty(name="shoulder")
     arm: StringProperty(name="arm")
     arm_twist: StringProperty(name="arm_twist")
@@ -23,7 +33,7 @@ class RetargetArm(PropertyGroup):
     hand: StringProperty(name="hand")
 
 
-class RetargetLeg(PropertyGroup):
+class RetargetLeg(RetargetBase):
     upleg: StringProperty(name="upleg")
     upleg_twist: StringProperty(name="upleg_twist")
     leg: StringProperty(name="leg")
@@ -32,7 +42,7 @@ class RetargetLeg(PropertyGroup):
     toe: StringProperty(name="toe")
 
 
-class RetargetFinger(PropertyGroup):
+class RetargetFinger(RetargetBase):
     a: StringProperty(name="A")
     b: StringProperty(name="B")
     c: StringProperty(name="C")
@@ -44,6 +54,13 @@ class RetargetFingers(PropertyGroup):
     middle: PointerProperty(type=RetargetFinger)
     ring: PointerProperty(type=RetargetFinger)
     pinky: PointerProperty(type=RetargetFinger)
+
+    def has_settings(self):
+        for setting in (self.thumb, self.index, self.middle, self.ring, self.pinky):
+            if setting.has_settings():
+                return True
+
+        return False
 
 
 class RetargetSettings(PropertyGroup):
@@ -65,6 +82,15 @@ class RetargetSettings(PropertyGroup):
     left_leg_ik: PointerProperty(type=RetargetLeg)
     right_leg: PointerProperty(type=RetargetLeg)
     right_leg_ik: PointerProperty(type=RetargetLeg)
+
+    def has_settings(self):
+        for setting in (self.spine, self.left_arm, self.left_arm_ik, self.left_fingers,
+                        self.right_arm, self.right_arm_ik, self.right_fingers,
+                        self.left_leg, self.left_leg_ik, self.right_leg, self.right_leg_ik):
+            if setting.has_settings():
+                return True
+
+        return False
 
 
 def register_classes():

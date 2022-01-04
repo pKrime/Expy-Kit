@@ -41,7 +41,7 @@ def get_settings_skel(settings):
     return mapping
 
 
-def get_preset_skel(preset):
+def set_preset_skel(preset):
     if not preset:
         return
     if not preset.endswith(".py"):
