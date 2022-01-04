@@ -28,6 +28,8 @@ def install_presets():
 
 def iterate_presets(scene, context):
     """CallBack for Enum Property. Must take scene, context arguments"""
+
+    yield '--', "--", "None"  # first menu entry, doesn't do anything
     for f in os.listdir(get_retarget_dir()):
         if not f.endswith('.py'):
             continue

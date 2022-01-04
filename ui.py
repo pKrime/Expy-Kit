@@ -27,7 +27,7 @@ def object_context_options(self, context):
 
 class BindingsMenu(bpy.types.Menu):
     bl_label = "Binding"
-    bl_idname = "object.expykit_binding_menu"
+    bl_idname = "OBJECT_MT_expykit_binding_menu"
 
     def draw(self, context):
         layout = self.layout
@@ -44,7 +44,7 @@ class BindingsMenu(bpy.types.Menu):
 
 class ConvertMenu(bpy.types.Menu):
     bl_label = "Conversion"
-    bl_idname = "object.expykit_convert_menu"
+    bl_idname = "OBJECT_MT_expykit_convert_menu"
 
     def draw(self, context):
         layout = self.layout
@@ -67,7 +67,7 @@ class ConvertMenu(bpy.types.Menu):
 
 class AnimMenu(bpy.types.Menu):
     bl_label = "Animation"
-    bl_idname = "object.expykit_anim_menu"
+    bl_idname = "OBJECT_MT_expykit_anim_menu"
 
     def draw(self, context):
         layout = self.layout
