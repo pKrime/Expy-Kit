@@ -73,7 +73,7 @@ class HumanFingers(HumanLimb):
         if preset:
             self.thumb = [preset.thumb.a, preset.thumb.b, preset.thumb.c]
             self.index = [preset.index.a, preset.index.b, preset.index.c]
-            self.middle = [preset.thumb.a, preset.thumb.b, preset.thumb.c]
+            self.middle = [preset.middle.a, preset.middle.b, preset.middle.c]
             self.ring = [preset.ring.a, preset.ring.b, preset.ring.c]
             self.pinky = [preset.pinky.a, preset.pinky.b, preset.pinky.c]
         else:
