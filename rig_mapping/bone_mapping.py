@@ -106,14 +106,14 @@ class HumanSkeleton:
         if preset:
             self.spine = preset.spine
             self.left_arm = preset.left_arm
-            self.left_arm_ik = preset.left_arm_ik
+            self._left_arm_IK = preset.left_arm_ik
             self.left_leg = preset.left_leg
-            self.left_leg_ik = preset.left_leg_ik
+            self._left_leg_IK = preset.left_leg_ik
 
             self.right_arm = preset.right_arm
-            self.right_arm_ik = preset.right_arm_ik
+            self._right_arm_IK = preset.right_arm_ik
             self.right_leg = preset.right_leg
-            self.right_leg_ik = preset.right_leg_ik
+            self._right_leg_IK = preset.right_leg_ik
 
             self.left_fingers = HumanFingers(preset=preset.left_fingers)
             self.right_fingers = HumanFingers(preset=preset.right_fingers)
@@ -125,7 +125,7 @@ class HumanSkeleton:
 
     @property
     def left_arm_IK(self):
-        if self._left_arm_IK:
+        if self._left_arm_IK.has_settings():
             return self._left_arm_IK
 
         if self._fk_as_ik:
@@ -135,7 +135,7 @@ class HumanSkeleton:
 
     @property
     def right_arm_IK(self):
-        if self._right_arm_IK:
+        if self._right_arm_IK.has_settings():
             return self._right_arm_IK
 
         if self._fk_as_ik:
@@ -145,7 +145,7 @@ class HumanSkeleton:
 
     @property
     def left_leg_IK(self):
-        if self._left_leg_IK:
+        if self._left_leg_IK.has_settings():
             return self._left_leg_IK
 
         if self._fk_as_ik:
@@ -155,7 +155,7 @@ class HumanSkeleton:
 
     @property
     def right_leg_IK(self):
-        if self._right_leg_IK:
+        if self._right_leg_IK.has_settings():
             return self._right_leg_IK
 
         if self._fk_as_ik:
@@ -235,10 +235,7 @@ class HumanSkeleton:
             if not target_limbs:
                 return
 
-            try:
-                trg_name = target_limbs[limb]
-            except KeyError:
-                return
+            trg_name = getattr(target_limbs, limb, None)
 
             if trg_name:
                 bone_map[bone_name] = trg_name
