@@ -235,7 +235,10 @@ class HumanSkeleton:
             if not target_limbs:
                 return
 
-            trg_name = target_limbs[limb]
+            try:
+                trg_name = target_limbs[limb]
+            except KeyError:
+                return
 
             if trg_name:
                 bone_map[bone_name] = trg_name

@@ -965,13 +965,13 @@ class ConstrainToArmature(bpy.types.Operator):
     bl_description = "Constrain bones of selected armatures to active armature"
     bl_options = {'REGISTER', 'UNDO'}
 
-    source: EnumProperty(items=skeleton_types,
-                         name="To Bind",
-                         default='--')
-
-    skeleton_type: EnumProperty(items=skeleton_types,
-                                name="Bind Target",
-                                default='--')
+    # source: EnumProperty(items=skeleton_types,
+    #                      name="To Bind",
+    #                      default='--')
+    #
+    # skeleton_type: EnumProperty(items=skeleton_types,
+    #                             name="Bind Target",
+    #                             default='--')
 
     ret_bones_layer: IntProperty(name="Binding-Bones layer",
                                  min=0, max=29, default=24,
@@ -1047,13 +1047,13 @@ class ConstrainToArmature(bpy.types.Operator):
         layout = self.layout
         column = layout.column()
 
-        row = column.split(factor=0.25, align=True)
-        row.label(text="To Bind")
-        row.prop(self, 'source', text="")
-
-        row = column.split(factor=0.25, align=True)
-        row.label(text="Bind Target")
-        row.prop(self, 'skeleton_type', text="")
+        # row = column.split(factor=0.25, align=True)
+        # row.label(text="To Bind")
+        # row.prop(self, 'source', text="")
+        #
+        # row = column.split(factor=0.25, align=True)
+        # row.label(text="Bind Target")
+        # row.prop(self, 'skeleton_type', text="")
 
         row = column.split(factor=0.25, align=True)
         row.separator()
@@ -1145,20 +1145,20 @@ class ConstrainToArmature(bpy.types.Operator):
             row.prop(self, "root_cp_rot_z", text="Z", toggle=True)
 
     def execute(self, context):
-        src_skeleton = skeleton_from_type(self.source)
-        trg_skeleton = skeleton_from_type(self.skeleton_type)
-
-        if not src_skeleton:
-            return {'FINISHED'}
-        if not trg_skeleton:
-            return {'FINISHED'}
-
-        bone_names_map = src_skeleton.conversion_map(trg_skeleton)
-        deformation_map = src_skeleton.deformation_bone_map
+        # src_skeleton = skeleton_from_type(self.source)
+        # trg_skeleton = skeleton_from_type(self.skeleton_type)
+        #
+        # if not src_skeleton:
+        #     return {'FINISHED'}
+        # if not trg_skeleton:
+        #     return {'FINISHED'}
 
         trg_ob = context.active_object
-        cp_suffix = 'RET'
 
+        trg_settings = trg_ob.data.expykit_retarget
+        trg_skeleton = preset_handler.get_settings_skel(trg_settings)
+
+        cp_suffix = 'RET'
         prefix = ""
         if self.check_prefix:
             first_bone = trg_ob.data.bones[0]
@@ -1169,6 +1169,12 @@ class ConstrainToArmature(bpy.types.Operator):
         for ob in context.selected_objects:
             if ob == trg_ob:
                 continue
+
+            src_settings = ob.data.expykit_retarget
+            src_skeleton = preset_handler.get_settings_skel(src_settings)
+
+            bone_names_map = src_skeleton.conversion_map(trg_skeleton)
+            deformation_map = src_skeleton.deformation_bone_map
 
             look_ats = {}
 
