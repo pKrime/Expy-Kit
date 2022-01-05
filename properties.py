@@ -3,6 +3,9 @@ from bpy.types import PropertyGroup
 from bpy.props import StringProperty
 from bpy.props import PointerProperty
 from bpy.props import BoolProperty
+from bpy.props import EnumProperty
+
+from . import preset_handler
 
 
 class RetargetBase(PropertyGroup):
@@ -91,6 +94,8 @@ class RetargetSettings(PropertyGroup):
                 return True
 
         return False
+
+    deform_preset: EnumProperty(items=preset_handler.iterate_presets, name="Deformation Bones")
 
 
 def register_classes():

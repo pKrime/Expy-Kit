@@ -219,6 +219,8 @@ class AddPresetArmatureRetarget(AddPresetBase, Operator):
 
         "skeleton.right_leg_ik",
         "skeleton.left_leg_ik",
+
+        "skeleton.deform_preset"
     ]
 
     # where to store the preset
@@ -253,6 +255,8 @@ class ClearArmatureRetarget(Operator):
                         setattr(setting, k, '')
                 except AttributeError:
                     continue
+
+            skeleton.deform_preset = '--'
 
         return {'FINISHED'}
 
@@ -359,6 +363,10 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
         self.sided_rows(ob, (skeleton.right_leg, skeleton.left_leg), leg_bones)
 
         layout.separator()
+        row = layout.row()
+
+        row.prop(skeleton, 'deform_preset')
+
         row = layout.row()
         row.operator(ClearArmatureRetarget.bl_idname, text="Clear All")
 
