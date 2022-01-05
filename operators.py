@@ -215,18 +215,46 @@ class ConvertBoneNaming(bpy.types.Operator):
 
         return True
 
+    @staticmethod
+    def convert_settings(current_settings, target_settings):
+        src_settings = preset_handler.PresetSkeleton()
+        src_settings.copy(current_settings)
+
+        src_skeleton = preset_handler.get_settings_skel(src_settings)
+        trg_skeleton = preset_handler.set_preset_skel(target_settings)
+
+        return src_skeleton, trg_skeleton
+
+    @staticmethod
+    def rename_bones(context, src_skeleton, trg_skeleton, separator=""):
+        bone_names_map = src_skeleton.conversion_map(trg_skeleton)
+
+        if separator:
+            for bone in context.object.data.bones:
+                if separator not in bone.name:
+                    continue
+
+                bone.name = bone.name.rsplit(separator, 1)[1]
+
+        for src_name, trg_name in bone_names_map.items():
+            if not trg_name:
+                continue
+            if not src_name:
+                continue
+            try:
+                src_bone = context.object.data.bones.get(src_name, None)
+            except SystemError:
+                continue
+            if not src_bone:
+                continue
+
+            src_bone.name = trg_name
+
+        return bone_names_map
+
     def execute(self, context):
-        current_preset = context.object.data.expykit_retarget
-        if not current_preset.has_settings():
-            self.report({'WARNING'}, 'Set Starting Skeleton First')
-            preset_handler.set_preset_skel(self.trg_preset)
-            return {'FINISHED'}
-
-        src_preset = preset_handler.PresetSkeleton()
-        src_preset.copy(current_preset)
-
-        src_skeleton = preset_handler.get_settings_skel(src_preset)
-        trg_skeleton = preset_handler.set_preset_skel(self.trg_preset)
+        current_settings = context.object.data.expykit_retarget
+        src_skeleton, trg_skeleton = self.convert_settings(current_settings, self.trg_preset)
 
         if all((src_skeleton, trg_skeleton, src_skeleton != trg_skeleton)):
             if self.anim_tracks:
@@ -234,27 +262,7 @@ class ConvertBoneNaming(bpy.types.Operator):
             else:
                 actions = []
 
-            bone_names_map = src_skeleton.conversion_map(trg_skeleton)
-
-            if self.strip_prefix:
-                for bone in context.object.data.bones:
-                    if self._separator not in bone.name:
-                        continue
-
-                    bone.name = bone.name.rsplit(self._separator, 1)[1]
-
-            for src_name, trg_name in bone_names_map.items():
-                if not trg_name:
-                    continue
-                if not src_name:
-                    continue
-                try:
-                    src_bone = context.object.data.bones.get(src_name, None)
-                except SystemError:
-                    continue
-                if not src_bone:
-                    continue
-                src_bone.name = trg_name
+            bone_names_map = self.rename_bones(context, src_skeleton, trg_skeleton, self._separator if self.strip_prefix else "")
 
             if context.object.animation_data and context.object.data.animation_data:
                 for driver in chain(context.object.animation_data.drivers, context.object.data.animation_data.drivers):
@@ -453,10 +461,6 @@ class ExtractMetarig(bpy.types.Operator):
     bl_description = "Create Metarig from current object"
     bl_options = {'REGISTER', 'UNDO'}
 
-    skeleton_type: EnumProperty(items=skeleton_types,
-                                name="Source Type",
-                                default='--')
-
     offset_knee: FloatProperty(name='Offset Knee',
                                default=0.0)
 
@@ -495,10 +499,16 @@ class ExtractMetarig(bpy.types.Operator):
     def execute(self, context):
         src_object = context.object
         src_armature = context.object.data
-        src_skeleton = skeleton_from_type(self.skeleton_type)
 
-        if not src_skeleton:
+        current_settings = src_armature.expykit_retarget
+        if not current_settings.has_settings():
+            self.report({'WARNING'}, 'Set Starting Skeleton First')
+            # TODO: display in op properties
             return {'FINISHED'}
+
+        src_settings = preset_handler.PresetSkeleton()
+        src_settings.copy(current_settings)
+        src_skeleton = preset_handler.get_settings_skel(src_settings)
 
         # TODO: remove action, bring to rest pose
         if self.apply_transforms:
@@ -511,9 +521,15 @@ class ExtractMetarig(bpy.types.Operator):
             src_armature.transform(src_object.matrix_local)
             src_object.matrix_local = Matrix()
 
-        if self.skeleton_type != 'rigify' and self.rigify_names:
-            bpy.ops.object.expykit_convert_bone_names(source=self.skeleton_type, target='rigify')
-            src_skeleton = skeleton_from_type('rigify')
+        met_skeleton = bone_mapping.RigifyMeta()
+
+        if self.rigify_names:
+            # check if doesn't contain rigify deform bones already
+            bones_needed = met_skeleton.spine.hips, met_skeleton.spine.spine
+            if not [b for b in bones_needed if b in src_armature.bones]:
+                src_skeleton, trg_skeleton = ConvertBoneNaming.convert_settings(current_settings, 'Rigify_Deform.py')
+                ConvertBoneNaming.rename_bones(context, src_skeleton, trg_skeleton, separator=":")
+                src_skeleton = bone_mapping.RigifySkeleton()
 
         try:
             metarig = next(ob for ob in bpy.data.objects if ob.type == 'ARMATURE' and ob.data.rigify_target_rig == src_object)
@@ -545,8 +561,6 @@ class ExtractMetarig(bpy.types.Operator):
         if create_metarig:
             from rigify.metarigs import human
             human.create(metarig)
-
-        met_skeleton = bone_mapping.RigifyMeta()
 
         def match_meta_bone(met_bone_group, src_bone_group, bone_attr, axis=None):
             try:
