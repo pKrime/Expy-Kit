@@ -1,9 +1,9 @@
+import ast
 import importlib.util
 import os
 import shutil
 
 import bpy
-
 from .rig_mapping.bone_mapping import HumanFingers, HumanSpine, HumanLeg, HumanArm, HumanSkeleton
 
 
@@ -56,6 +56,29 @@ def set_preset_skel(preset):
     spec.loader.exec_module(preset_mod)
 
     mapping = get_settings_skel(bpy.context.object.data.expykit_retarget)
+    return mapping
+
+
+def get_preset_skel(preset):
+    if not preset:
+        return
+    if not preset.endswith(".py"):
+        return
+
+    preset_path = os.path.join(get_retarget_dir(), preset)
+    if not os.path.isfile(preset_path):
+        return
+
+    # HACKISH: executing the preset would apply it to the current armature. Use ast instead
+    code = ast.parse(open(preset_path).read())
+    code.body.pop(0)
+    code.body.pop(0)
+
+    skeleton = PresetSkeleton()
+    eval(compile(code, '', 'exec'))
+
+    mapping = HumanSkeleton(preset=skeleton)
+    del skeleton
     return mapping
 
 

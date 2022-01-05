@@ -1174,7 +1174,11 @@ class ConstrainToArmature(bpy.types.Operator):
             src_skeleton = preset_handler.get_settings_skel(src_settings)
 
             bone_names_map = src_skeleton.conversion_map(trg_skeleton)
-            deformation_map = src_skeleton.deformation_bone_map
+            def_skeleton = preset_handler.get_preset_skel(src_settings.deform_preset)
+            if def_skeleton:
+                deformation_map = src_skeleton.conversion_map(def_skeleton)
+            else:
+                deformation_map = None
 
             look_ats = {}
 
