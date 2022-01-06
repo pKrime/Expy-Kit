@@ -352,7 +352,7 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
         layout.separator()
         for slot in ('head', 'neck', 'spine2', 'spine1', 'spine', 'hips'):
             row = layout.row()
-            row.prop_search(ob.data.expykit_retarget.spine, slot, ob.data, "bones", text=slot.title())
+            row.prop_search(skeleton.spine, slot, ob.data, "bones", text=slot.title())
 
         layout.separator()
         if skeleton.twist_on:
@@ -364,7 +364,10 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
 
         layout.separator()
         row = layout.row()
+        row.prop(skeleton, 'root', text="Root")
 
+        layout.separator()
+        row = layout.row()
         row.prop(skeleton, 'deform_preset')
 
         row = layout.row()

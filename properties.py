@@ -86,6 +86,8 @@ class RetargetSettings(PropertyGroup):
     right_leg: PointerProperty(type=RetargetLeg)
     right_leg_ik: PointerProperty(type=RetargetLeg)
 
+    root: StringProperty(name="root")
+
     def has_settings(self):
         for setting in (self.spine, self.left_arm, self.left_arm_ik, self.left_fingers,
                         self.right_arm, self.right_arm_ik, self.right_fingers,

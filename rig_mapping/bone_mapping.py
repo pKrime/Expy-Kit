@@ -121,6 +121,8 @@ class HumanSkeleton:
             self.left_fingers = HumanFingers(preset=preset.left_fingers)
             self.right_fingers = HumanFingers(preset=preset.right_fingers)
 
+            self.root = preset.root
+
     @property
     def deformation_bone_map(self):
         """Property for control skeletons"""

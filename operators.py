@@ -1529,9 +1529,9 @@ class AddRootMotion(bpy.types.Operator):
     bl_description = "Bring Hips Motion to Root Bone"
     bl_options = {'REGISTER', 'UNDO'}
 
-    rig_type: EnumProperty(items=skeleton_types,
-                           name="Rig Type",
-                           default='--')
+    rig_preset: EnumProperty(items=preset_handler.iterate_presets,
+                              name="Target Preset",
+                              )
 
     new_anim_suffix: StringProperty(name="Suffix",
                                     default="_RM",
@@ -1591,9 +1591,10 @@ class AddRootMotion(bpy.types.Operator):
         layout = self.layout
         column = layout.column()
 
-        row = column.split(factor=0.25, align=True)
-        row.label(text="Rig Type")
-        row.prop(self, 'rig_type', text="")
+        if not context.object.data.expykit_retarget.has_settings():
+            row = column.split(factor=0.25, align=True)
+            row.label(text="Please, select a rig preset")
+            row.prop(self, 'rig_preset', text="")
 
         row = column.split(factor=0.25, align=True)
         row.label(text="Suffix:")
@@ -1667,10 +1668,15 @@ class AddRootMotion(bpy.types.Operator):
         row.enabled = self.root_cp_loc_z
 
     def execute(self, context):
-        if not self.rig_type:
-            return {'FINISHED'}
+        # if not self.rig_type:
+        #     return {'FINISHED'}
+        #
+        # if self.rig_type == '--':
+        #     return {'FINISHED'}
 
-        if self.rig_type == '--':
+        rig_settings = context.object.data.expykit_retarget
+        if not rig_settings.has_settings():
+            # TODO: assign selected preset
             return {'FINISHED'}
 
         self._armature = context.active_object
@@ -1682,7 +1688,7 @@ class AddRootMotion(bpy.types.Operator):
             action_dupli.use_fake_user = self._armature.animation_data.action.use_fake_user
             self._armature.animation_data.action = action_dupli
 
-        rig_map = skeleton_from_type(self.rig_type)
+        rig_map = preset_handler.get_settings_skel(rig_settings)
         self.action_offs(rig_map.root, rig_map.spine.hips)
 
         return {'FINISHED'}
@@ -1721,7 +1727,7 @@ class AddRootMotion(bpy.types.Operator):
             self.report({'WARNING'}, f"{root_bone_name} not found in target")
             return
 
-        skeleton = skeleton_from_type(self.rig_type)
+        skeleton = preset_handler.get_settings_skel(self._armature.data.expykit_retarget)
 
         # TODO: check controls with animation curves instead
 
