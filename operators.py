@@ -1530,8 +1530,8 @@ class AddRootMotion(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     rig_preset: EnumProperty(items=preset_handler.iterate_presets,
-                              name="Target Preset",
-                              )
+                             name="Target Preset",
+                             )
 
     new_anim_suffix: StringProperty(name="Suffix",
                                     default="_RM",
