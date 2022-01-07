@@ -256,7 +256,8 @@ class ClearArmatureRetarget(Operator):
                 except AttributeError:
                     continue
 
-            skeleton.deform_preset = '--'
+        skeleton.root = ''
+        skeleton.deform_preset = '--'
 
         return {'FINISHED'}
 

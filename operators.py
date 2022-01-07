@@ -1525,13 +1525,21 @@ def add_loc_rot_key(bone, frame, options):
 
 class AddRootMotion(bpy.types.Operator):
     bl_idname = "armature.expykit_add_rootmotion"
-    bl_label = "Hips to Root Motion"
-    bl_description = "Bring Hips Motion to Root Bone"
+    bl_label = "Transfer Root Motion"
+    bl_description = "Bring Motion to Root Bone"
     bl_options = {'REGISTER', 'UNDO'}
 
     rig_preset: EnumProperty(items=preset_handler.iterate_presets,
                              name="Target Preset",
                              )
+
+    motion_bone: StringProperty(name="Motion",
+                                description="Constrain Root bone to Hip motion",
+                                default="")
+
+    root_motion_bone: StringProperty(name="Root Motion",
+                                     description="Constrain Root bone to Hip motion",
+                                     default="")
 
     new_anim_suffix: StringProperty(name="Suffix",
                                     default="_RM",
@@ -1592,9 +1600,20 @@ class AddRootMotion(bpy.types.Operator):
         column = layout.column()
 
         if not context.object.data.expykit_retarget.has_settings():
-            row = column.split(factor=0.25, align=True)
-            row.label(text="Please, select a rig preset")
-            row.prop(self, 'rig_preset', text="")
+            row = column.row()
+            row.prop(self, 'rig_preset', text="Rig Type:")
+
+        row = column.split(factor=0.25, align=True)
+        row.label(text="From")
+        row.prop_search(self, 'motion_bone',
+                        context.active_object.data,
+                        "bones", text="")
+
+        row = column.split(factor=0.25, align=True)
+        row.label(text="To")
+        row.prop_search(self, 'root_motion_bone',
+                        context.active_object.data,
+                        "bones", text="")
 
         row = column.split(factor=0.25, align=True)
         row.label(text="Suffix:")
@@ -1667,16 +1686,29 @@ class AddRootMotion(bpy.types.Operator):
         subcol.enabled = self.root_use_loc_max_z
         row.enabled = self.root_cp_loc_z
 
-    def execute(self, context):
-        # if not self.rig_type:
-        #     return {'FINISHED'}
-        #
-        # if self.rig_type == '--':
-        #     return {'FINISHED'}
+    def set_defaults(self, rig_settings):
+        if not rig_settings:
+            return
+        if not self.root_motion_bone:
+            self.root_motion_bone = rig_settings.root
 
+        if not self.motion_bone:
+            self.motion_bone = rig_settings.spine.hips
+
+    def invoke(self, context, event):
+        """Fill root and hips field according to character settings"""
+        rig_settings = context.object.data.expykit_retarget
+        self.set_defaults(rig_settings)
+        return self.execute(context)
+
+    def execute(self, context):
         rig_settings = context.object.data.expykit_retarget
         if not rig_settings.has_settings():
-            # TODO: assign selected preset
+            rig_settings = preset_handler.set_preset_skel(self.rig_preset)
+            self.set_defaults(rig_settings)
+        if not self.root_motion_bone:
+            return {'FINISHED'}
+        if not self.motion_bone:
             return {'FINISHED'}
 
         self._armature = context.active_object
@@ -1688,9 +1720,7 @@ class AddRootMotion(bpy.types.Operator):
             action_dupli.use_fake_user = self._armature.animation_data.action.use_fake_user
             self._armature.animation_data.action = action_dupli
 
-        rig_map = preset_handler.get_settings_skel(rig_settings)
-        self.action_offs(rig_map.root, rig_map.spine.hips)
-
+        self.action_offs(self.root_motion_bone, self.motion_bone)
         return {'FINISHED'}
 
     def action_offs(self, root_bone_name, hips_bone_name):

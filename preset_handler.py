@@ -55,7 +55,7 @@ def set_preset_skel(preset):
     preset_mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(preset_mod)
 
-    mapping = get_settings_skel(bpy.context.object.data.expykit_retarget)
+    mapping = get_settings_skel(preset_mod.skeleton)
     return mapping
 
 
@@ -105,6 +105,7 @@ class PresetSkeleton:
 
         self.left_fingers = HumanFingers(thumb=PresetFinger(), index=PresetFinger(), middle=PresetFinger(), ring=PresetFinger(), pinky=PresetFinger())
         self.right_fingers = HumanFingers(thumb=PresetFinger(), index=PresetFinger(), middle=PresetFinger(), ring=PresetFinger(), pinky=PresetFinger())
+        self.root = ""
 
     def copy(self, settings):
         for group in ('spine', 'left_arm', 'left_arm_ik', 'right_arm', 'right_arm_ik',
