@@ -365,7 +365,7 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
 
         layout.separator()
         row = layout.row()
-        row.prop(skeleton, 'root', text="Root")
+        row.prop_search(skeleton, 'root', ob.data, "bones", text="Root")
 
         layout.separator()
         row = layout.row()
