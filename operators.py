@@ -1394,9 +1394,8 @@ class BakeConstrainedActions(bpy.types.Operator):
     bl_description = "Bake Actions constrained from another Armature"
     bl_options = {'REGISTER', 'UNDO'}
 
-    skeleton_type: EnumProperty(items=skeleton_types,
-                                name="Skeleton Type to Bake",
-                                default='--')
+    rig_preset: EnumProperty(items=preset_handler.iterate_presets,
+                             name="Type to Bake")
 
     clear_users_old: BoolProperty(name="Clear original Action Users",
                                   default=True)
@@ -1411,9 +1410,10 @@ class BakeConstrainedActions(bpy.types.Operator):
         layout = self.layout
         column = layout.column()
 
-        row = column.split(factor=0.30, align=True)
-        row.label(text="Type to Bake")
-        row.prop(self, 'skeleton_type', text="")
+        to_bake = next(ob for ob in context.selected_objects if ob != context.active_object)
+        if not to_bake.data.expykit_retarget.has_settings():
+            row = column.row()
+            row.prop(self, 'rig_preset', text="Type to Bake")
 
         row = column.split(factor=0.30, align=True)
         row.label(text="")
@@ -1443,11 +1443,6 @@ class BakeConstrainedActions(bpy.types.Operator):
         if not self.do_bake:
             return {'FINISHED'}
 
-        src_skeleton = skeleton_from_type(self.skeleton_type)
-        if not src_skeleton:
-            return {'FINISHED'}
-
-        bone_names = list(bn for bn in src_skeleton.bone_names() if bn)
         trg_ob = context.active_object
         trg_ob.select_set(False)
         path_resolve = trg_ob.path_resolve
@@ -1457,6 +1452,16 @@ class BakeConstrainedActions(bpy.types.Operator):
                 # should not happen, but anyway
                 continue
 
+            rig_settings = ob.data.expykit_retarget
+            if not rig_settings.has_settings():
+                src_skeleton = preset_handler.get_preset_skel(self.rig_preset)
+                # TODO: set rig_settings
+                if not src_skeleton:
+                    return {'FINISHED'}
+            else:
+                src_skeleton = preset_handler.get_settings_skel(rig_settings)
+
+            bone_names = list(bn for bn in src_skeleton.bone_names() if bn)
             for bone in ob.data.bones:
                 bone.select = bone.name in bone_names
 
@@ -1530,8 +1535,7 @@ class AddRootMotion(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     rig_preset: EnumProperty(items=preset_handler.iterate_presets,
-                             name="Target Preset",
-                             )
+                             name="Target Preset")
 
     motion_bone: StringProperty(name="Motion",
                                 description="Constrain Root bone to Hip motion",
@@ -1552,8 +1556,6 @@ class AddRootMotion(bpy.types.Operator):
         ('rest', "Rest Pose", "Offset to Match Rest Pose")],
                               name="Offset",
                               default='rest')
-
-    # TODO: offset_type start/end: matches first frame at start, last frame at end, weighted average inbetween
 
     root_cp_loc_x: BoolProperty(name="Root Copy Loc X", description="Copy Root X Location", default=False)
     root_cp_loc_y: BoolProperty(name="Root Copy Loc y", description="Copy Root Y Location", default=True)
