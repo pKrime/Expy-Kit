@@ -36,17 +36,6 @@ status_types = (
 )
 
 
-skeleton_types = (
-    ('unreal', "Unreal", "UE4 Skeleton"),
-    ('rigify', "Rigify", "Rigify Skeleton"),
-    ('rigify_meta', "Rigify Metarig", "Rigify Metarig"),
-    ('rigify_ctrls', "Rigify Controls", "Rigify CTRLS"),
-    ('mixamo', "Mixamo", "Mixamo Skeleton"),
-    ('daz-gen8', "Daz Genesis 8", "Daz Genesis 8 Skeleton"),
-    ('--', "--", "None")
-)
-
-
 class ConstraintStatus(bpy.types.Operator):
     """Disable/Enable bone constraints."""
     bl_idname = "object.expykit_set_constraints_status"
@@ -436,22 +425,6 @@ class CreateTransformOffset(bpy.types.Operator):
                         kf.co[1] /= self.container_scale
 
         return {'FINISHED'}
-
-
-def skeleton_from_type(skeleton_type):
-    # TODO: this would be better handled by EnumTypes
-    if skeleton_type == 'mixamo':
-        return bone_mapping.MixamoSkeleton()
-    if skeleton_type == 'rigify':
-        return bone_mapping.RigifySkeleton()
-    if skeleton_type == 'rigify_meta':
-        return bone_mapping.RigifyMeta()
-    if skeleton_type == 'rigify_ctrls':
-        return bone_mapping.RigifyCtrls()
-    if skeleton_type == 'unreal':
-        return bone_mapping.UnrealSkeleton()
-    if skeleton_type == 'daz-gen8':
-        return bone_mapping.DazGenesis8()
 
 
 class ExtractMetarig(bpy.types.Operator):
@@ -1145,14 +1118,6 @@ class ConstrainToArmature(bpy.types.Operator):
             row.prop(self, "root_cp_rot_z", text="Z", toggle=True)
 
     def execute(self, context):
-        # src_skeleton = skeleton_from_type(self.source)
-        # trg_skeleton = skeleton_from_type(self.skeleton_type)
-        #
-        # if not src_skeleton:
-        #     return {'FINISHED'}
-        # if not trg_skeleton:
-        #     return {'FINISHED'}
-
         trg_ob = context.active_object
 
         trg_settings = trg_ob.data.expykit_retarget
