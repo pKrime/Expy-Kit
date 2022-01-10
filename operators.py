@@ -434,6 +434,10 @@ class ExtractMetarig(bpy.types.Operator):
     bl_description = "Create Metarig from current object"
     bl_options = {'REGISTER', 'UNDO'}
 
+    rig_preset: EnumProperty(items=preset_handler.iterate_presets,
+                             name="Rig Type",
+                             )
+
     offset_knee: FloatProperty(name='Offset Knee',
                                default=0.0)
 
@@ -458,6 +462,46 @@ class ExtractMetarig(bpy.types.Operator):
     apply_transforms: BoolProperty(name='Apply Transform', default=True,
                                    description='Apply current transforms before extraction')
 
+    def draw(self, context):
+        layout = self.layout
+        column = layout.column()
+
+        if not context.active_object.data.expykit_retarget.has_settings():
+            row = column.row()
+            row.prop(self, 'rig_preset', text="Rig Type")
+
+        row = column.split(factor=0.5, align=True)
+        row.label(text="Offset Knee")
+        row.prop(self, 'offset_knee', text='')
+
+        row = column.split(factor=0.5, align=True)
+        row.label(text="Offset Elbow")
+        row.prop(self, 'offset_elbow', text='')
+
+        row = column.split(factor=0.5, align=True)
+        row.label(text="Offset Fingers")
+        row.prop(self, 'offset_fingers', text='')
+
+        row = column.split(factor=0.5, align=True)
+        row.label(text="No Face Bones")
+        row.prop(self, 'no_face', text='')
+
+        row = column.split(factor=0.5, align=True)
+        row.label(text="Use Rigify Names")
+        row.prop(self, 'rigify_names', text='')
+
+        row = column.split(factor=0.5, align=True)
+        row.label(text="Assign Metarig")
+        row.prop(self, 'assign_metarig', text='')
+
+        row = column.split(factor=0.5, align=True)
+        row.label(text="Align spine frontally")
+        row.prop(self, 'forward_spine_roll', text='')
+
+        row = column.split(factor=0.5, align=True)
+        row.label(text="Apply Transform")
+        row.prop(self, 'apply_transforms', text='')
+
     @classmethod
     def poll(cls, context):
         if not context.object:
@@ -475,9 +519,9 @@ class ExtractMetarig(bpy.types.Operator):
 
         current_settings = src_armature.expykit_retarget
         if not current_settings.has_settings():
-            self.report({'WARNING'}, 'Set Starting Skeleton First')
-            # TODO: display in op properties
-            return {'FINISHED'}
+            src_skeleton = preset_handler.set_preset_skel(self.rig_preset)
+            if not src_skeleton:
+                return {'FINISHED'}
 
         src_settings = preset_handler.PresetSkeleton()
         src_settings.copy(current_settings)
@@ -1431,8 +1475,7 @@ class BakeConstrainedActions(bpy.types.Operator):
 
             rig_settings = ob.data.expykit_retarget
             if not rig_settings.has_settings():
-                src_skeleton = preset_handler.get_preset_skel(self.rig_preset)
-                # TODO: set rig_settings
+                src_skeleton = preset_handler.get_preset_skel(self.rig_preset, rig_settings)
                 if not src_skeleton:
                     return {'FINISHED'}
             else:
