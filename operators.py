@@ -634,9 +634,15 @@ class ExtractMetarig(bpy.types.Operator):
             match_meta_bone(met_skeleton.right_leg, src_skeleton.right_leg, bone_attr)
             match_meta_bone(met_skeleton.left_leg, src_skeleton.left_leg, bone_attr)
 
-        match_meta_bone(met_skeleton.face, src_skeleton.face, 'left_eye')
-        match_meta_bone(met_skeleton.face, src_skeleton.face, 'right_eye')
-        match_meta_bone(met_skeleton.face, src_skeleton.face, 'jaw')
+        rigify_face_bones = bone_mapping.rigify_face_bones
+        for bone_attr in ['left_eye', 'right_eye', 'jaw']:
+            match_meta_bone(met_skeleton.face, src_skeleton.face, bone_attr)
+            try:
+                # TODO: only if source bones exist
+                rigify_face_bones.remove(met_skeleton.face[bone_attr])
+            except KeyError:
+                pass
+            # TODO: convert to super_copy
 
         try:
             right_leg = met_armature.edit_bones[met_skeleton.right_leg.leg]
@@ -780,7 +786,7 @@ class ExtractMetarig(bpy.types.Operator):
                     breast_bone.tail.z = spine_bone.head.z
 
         if self.no_face:
-            for bone_name in bone_mapping.rigify_face_bones:
+            for bone_name in rigify_face_bones:
                 try:
                     face_bone = met_armature.edit_bones[bone_name]
                 except KeyError:
