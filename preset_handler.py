@@ -59,7 +59,7 @@ def set_preset_skel(preset):
     return mapping
 
 
-def get_preset_skel(preset):
+def get_preset_skel(preset, settings=None):
     if not preset:
         return
     if not preset.endswith(".py"):
@@ -74,7 +74,7 @@ def get_preset_skel(preset):
     code.body.pop(0)
     code.body.pop(0)
 
-    skeleton = PresetSkeleton()
+    skeleton = settings if settings else PresetSkeleton()
     eval(compile(code, '', 'exec'))
 
     mapping = HumanSkeleton(preset=skeleton)

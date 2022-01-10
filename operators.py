@@ -1144,8 +1144,7 @@ class ConstrainToArmature(bpy.types.Operator):
 
             src_settings = ob.data.expykit_retarget
             if not src_settings.has_settings():
-                src_skeleton = preset_handler.get_preset_skel(self.src_preset)
-                # TODO: set rig_settings
+                src_skeleton = preset_handler.get_preset_skel(self.src_preset, src_settings)
                 if not src_skeleton:
                     return {'FINISHED'}
             else:
