@@ -462,6 +462,9 @@ class ExtractMetarig(bpy.types.Operator):
     apply_transforms: BoolProperty(name='Apply Transform', default=True,
                                    description='Apply current transforms before extraction')
 
+    do_extract: BoolProperty(name="Extract Metarig", description="Extract Metarig and exit",
+                             default=False, options={'SKIP_SAVE'})
+
     def draw(self, context):
         layout = self.layout
         column = layout.column()
@@ -502,6 +505,10 @@ class ExtractMetarig(bpy.types.Operator):
         row.label(text="Apply Transform")
         row.prop(self, 'apply_transforms', text='')
 
+        row = column.split(factor=0.30, align=True)
+        row.label(text="")
+        row.prop(self, "do_extract", toggle=True)
+
     @classmethod
     def poll(cls, context):
         if not context.object:
@@ -522,6 +529,9 @@ class ExtractMetarig(bpy.types.Operator):
             src_skeleton = preset_handler.set_preset_skel(self.rig_preset)
             if not src_skeleton:
                 return {'FINISHED'}
+
+        if not self.do_extract:
+            return {'FINISHED'}
 
         src_settings = preset_handler.PresetSkeleton()
         src_settings.copy(current_settings)
