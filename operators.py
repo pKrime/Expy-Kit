@@ -456,7 +456,7 @@ class ExtractMetarig(bpy.types.Operator):
                                  default=True,
                                  description='Rigify will generate to the active object')
 
-    forward_spine_roll: BoolProperty(name='Align spine frontally', default=False,
+    forward_spine_roll: BoolProperty(name='Align spine frontally', default=True,
                                      description='Spine Z will face the Y axis')
 
     apply_transforms: BoolProperty(name='Apply Transform', default=True,

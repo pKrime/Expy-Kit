@@ -328,10 +328,11 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
             sides = "right", "left"
             split = layout.split()
             finger_bones = ('a', 'b', 'c')
+            fingers = ('thumb', 'index', 'middle', 'ring', 'pinky')
             for side, group in zip(sides, [skeleton.right_fingers, skeleton.left_fingers]):
                 col = split.column()
 
-                for k in group.keys():
+                for k in fingers:
                     if k == 'name':  # skip Property Group name
                         continue
                     row = col.row()
@@ -358,9 +359,10 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
         layout.separator()
         if skeleton.twist_on:
             leg_bones = ('upleg', 'upleg_twist', 'leg', 'leg_twist', 'foot', 'toe')
-            self.sided_rows(ob, (skeleton.right_leg_ik, skeleton.left_leg_ik), leg_bones, suffix=" IK")
         else:
             leg_bones = ('upleg', 'leg', 'foot', 'toe')
+        if skeleton.ik_on:
+            self.sided_rows(ob, (skeleton.right_leg_ik, skeleton.left_leg_ik), leg_bones, suffix=" IK")
         self.sided_rows(ob, (skeleton.right_leg, skeleton.left_leg), leg_bones)
 
         layout.separator()
