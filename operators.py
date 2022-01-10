@@ -592,12 +592,13 @@ class ExtractMetarig(bpy.types.Operator):
         def match_meta_bone(met_bone_group, src_bone_group, bone_attr, axis=None):
             try:
                 met_bone = met_armature.edit_bones[getattr(met_bone_group, bone_attr)]
-                src_bone = src_armature.bones.get(getattr(src_bone_group, bone_attr), None)
+                src_bone_name = getattr(src_bone_group, bone_attr)
+                src_bone = src_armature.bones.get(src_bone_name, None)
             except KeyError:
                 return
 
             if not src_bone:
-                print(bone_attr, "not found in", src_armature)
+                print(bone_attr, src_bone_name, "not found in", src_armature)
                 return
 
             met_bone.head = src_bone.head_local
@@ -632,6 +633,10 @@ class ExtractMetarig(bpy.types.Operator):
         for bone_attr in ['upleg', 'leg', 'foot', 'toe']:
             match_meta_bone(met_skeleton.right_leg, src_skeleton.right_leg, bone_attr)
             match_meta_bone(met_skeleton.left_leg, src_skeleton.left_leg, bone_attr)
+
+        match_meta_bone(met_skeleton.face, src_skeleton.face, 'left_eye')
+        match_meta_bone(met_skeleton.face, src_skeleton.face, 'right_eye')
+        match_meta_bone(met_skeleton.face, src_skeleton.face, 'jaw')
 
         try:
             right_leg = met_armature.edit_bones[met_skeleton.right_leg.leg]

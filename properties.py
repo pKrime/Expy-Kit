@@ -66,11 +66,19 @@ class RetargetFingers(PropertyGroup):
         return False
 
 
+class RetargetFaceSimple(PropertyGroup):
+    jaw: StringProperty(name="jaw")
+    left_eye: StringProperty(name="left_eye")
+    right_eye: StringProperty(name="right_eye")
+
+
 class RetargetSettings(PropertyGroup):
     twist_on: BoolProperty(default=False)
     ik_on: BoolProperty(default=False)
     fingers_on: BoolProperty(default=False)
+    face_on: BoolProperty(default=False)
 
+    face: PointerProperty(type=RetargetFaceSimple)
     spine: PointerProperty(type=RetargetSpine)
 
     left_arm: PointerProperty(type=RetargetArm)
@@ -106,6 +114,7 @@ def register_classes():
     bpy.utils.register_class(RetargetLeg)
     bpy.utils.register_class(RetargetFinger)
     bpy.utils.register_class(RetargetFingers)
+    bpy.utils.register_class(RetargetFaceSimple)
 
     bpy.utils.register_class(RetargetSettings)
     bpy.types.Armature.expykit_retarget = bpy.props.PointerProperty(type=RetargetSettings)
@@ -113,11 +122,12 @@ def register_classes():
 
 def unregister_classes():
     del bpy.types.Armature.expykit_retarget
+    bpy.utils.unregister_class(RetargetSettings)
+
+    bpy.utils.unregister_class(RetargetFaceSimple)
     bpy.utils.unregister_class(RetargetFinger)
     bpy.utils.unregister_class(RetargetFingers)
     bpy.utils.unregister_class(RetargetSpine)
 
     bpy.utils.unregister_class(RetargetArm)
     bpy.utils.unregister_class(RetargetLeg)
-
-    bpy.utils.unregister_class(RetargetSettings)

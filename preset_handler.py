@@ -4,7 +4,7 @@ import os
 import shutil
 
 import bpy
-from .rig_mapping.bone_mapping import HumanFingers, HumanSpine, HumanLeg, HumanArm, HumanSkeleton
+from .rig_mapping.bone_mapping import HumanFingers, HumanSpine, HumanLeg, HumanArm, HumanSkeleton, SimpleFace
 
 
 PRESETS_SUBDIR = os.path.join("armature", "retarget")
@@ -91,6 +91,7 @@ class PresetFinger:
 
 class PresetSkeleton:
     def __init__(self):
+        self.face = SimpleFace()
         self.spine = HumanSpine()
 
         self.left_arm = HumanArm()
@@ -109,7 +110,7 @@ class PresetSkeleton:
 
     def copy(self, settings):
         for group in ('spine', 'left_arm', 'left_arm_ik', 'right_arm', 'right_arm_ik',
-                      'right_leg', 'right_leg_ik', 'left_leg', 'left_leg_ik'):
+                      'right_leg', 'right_leg_ik', 'left_leg', 'left_leg_ik', 'face'):
             setting = getattr(self, group)
             trg_setting = getattr(settings, group)
             for k in setting.keys():

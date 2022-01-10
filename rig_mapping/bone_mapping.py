@@ -41,6 +41,13 @@ class HumanLimb:
         return bool(self)
 
 
+class SimpleFace(HumanLimb):
+    def __init__(self, jaw='', left_eye='', right_eye=''):
+        self.jaw = jaw
+        self.left_eye = left_eye
+        self.right_eye = right_eye
+
+
 class HumanSpine(HumanLimb):
     def __init__(self, head='', neck='', spine2='', spine1='', spine='', hips=''):
         self.head = head
@@ -88,6 +95,7 @@ class HumanFingers(HumanLimb):
 
 
 class HumanSkeleton:
+    face = None
     root = None
     spine = None
 
@@ -107,6 +115,7 @@ class HumanSkeleton:
 
     def __init__(self, preset=None):
         if preset:
+            self.face = preset.face
             self.spine = preset.spine
             self.left_arm = preset.left_arm
             self._left_arm_IK = preset.left_arm_ik
@@ -247,6 +256,9 @@ class HumanSkeleton:
 
         if self.root:
             bone_map[self.root] = target_skeleton.root
+
+        for limb_name, bone_name in self.face.items():
+            bone_mapping('face', limb_name, bone_name)
 
         for limb_name, bone_name in self.spine.items():
             bone_mapping('spine', limb_name, bone_name)
@@ -389,6 +401,12 @@ class DazGenesis8(HumanSkeleton):
 
 class RigifySkeleton(HumanSkeleton):
     def __init__(self):
+        self.face = SimpleFace(
+            jaw='DEF-jaw',
+            left_eye='DEF-eye.L',
+            right_eye='DEF-eye.R'
+        )
+
         self.spine = HumanSpine(
             head='DEF-spine.006',
             neck='DEF-spine.004',
@@ -430,6 +448,12 @@ class RigifySkeleton(HumanSkeleton):
 
 class RigifyMeta(HumanSkeleton):
     def __init__(self):
+        self.face = SimpleFace(
+            jaw='jaw',
+            left_eye='eye.L',
+            right_eye='eye.R'
+        )
+
         self.spine = HumanSpine(
             head='spine.006',
             neck='spine.004',
@@ -480,6 +504,12 @@ class RigifyMeta(HumanSkeleton):
 
 class RigifyCtrlsBase(HumanSkeleton):
     def __init__(self):
+        self.face = SimpleFace(
+            jaw='',
+            left_eye='eye_master.L',
+            right_eye='eye_master.R'
+        )
+
         self.spine = HumanSpine(
             head='head',
             neck='neck',

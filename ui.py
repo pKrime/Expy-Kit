@@ -205,6 +205,8 @@ class AddPresetArmatureRetarget(AddPresetBase, Operator):
 
     # properties to store in the preset
     preset_values = [
+        "skeleton.face",
+
         "skeleton.spine",
         "skeleton.right_arm",
         "skeleton.left_arm",
@@ -320,9 +322,22 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
         skeleton = ob.data.expykit_retarget
 
         row = layout.row(align=True)
+        row.prop(skeleton, "face_on", text="Face", toggle=True)
         row.prop(skeleton, "twist_on", text="Twist", toggle=True)
         row.prop(skeleton, "fingers_on", text="Fingers", toggle=True)
         row.prop(skeleton, "ik_on", text="IK", toggle=True)
+
+        if skeleton.face_on:
+            row = layout.row()
+            row.prop_search(skeleton.face, "jaw", ob.data, "bones", text="Jaw")
+
+            row = layout.row()
+            row.label(text="Right Eye")
+            row.label(text="Left Eye")
+            row = layout.row()
+            row.prop_search(skeleton.face, "right_eye", ob.data, "bones", text="")
+            row.prop_search(skeleton.face, "left_eye", ob.data, "bones", text="")
+            row.separator()
 
         if skeleton.fingers_on:
             sides = "right", "left"
