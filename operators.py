@@ -938,13 +938,15 @@ class ConstrainToArmature(bpy.types.Operator):
     bl_description = "Constrain bones of selected armatures to active armature"
     bl_options = {'REGISTER', 'UNDO'}
 
-    # source: EnumProperty(items=skeleton_types,
-    #                      name="To Bind",
-    #                      default='--')
-    #
-    # skeleton_type: EnumProperty(items=skeleton_types,
-    #                             name="Bind Target",
-    #                             default='--')
+    src_preset: EnumProperty(items=preset_handler.iterate_presets,
+                             name="To Bind",
+                             options={'SKIP_SAVE'}
+                             )
+
+    trg_preset: EnumProperty(items=preset_handler.iterate_presets,
+                             name="Bind Target",
+                             options={'SKIP_SAVE'}
+                             )
 
     ret_bones_layer: IntProperty(name="Binding-Bones layer",
                                  min=0, max=29, default=24,
@@ -1020,13 +1022,13 @@ class ConstrainToArmature(bpy.types.Operator):
         layout = self.layout
         column = layout.column()
 
-        # row = column.split(factor=0.25, align=True)
-        # row.label(text="To Bind")
-        # row.prop(self, 'source', text="")
-        #
-        # row = column.split(factor=0.25, align=True)
-        # row.label(text="Bind Target")
-        # row.prop(self, 'skeleton_type', text="")
+        to_bind = next(ob for ob in context.selected_objects if ob != context.active_object)
+        if not to_bind.data.expykit_retarget.has_settings():
+            row = column.row()
+            row.prop(self, 'src_preset', text="To Bind")
+        if not context.active_object.data.expykit_retarget.has_settings():
+            row = column.row()
+            row.prop(self, 'trg_preset', text="Bind Target")
 
         row = column.split(factor=0.25, align=True)
         row.separator()
@@ -1121,7 +1123,12 @@ class ConstrainToArmature(bpy.types.Operator):
         trg_ob = context.active_object
 
         trg_settings = trg_ob.data.expykit_retarget
-        trg_skeleton = preset_handler.get_settings_skel(trg_settings)
+        if not trg_settings.has_settings():
+            trg_skeleton = preset_handler.set_preset_skel(self.trg_preset)
+            if not trg_skeleton:
+                return {'FINISHED'}
+        else:
+            trg_skeleton = preset_handler.get_settings_skel(trg_settings)
 
         cp_suffix = 'RET'
         prefix = ""
@@ -1136,7 +1143,13 @@ class ConstrainToArmature(bpy.types.Operator):
                 continue
 
             src_settings = ob.data.expykit_retarget
-            src_skeleton = preset_handler.get_settings_skel(src_settings)
+            if not src_settings.has_settings():
+                src_skeleton = preset_handler.get_preset_skel(self.src_preset)
+                # TODO: set rig_settings
+                if not src_skeleton:
+                    return {'FINISHED'}
+            else:
+                src_skeleton = preset_handler.get_settings_skel(src_settings)
 
             bone_names_map = src_skeleton.conversion_map(trg_skeleton)
             def_skeleton = preset_handler.get_preset_skel(src_settings.deform_preset)
