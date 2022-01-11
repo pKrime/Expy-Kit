@@ -619,6 +619,8 @@ class ExtractMetarig(bpy.types.Operator):
                 src_x_axis.normalize()
                 met_bone.roll = bone_utils.ebone_roll_to_vector(met_bone, src_x_axis)
 
+            return met_bone
+
         for bone_attr in ['hips', 'spine', 'spine1', 'spine2', 'neck', 'head']:
             if self.forward_spine_roll:
                 align = Vector((0.0, -1.0, 0.0))
@@ -636,13 +638,14 @@ class ExtractMetarig(bpy.types.Operator):
 
         rigify_face_bones = bone_mapping.rigify_face_bones
         for bone_attr in ['left_eye', 'right_eye', 'jaw']:
-            match_meta_bone(met_skeleton.face, src_skeleton.face, bone_attr)
-            try:
-                # TODO: only if source bones exist
-                rigify_face_bones.remove(met_skeleton.face[bone_attr])
-            except KeyError:
-                pass
-            # TODO: convert to super_copy
+            met_bone = match_meta_bone(met_skeleton.face, src_skeleton.face, bone_attr)
+            if met_bone:
+                try:
+                    rigify_face_bones.remove(met_skeleton.face[bone_attr])
+                except KeyError:
+                    pass
+
+                metarig.pose.bones[met_bone.name].rigify_type = "basic.super_copy"
 
         try:
             right_leg = met_armature.edit_bones[met_skeleton.right_leg.leg]
