@@ -642,7 +642,7 @@ class ExtractMetarig(bpy.types.Operator):
             if met_bone:
                 try:
                     rigify_face_bones.remove(met_skeleton.face[bone_attr])
-                except KeyError:
+                except ValueError:
                     pass
 
                 metarig.pose.bones[met_bone.name].rigify_type = "basic.super_copy"
