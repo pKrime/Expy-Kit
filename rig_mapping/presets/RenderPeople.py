@@ -3,7 +3,9 @@ skeleton = bpy.context.object.data.expykit_retarget
 
 skeleton.face.jaw = 'jaw'
 skeleton.face.left_eye = 'eye_l'
+skeleton.face.left_up_lid = 'eyelid_l'
 skeleton.face.right_eye = 'eye_r'
+skeleton.face.right_up_lid = 'eyelid_r'
 skeleton.spine.name = ''
 skeleton.spine.head = 'head'
 skeleton.spine.neck = 'neck'
