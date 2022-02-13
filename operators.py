@@ -174,6 +174,10 @@ class ConvertBoneNaming(bpy.types.Operator):
     bl_label = "Convert Bone Names"
     bl_options = {'REGISTER', 'UNDO'}
 
+    src_preset: EnumProperty(items=preset_handler.iterate_presets,
+                             name="Source Preset",
+                             )
+
     trg_preset: EnumProperty(items=preset_handler.iterate_presets,
                              name="Target Preset",
                              )
@@ -205,11 +209,8 @@ class ConvertBoneNaming(bpy.types.Operator):
         return True
 
     @staticmethod
-    def convert_settings(current_settings, target_settings):
-        src_settings = preset_handler.PresetSkeleton()
-        src_settings.copy(current_settings)
-
-        src_skeleton = preset_handler.get_settings_skel(src_settings)
+    def convert_settings(src_settings, target_settings):
+        src_skeleton = preset_handler.get_preset_skel(src_settings)
         trg_skeleton = preset_handler.set_preset_skel(target_settings)
 
         return src_skeleton, trg_skeleton
@@ -242,8 +243,7 @@ class ConvertBoneNaming(bpy.types.Operator):
         return bone_names_map
 
     def execute(self, context):
-        current_settings = context.object.data.expykit_retarget
-        src_skeleton, trg_skeleton = self.convert_settings(current_settings, self.trg_preset)
+        src_skeleton, trg_skeleton = self.convert_settings(self.src_preset, self.trg_preset)
 
         if all((src_skeleton, trg_skeleton, src_skeleton != trg_skeleton)):
             if self.anim_tracks:
