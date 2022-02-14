@@ -192,6 +192,81 @@ class DATA_PT_expy_buttons(bpy.types.Panel):
             op.new_name = candidate.name
 
 
+class ExecutePresetArmatureRetarget(Operator):
+    """Apply a Bone Retarget Preset"""
+    bl_idname = "object.expy_kit_armature_preset_apply"
+    bl_label = "Apply Bone Retarget Preset"
+
+    filepath: StringProperty(
+        subtype='FILE_PATH',
+        options={'SKIP_SAVE'},
+    )
+    menu_idname: StringProperty(
+        name="Menu ID Name",
+        description="ID name of the menu this was called from",
+        options={'SKIP_SAVE'},
+    )
+
+    @staticmethod
+    def validate(armature_data):
+        settings = armature_data.expykit_retarget
+        for group in ('spine', 'left_arm', 'left_arm_ik', 'right_arm', 'right_arm_ik',
+                      'right_leg', 'right_leg_ik', 'left_leg', 'left_leg_ik', 'face'):
+
+            trg_setting = getattr(settings, group)
+            for k, v in trg_setting.items():
+                if v not in armature_data.bones:
+                    setattr(trg_setting, k, "")
+
+        finger_bones = 'a', 'b', 'c'
+        for trg_grp in settings.left_fingers, settings.right_fingers:
+            for k, trg_finger in trg_grp.items():
+                if k == 'name':  # skip Property Group name
+                    continue
+
+                for slot in finger_bones:
+                    bone_name = trg_finger.get(slot)
+                    if bone_name not in armature_data.bones:
+                        trg_finger[slot] = ""
+
+
+    def execute(self, context):
+        from os.path import basename, splitext
+        filepath = self.filepath
+
+        # change the menu title to the most recently chosen option
+        preset_class = DATA_MT_retarget_presets
+        preset_class.bl_label = bpy.path.display_name(basename(filepath), title_case=False)
+
+        ext = splitext(filepath)[1].lower()
+
+        if ext not in {".py", ".xml"}:
+            self.report({'ERROR'}, "Unknown file type: %r" % ext)
+            return {'CANCELLED'}
+
+        if hasattr(preset_class, "reset_cb"):
+            preset_class.reset_cb(context)
+
+        if ext == ".py":
+            try:
+                bpy.utils.execfile(filepath)
+            except Exception as ex:
+                self.report({'ERROR'}, "Failed to execute the preset: " + repr(ex))
+
+        elif ext == ".xml":
+            import rna_xml
+            rna_xml.xml_file_run(context,
+                                 filepath,
+                                 preset_class.preset_xml_map)
+
+        if hasattr(preset_class, "post_cb"):
+            preset_class.post_cb(context)
+
+        self.validate(context.object.data)
+
+        return {'FINISHED'}
+
+
 class AddPresetArmatureRetarget(AddPresetBase, Operator):
     """Add a Bone Retarget Preset"""
     bl_idname = "object.expy_kit_armature_preset_add"
@@ -267,7 +342,7 @@ class ClearArmatureRetarget(Operator):
 class DATA_MT_retarget_presets(Menu):
     bl_label = "Retarget Presets"
     preset_subdir = AddPresetArmatureRetarget.preset_subdir
-    preset_operator = "script.execute_preset"
+    preset_operator = ExecutePresetArmatureRetarget.bl_idname
     draw = Menu.draw_preset
 
 
@@ -395,6 +470,7 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
 def register_classes():
     bpy.utils.register_class(ClearArmatureRetarget)
     bpy.utils.register_class(DATA_MT_retarget_presets)
+    bpy.utils.register_class(ExecutePresetArmatureRetarget)
     bpy.utils.register_class(AddPresetArmatureRetarget)
 
     bpy.utils.register_class(BindingsMenu)
@@ -412,6 +488,7 @@ def register_classes():
 def unregister_classes():
     bpy.utils.unregister_class(DATA_MT_retarget_presets)
     bpy.utils.unregister_class(AddPresetArmatureRetarget)
+    bpy.utils.unregister_class(ExecutePresetArmatureRetarget)
     bpy.utils.unregister_class(ClearArmatureRetarget)
 
     bpy.types.VIEW3D_MT_pose_context_menu.remove(pose_context_options)
