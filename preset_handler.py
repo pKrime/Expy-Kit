@@ -30,6 +30,10 @@ def iterate_presets(scene, context):
     """CallBack for Enum Property. Must take scene, context arguments"""
 
     yield '--', "--", "None"  # first menu entry, doesn't do anything
+
+    if context.object.data.expykit_retarget.has_settings():
+        yield "--Current--", "-- Current Settings --", "Use Bones set in Expy Retarget Panel"
+
     for f in os.listdir(get_retarget_dir()):
         if not f.endswith('.py'):
             continue
