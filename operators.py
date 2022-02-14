@@ -253,7 +253,11 @@ class ConvertBoneNaming(bpy.types.Operator):
         return bone_names_map
 
     def execute(self, context):
-        src_skeleton, trg_skeleton = self.convert_presets(self.src_preset, self.trg_preset)
+        if self.src_preset == "--Current--":
+            current_settings = context.object.data.expykit_retarget
+            src_skeleton, trg_skeleton = self.convert_settings(current_settings, self.trg_preset)
+        else:
+            src_skeleton, trg_skeleton = self.convert_presets(self.src_preset, self.trg_preset)
 
         if all((src_skeleton, trg_skeleton, src_skeleton != trg_skeleton)):
             if self.anim_tracks:
