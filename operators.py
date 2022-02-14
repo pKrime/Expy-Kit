@@ -483,9 +483,9 @@ class ExtractMetarig(bpy.types.Operator):
         layout = self.layout
         column = layout.column()
 
-        if not context.active_object.data.expykit_retarget.has_settings():
-            row = column.row()
-            row.prop(self, 'rig_preset', text="Rig Type")
+        # if not context.active_object.data.expykit_retarget.has_settings():
+        row = column.row()
+        row.prop(self, 'rig_preset', text="Rig Type")
 
         row = column.split(factor=0.5, align=True)
         row.label(text="Offset Knee")
@@ -538,18 +538,17 @@ class ExtractMetarig(bpy.types.Operator):
         src_object = context.object
         src_armature = context.object.data
 
-        current_settings = src_armature.expykit_retarget
-        if not current_settings.has_settings():
-            src_skeleton = preset_handler.set_preset_skel(self.rig_preset)
-            if not src_skeleton:
-                return {'FINISHED'}
-
         if not self.do_extract:
             return {'FINISHED'}
 
-        src_settings = preset_handler.PresetSkeleton()
-        src_settings.copy(current_settings)
-        src_skeleton = preset_handler.get_settings_skel(src_settings)
+        if self.rig_preset == "--Current--":
+            src_settings = preset_handler.PresetSkeleton()
+            current_settings = context.object.data.expykit_retarget
+            src_settings.copy(current_settings)
+            src_skeleton = preset_handler.get_settings_skel(src_settings)
+        else:
+            src_skeleton = preset_handler.set_preset_skel(self.rig_preset)
+            current_settings = context.object.data.expykit_retarget
 
         # TODO: remove action, bring to rest pose
         if self.apply_transforms:
