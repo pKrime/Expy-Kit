@@ -348,9 +348,9 @@ class DATA_MT_retarget_presets(Menu):
 
 class DATA_PT_expy_retarget(bpy.types.Panel):
     bl_label = "Expy Retargeting"
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = "data"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'Expy'
 
     @classmethod
     def poll(cls, context):
