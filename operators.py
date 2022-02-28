@@ -174,7 +174,7 @@ class ConvertBoneNaming(bpy.types.Operator):
     bl_label = "Convert Bone Names"
     bl_options = {'REGISTER', 'UNDO'}
 
-    src_preset: EnumProperty(items=preset_handler.iterate_presets,
+    src_preset: EnumProperty(items=preset_handler.iterate_presets_with_current,
                              name="Source Preset",
                              )
 
@@ -211,7 +211,7 @@ class ConvertBoneNaming(bpy.types.Operator):
     @staticmethod
     def convert_presets(src_settings, target_settings):
         src_skeleton = preset_handler.get_preset_skel(src_settings)
-        trg_skeleton = preset_handler.set_preset_skel(target_settings)
+        trg_skeleton = preset_handler.get_preset_skel(target_settings)
 
         return src_skeleton, trg_skeleton
 
@@ -255,9 +255,15 @@ class ConvertBoneNaming(bpy.types.Operator):
     def execute(self, context):
         if self.src_preset == "--Current--":
             current_settings = context.object.data.expykit_retarget
-            src_skeleton, trg_skeleton = self.convert_settings(current_settings, self.trg_preset)
+            trg_settings = preset_handler.PresetSkeleton()
+            trg_settings.copy(current_settings)
+            src_skeleton, trg_skeleton = self.convert_settings(trg_settings, self.trg_preset)
+
+            set_preset = False
         else:
             src_skeleton, trg_skeleton = self.convert_presets(self.src_preset, self.trg_preset)
+
+            set_preset = True
 
         if all((src_skeleton, trg_skeleton, src_skeleton != trg_skeleton)):
             if self.anim_tracks:
@@ -296,6 +302,9 @@ class ConvertBoneNaming(bpy.types.Operator):
 
                     fc.data_path = fc.data_path.replace('bones["{0}"'.format(track_bone),
                                                         'bones["{0}"'.format(trg_name))
+
+            if set_preset:
+                preset_handler.set_preset_skel(self.trg_preset)
 
         if bpy.app.version[0] > 2:
             # blender 3.0 objects do not immediately update renamed vertex groups
@@ -448,7 +457,7 @@ class ExtractMetarig(bpy.types.Operator):
     bl_description = "Create Metarig from current object"
     bl_options = {'REGISTER', 'UNDO'}
 
-    rig_preset: EnumProperty(items=preset_handler.iterate_presets,
+    rig_preset: EnumProperty(items=preset_handler.iterate_presets_with_current,
                              name="Rig Type",
                              )
 
