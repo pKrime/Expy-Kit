@@ -71,8 +71,10 @@ class RetargetFaceSimple(PropertyGroup):
     left_eye: StringProperty(name="left_eye")
     right_eye: StringProperty(name="right_eye")
 
-    left_upLid: StringProperty(name="left_up_lid")
-    right_upLid: StringProperty(name="right_up_lid")
+    left_upLid: StringProperty(name="left_upLid")
+    right_upLid: StringProperty(name="right_upLid")
+
+    super_copy: BoolProperty(default=True)
 
 
 class RetargetSettings(PropertyGroup):

@@ -321,7 +321,9 @@ class ClearArmatureRetarget(Operator):
         skeleton = context.object.data.expykit_retarget
         for setting in (skeleton.right_arm, skeleton.left_arm, skeleton.spine, skeleton.right_leg,
                         skeleton.left_leg, skeleton.right_arm_ik, skeleton.left_arm_ik,
-                        skeleton.right_leg_ik, skeleton.left_leg_ik):
+                        skeleton.right_leg_ik, skeleton.left_leg_ik,
+                        skeleton.face,
+                        ):
             for k in setting.keys():
                 setattr(setting, k, '')
 
@@ -406,13 +408,25 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
             row = layout.row()
             row.prop_search(skeleton.face, "jaw", ob.data, "bones", text="Jaw")
 
+            split = layout.split()
+            col = split.column()
+            col.label(text="Right")
+            col.prop_search(skeleton.face, "right_eye", ob.data, "bones", text="")
+            col.prop_search(skeleton.face, "right_upLid", ob.data, "bones", text="")
+
+            col = split.column()
+            col.label(text="")
+            col.label(text="Eye")
+            col.label(text="Up Lid")
+
+            col = split.column()
+            col.label(text="Left")
+            col.prop_search(skeleton.face, "left_eye", ob.data, "bones", text="")
+            col.prop_search(skeleton.face, "left_upLid", ob.data, "bones", text="")
+
             row = layout.row()
-            row.label(text="Right Eye")
-            row.label(text="Left Eye")
-            row = layout.row()
-            row.prop_search(skeleton.face, "right_eye", ob.data, "bones", text="")
-            row.prop_search(skeleton.face, "left_eye", ob.data, "bones", text="")
-            row.separator()
+            row.prop(skeleton.face, "super_copy", text="As Rigify Super Copy")
+            layout.separator()
 
         if skeleton.fingers_on:
             sides = "right", "left"

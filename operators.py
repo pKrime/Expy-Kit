@@ -667,7 +667,8 @@ class ExtractMetarig(bpy.types.Operator):
                 except ValueError:
                     pass
 
-                metarig.pose.bones[met_bone.name].rigify_type = "basic.super_copy"
+                if src_skeleton.face.super_copy:
+                    metarig.pose.bones[met_bone.name].rigify_type = "basic.super_copy"
 
         try:
             right_leg = met_armature.edit_bones[met_skeleton.right_leg.leg]
