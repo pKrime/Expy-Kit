@@ -215,8 +215,11 @@ class ExecutePresetArmatureRetarget(Operator):
 
             trg_setting = getattr(settings, group)
             for k, v in trg_setting.items():
-                if v not in armature_data.bones:
-                    setattr(trg_setting, k, "")
+                try:
+                    if v not in armature_data.bones:
+                        setattr(trg_setting, k, "")
+                except TypeError:
+                    continue
 
         finger_bones = 'a', 'b', 'c'
         for trg_grp in settings.left_fingers, settings.right_fingers:
@@ -325,7 +328,10 @@ class ClearArmatureRetarget(Operator):
                         skeleton.face,
                         ):
             for k in setting.keys():
-                setattr(setting, k, '')
+                try:
+                    setattr(setting, k, '')
+                except TypeError:
+                    continue
 
         for settings in (skeleton.right_fingers, skeleton.left_fingers):
             for setting in [getattr(settings, k) for k in settings.keys()]:

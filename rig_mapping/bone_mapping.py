@@ -258,6 +258,8 @@ class HumanSkeleton:
             bone_map[self.root] = target_skeleton.root
 
         for limb_name, bone_name in self.face.items():
+            if limb_name == "super_copy":
+                continue
             bone_mapping('face', limb_name, bone_name)
 
         for limb_name, bone_name in self.spine.items():
