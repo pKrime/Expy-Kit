@@ -47,6 +47,8 @@ class SimpleFace(HumanLimb):
         self.left_eye = left_eye
         self.right_eye = right_eye
 
+        self.super_copy = True
+
 
 class HumanSpine(HumanLimb):
     def __init__(self, head='', neck='', spine2='', spine1='', spine='', hips=''):
