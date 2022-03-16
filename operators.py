@@ -856,8 +856,8 @@ class ActionRangeToScene(bpy.types.Operator):
         action_range = context.object.animation_data.action.frame_range
 
         scn = context.scene
-        scn.frame_start = action_range[0]
-        scn.frame_end = action_range[1]
+        scn.frame_start = int(action_range[0])
+        scn.frame_end = int(action_range[1])
 
         try:
             bpy.ops.action.view_all()
