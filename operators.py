@@ -1031,6 +1031,7 @@ class ConstrainToArmature(bpy.types.Operator):
     root_cp_rot_z: BoolProperty(name="Root Copy Rot Z", description="Copy Root Z Rotation", default=False)
 
     check_prefix: BoolProperty(default=True, name="Check Prefix")
+    no_finger_loc: BoolProperty(default=True, name="No Finger Location")
 
     _separator = ":"  # TODO: StringProperty
     _autovars_unset = True
@@ -1072,7 +1073,7 @@ class ConstrainToArmature(bpy.types.Operator):
         row = column.split(factor=0.25, align=True)
         row.separator()
         row.prop(self, 'math_look_at')
-        row.prop(self, 'check_prefix')
+        row.prop(self, 'no_finger_loc')
 
         row = column.split(factor=0.25, align=True)
         row.label(text="Root Animation")
@@ -1323,7 +1324,16 @@ class ConstrainToArmature(bpy.types.Operator):
                     continue
 
                 if not self._bone_bound_already(src_pbone):
-                    for constr_type in self._bind_constraints:
+                    if self.no_finger_loc:
+                        left_finger_bones = chain(*src_skeleton.left_fingers.values())
+                        right_finger_bones = chain(*src_skeleton.right_fingers.values())
+                        if src_name in left_finger_bones or src_name in right_finger_bones:
+                            constr_types = ['COPY_ROTATION']
+                        else:
+                            constr_types = self._bind_constraints
+                    else:
+                        constr_types = self._bind_constraints
+                    for constr_type in constr_types:
                         constr = src_pbone.constraints.new(type=constr_type)
                         constr.target = trg_ob
 
