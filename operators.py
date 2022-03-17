@@ -1030,7 +1030,7 @@ class ConstrainToArmature(bpy.types.Operator):
     root_cp_rot_y: BoolProperty(name="Root Copy Rot y", description="Copy Root Y Rotation", default=False)
     root_cp_rot_z: BoolProperty(name="Root Copy Rot Z", description="Copy Root Z Rotation", default=False)
 
-    check_prefix = BoolProperty(default=False, name="Check Prefix")
+    check_prefix: BoolProperty(default=True, name="Check Prefix")
 
     _separator = ":"  # TODO: StringProperty
     _autovars_unset = True
@@ -1072,6 +1072,7 @@ class ConstrainToArmature(bpy.types.Operator):
         row = column.split(factor=0.25, align=True)
         row.separator()
         row.prop(self, 'math_look_at')
+        row.prop(self, 'check_prefix')
 
         row = column.split(factor=0.25, align=True)
         row.label(text="Root Animation")
@@ -1281,7 +1282,7 @@ class ConstrainToArmature(bpy.types.Operator):
                             start_bone_name = ""
 
                         if start_bone_name:
-                            start_bone = trg_ob.data.edit_bones[start_bone_name]
+                            start_bone = trg_ob.data.edit_bones[prefix + start_bone_name]
 
                             look_bone = trg_ob.data.edit_bones.new(start_bone_name + '_LOOK')
                             look_bone.head = start_bone.head
