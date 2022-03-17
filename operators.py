@@ -1035,6 +1035,7 @@ class ConstrainToArmature(bpy.types.Operator):
     _separator = ":"  # TODO: StringProperty
     _autovars_unset = True
     _constrained_root = None
+    _bind_constraints = 'COPY_ROTATION', 'COPY_LOCATION'
 
     @classmethod
     def poll(cls, context):
@@ -1148,6 +1149,12 @@ class ConstrainToArmature(bpy.types.Operator):
             row.prop(self, "root_cp_rot_x", text="X", toggle=True)
             row.prop(self, "root_cp_rot_y", text="Y", toggle=True)
             row.prop(self, "root_cp_rot_z", text="Z", toggle=True)
+
+    def _bone_bound_already(self, bone):
+        for constr in bone.constraints:
+            if constr.type in self._bind_constraints:
+                return True
+        return False
 
     def execute(self, context):
         src_skeleton = skeleton_from_type(self.source)
@@ -1314,8 +1321,8 @@ class ConstrainToArmature(bpy.types.Operator):
                 except KeyError:
                     continue
 
-                if not src_pbone.constraints:
-                    for constr_type in 'COPY_ROTATION', 'COPY_LOCATION':
+                if not self._bone_bound_already(src_pbone):
+                    for constr_type in self._bind_constraints:
                         constr = src_pbone.constraints.new(type=constr_type)
                         constr.target = trg_ob
 
