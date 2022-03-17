@@ -868,7 +868,7 @@ class ActionRangeToScene(bpy.types.Operator):
 
 
 class MergeHeadTails(bpy.types.Operator):
-    """Convert Rigify (0.5) rigs to a Game Friendly hierarchy"""
+    """Connect head/tails when closer than given max distance"""
     bl_idname = "armature.expykit_merge_head_tails"
     bl_label = "Merge Head/Tails"
     bl_description = "Connect head/tails when closer than given max distance"
