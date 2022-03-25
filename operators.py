@@ -271,8 +271,13 @@ class ConvertBoneNaming(bpy.types.Operator):
                     except IndexError:
                         continue
 
+                    if self.strip_prefix and self._separator in track_bone:
+                        stripped_bone = track_bone.rsplit(self._separator, 1)[1]
+                    else:
+                        stripped_bone = track_bone
+
                     try:
-                        trg_name = bone_names_map[track_bone]
+                        trg_name = bone_names_map[stripped_bone]
                     except KeyError:
                         continue
 
