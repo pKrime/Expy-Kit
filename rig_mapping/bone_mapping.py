@@ -31,6 +31,9 @@ class HumanLimb:
     def __getitem__(self, item):
         return getattr(self, item, None)
 
+    def values(self):
+        return self.__dict__.values()
+
     def items(self):
         return self.__dict__.items()
 

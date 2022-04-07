@@ -295,8 +295,13 @@ class ConvertBoneNaming(bpy.types.Operator):
                     except IndexError:
                         continue
 
+                    if self.strip_prefix and self._separator in track_bone:
+                        stripped_bone = track_bone.rsplit(self._separator, 1)[1]
+                    else:
+                        stripped_bone = track_bone
+
                     try:
-                        trg_name = bone_names_map[track_bone]
+                        trg_name = bone_names_map[stripped_bone]
                     except KeyError:
                         continue
 
@@ -1091,11 +1096,13 @@ class ConstrainToArmature(bpy.types.Operator):
     root_cp_rot_y: BoolProperty(name="Root Copy Rot y", description="Copy Root Y Rotation", default=False)
     root_cp_rot_z: BoolProperty(name="Root Copy Rot Z", description="Copy Root Z Rotation", default=False)
 
-    check_prefix = BoolProperty(default=False, name="Check Prefix")
+    check_prefix: BoolProperty(default=True, name="Check Prefix")
+    no_finger_loc: BoolProperty(default=True, name="No Finger Location")
 
     _separator = ":"  # TODO: StringProperty
     _autovars_unset = True
     _constrained_root = None
+    _bind_constraints = 'COPY_ROTATION', 'COPY_LOCATION'
 
     @classmethod
     def poll(cls, context):
@@ -1132,6 +1139,7 @@ class ConstrainToArmature(bpy.types.Operator):
         row = column.split(factor=0.25, align=True)
         row.separator()
         row.prop(self, 'math_look_at')
+        row.prop(self, 'no_finger_loc')
 
         row = column.split(factor=0.25, align=True)
         row.label(text="Root Animation")
@@ -1209,6 +1217,12 @@ class ConstrainToArmature(bpy.types.Operator):
             row.prop(self, "root_cp_rot_x", text="X", toggle=True)
             row.prop(self, "root_cp_rot_y", text="Y", toggle=True)
             row.prop(self, "root_cp_rot_z", text="Z", toggle=True)
+
+    def _bone_bound_already(self, bone):
+        for constr in bone.constraints:
+            if constr.type in self._bind_constraints:
+                return True
+        return False
 
     def execute(self, context):
         trg_ob = context.active_object
@@ -1347,7 +1361,7 @@ class ConstrainToArmature(bpy.types.Operator):
                             start_bone_name = ""
 
                         if start_bone_name:
-                            start_bone = trg_ob.data.edit_bones[start_bone_name]
+                            start_bone = trg_ob.data.edit_bones[prefix + start_bone_name]
 
                             look_bone = trg_ob.data.edit_bones.new(start_bone_name + '_LOOK')
                             look_bone.head = start_bone.head
@@ -1387,8 +1401,17 @@ class ConstrainToArmature(bpy.types.Operator):
                 except KeyError:
                     continue
 
-                if not src_pbone.constraints:
-                    for constr_type in 'COPY_ROTATION', 'COPY_LOCATION':
+                if not self._bone_bound_already(src_pbone):
+                    if self.no_finger_loc:
+                        left_finger_bones = chain(*src_skeleton.left_fingers.values())
+                        right_finger_bones = chain(*src_skeleton.right_fingers.values())
+                        if src_name in left_finger_bones or src_name in right_finger_bones:
+                            constr_types = ['COPY_ROTATION']
+                        else:
+                            constr_types = self._bind_constraints
+                    else:
+                        constr_types = self._bind_constraints
+                    for constr_type in constr_types:
                         constr = src_pbone.constraints.new(type=constr_type)
                         constr.target = trg_ob
 
@@ -1538,7 +1561,7 @@ class BakeConstrainedActions(bpy.types.Operator):
 
                 trg_ob.animation_data.action = action
                 fr_start, fr_end = action.frame_range
-                bpy.ops.nla.bake(frame_start=fr_start, frame_end=fr_end,
+                bpy.ops.nla.bake(frame_start=int(fr_start), frame_end=int(fr_end),
                                  bake_types={'POSE'}, only_selected=True,
                                  visual_keying=True, clear_constraints=False)
 
