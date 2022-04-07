@@ -30,9 +30,7 @@ def iterate_presets_with_current(scene, context):
     """CallBack for Enum Property. Must take scene, context arguments"""
 
     yield '--', "--", "None"  # first menu entry, doesn't do anything
-
-    if context.object.data.expykit_retarget.has_settings():
-        yield "--Current--", "-- Current Settings --", "Use Bones set in Expy Retarget Panel"
+    yield "--Current--", "-- Current Settings --", "Use Bones set in Expy Retarget Panel"
 
     for f in os.listdir(get_retarget_dir()):
         if not f.endswith('.py'):
@@ -142,4 +140,8 @@ class PresetSkeleton:
                 trg_finger = getattr(trg_grp, k)
 
                 for i, slot in enumerate(finger_bones):
-                    setattr(finger, slot, getattr(trg_finger, slot))
+                    # preset/settings compatibility: a,b,c against [0], [1], [2]
+                    try:
+                        setattr(finger, slot, getattr(trg_finger, slot))
+                    except AttributeError:
+                        setattr(finger, slot, trg_finger[i])

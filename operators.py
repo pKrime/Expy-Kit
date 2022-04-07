@@ -24,6 +24,7 @@ from importlib import reload
 reload(bone_mapping)
 reload(bone_utils)
 reload(fbx_helper)
+reload(preset_handler)
 
 from mathutils import Vector
 from mathutils import Matrix
@@ -490,9 +491,6 @@ class ExtractMetarig(bpy.types.Operator):
     apply_transforms: BoolProperty(name='Apply Transform', default=True,
                                    description='Apply current transforms before extraction')
 
-    do_extract: BoolProperty(name="Extract Metarig", description="Extract Metarig and exit",
-                             default=False, options={'SKIP_SAVE'})
-
     def draw(self, context):
         layout = self.layout
         column = layout.column()
@@ -533,10 +531,6 @@ class ExtractMetarig(bpy.types.Operator):
         row.label(text="Apply Transform")
         row.prop(self, 'apply_transforms', text='')
 
-        row = column.split(factor=0.30, align=True)
-        row.label(text="")
-        row.prop(self, "do_extract", toggle=True)
-
     @classmethod
     def poll(cls, context):
         if not context.object:
@@ -552,17 +546,24 @@ class ExtractMetarig(bpy.types.Operator):
         src_object = context.object
         src_armature = context.object.data
 
-        if not self.do_extract:
-            return {'FINISHED'}
-
         if self.rig_preset == "--Current--":
-            src_settings = preset_handler.PresetSkeleton()
             current_settings = context.object.data.expykit_retarget
-            src_settings.copy(current_settings)
-            src_skeleton = preset_handler.get_settings_skel(src_settings)
+
+            if current_settings.deform_preset and current_settings.deform_preset != '--':
+                deform_preset = current_settings.deform_preset
+
+                src_skeleton = preset_handler.set_preset_skel(deform_preset)
+                current_settings = src_skeleton
+            else:
+                src_settings = preset_handler.PresetSkeleton()
+                src_settings.copy(current_settings)
+                src_skeleton = preset_handler.get_settings_skel(src_settings)
         else:
             src_skeleton = preset_handler.set_preset_skel(self.rig_preset)
             current_settings = context.object.data.expykit_retarget
+
+        if not src_skeleton:
+            return {'FINISHED'}
 
         # TODO: remove action, bring to rest pose
         if self.apply_transforms:
@@ -609,7 +610,7 @@ class ExtractMetarig(bpy.types.Operator):
         bpy.ops.object.select_all(action='DESELECT')
 
         metarig.select_set(True)
-        bpy.context.view_layer.objects.active = metarig
+        context.view_layer.objects.active = metarig
         bpy.ops.object.mode_set(mode='EDIT')
 
         if create_metarig:
@@ -830,6 +831,7 @@ class ExtractMetarig(bpy.types.Operator):
             met_armature.rigify_target_rig = src_object
 
         metarig.parent = src_object.parent
+
         return {'FINISHED'}
 
 
@@ -1349,12 +1351,12 @@ class ConstrainToArmature(bpy.types.Operator):
                         new_bone.layers[i] = False
 
                     if self.math_look_at:
-                        if src_name == src_skeleton.right_arm_IK.arm:
-                            start_bone_name = trg_skeleton.right_arm_IK.forearm
-                        elif src_name == src_skeleton.left_arm_IK.arm:
-                            start_bone_name = trg_skeleton.left_arm_IK.forearm
-                        elif src_name == src_skeleton.right_leg_IK.upleg:
-                            start_bone_name = trg_skeleton.right_leg_IK.leg
+                        if src_name == src_skeleton.right_arm_ik.arm:
+                            start_bone_name = trg_skeleton.right_arm_ik.forearm
+                        elif src_name == src_skeleton.left_arm_ik.arm:
+                            start_bone_name = trg_skeleton.left_arm_ik.forearm
+                        elif src_name == src_skeleton.right_leg_ik.upleg:
+                            start_bone_name = trg_skeleton.right_leg_ik.leg
                         elif src_name == src_skeleton.left_leg_IK.upleg:
                             start_bone_name = trg_skeleton.left_leg_IK.leg
                         else:
