@@ -1357,8 +1357,8 @@ class ConstrainToArmature(bpy.types.Operator):
                             start_bone_name = trg_skeleton.left_arm_ik.forearm
                         elif src_name == src_skeleton.right_leg_ik.upleg:
                             start_bone_name = trg_skeleton.right_leg_ik.leg
-                        elif src_name == src_skeleton.left_leg_IK.upleg:
-                            start_bone_name = trg_skeleton.left_leg_IK.leg
+                        elif src_name == src_skeleton.left_leg_ik.upleg:
+                            start_bone_name = trg_skeleton.left_leg_ik.leg
                         else:
                             start_bone_name = ""
 
