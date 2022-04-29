@@ -472,7 +472,7 @@ class ExtractMetarig(bpy.types.Operator):
     no_face: BoolProperty(name='No face bones',
                           default=True)
 
-    rigify_names: BoolProperty(name='Use rifify names',
+    rigify_names: BoolProperty(name='Use rigify names',
                                default=True)
 
     assign_metarig: BoolProperty(name='Assign metarig',
