@@ -37,6 +37,21 @@ class HumanLimb:
     def items(self):
         return self.__dict__.items()
 
+    def keys(self):
+        return self.__dict__.keys()
+
+    def has_settings(self):
+        return bool(self)
+
+
+class SimpleFace(HumanLimb):
+    def __init__(self, jaw='', left_eye='', right_eye=''):
+        self.jaw = jaw
+        self.left_eye = left_eye
+        self.right_eye = right_eye
+
+        self.super_copy = True
+
 
 class HumanSpine(HumanLimb):
     def __init__(self, head='', neck='', spine2='', spine1='', spine='', hips=''):
@@ -69,15 +84,23 @@ class HumanLeg(HumanLimb):
 
 
 class HumanFingers(HumanLimb):
-    def __init__(self, thumb=[''] * 3, index=[''] * 3, middle=[''] * 3, ring=[''] * 3, pinky=[''] * 3):
-        self.thumb = thumb
-        self.index = index
-        self.middle = middle
-        self.ring = ring
-        self.pinky = pinky
+    def __init__(self, thumb=[''] * 3, index=[''] * 3, middle=[''] * 3, ring=[''] * 3, pinky=[''] * 3, preset=None):
+        if preset:
+            self.thumb = [preset.thumb.a, preset.thumb.b, preset.thumb.c]
+            self.index = [preset.index.a, preset.index.b, preset.index.c]
+            self.middle = [preset.middle.a, preset.middle.b, preset.middle.c]
+            self.ring = [preset.ring.a, preset.ring.b, preset.ring.c]
+            self.pinky = [preset.pinky.a, preset.pinky.b, preset.pinky.c]
+        else:
+            self.thumb = thumb
+            self.index = index
+            self.middle = middle
+            self.ring = ring
+            self.pinky = pinky
 
 
 class HumanSkeleton:
+    face = None
     root = None
     spine = None
 
@@ -86,14 +109,33 @@ class HumanSkeleton:
     left_leg = None
     right_leg = None
 
-    _left_arm_IK = None
-    _right_arm_IK = None
-    _left_leg_IK = None
-    _right_leg_IK = None
+    _left_arm_ik = None
+    _right_arm_ik = None
+    _left_leg_ik = None
+    _right_leg_ik = None
     _fk_as_ik = True
 
     left_fingers = None
     right_fingers = None
+
+    def __init__(self, preset=None):
+        if preset:
+            self.face = preset.face
+            self.spine = preset.spine
+            self.left_arm = preset.left_arm
+            self._left_arm_ik = preset.left_arm_ik
+            self.left_leg = preset.left_leg
+            self._left_leg_ik = preset.left_leg_ik
+
+            self.right_arm = preset.right_arm
+            self._right_arm_ik = preset.right_arm_ik
+            self.right_leg = preset.right_leg
+            self._right_leg_ik = preset.right_leg_ik
+
+            self.left_fingers = HumanFingers(preset=preset.left_fingers)
+            self.right_fingers = HumanFingers(preset=preset.right_fingers)
+
+            self.root = preset.root
 
     @property
     def deformation_bone_map(self):
@@ -101,9 +143,9 @@ class HumanSkeleton:
         return None
 
     @property
-    def left_arm_IK(self):
-        if self._left_arm_IK:
-            return self._left_arm_IK
+    def left_arm_ik(self):
+        if self._left_arm_ik.has_settings():
+            return self._left_arm_ik
 
         if self._fk_as_ik:
             return self.left_arm
@@ -111,9 +153,9 @@ class HumanSkeleton:
         return None
 
     @property
-    def right_arm_IK(self):
-        if self._right_arm_IK:
-            return self._right_arm_IK
+    def right_arm_ik(self):
+        if self._right_arm_ik.has_settings():
+            return self._right_arm_ik
 
         if self._fk_as_ik:
             return self.right_arm
@@ -121,9 +163,9 @@ class HumanSkeleton:
         return None
 
     @property
-    def left_leg_IK(self):
-        if self._left_leg_IK:
-            return self._left_leg_IK
+    def left_leg_ik(self):
+        if self._left_leg_ik.has_settings():
+            return self._left_leg_ik
 
         if self._fk_as_ik:
             return self.left_leg
@@ -131,30 +173,30 @@ class HumanSkeleton:
         return None
 
     @property
-    def right_leg_IK(self):
-        if self._right_leg_IK:
-            return self._right_leg_IK
+    def right_leg_ik(self):
+        if self._right_leg_ik.has_settings():
+            return self._right_leg_ik
 
         if self._fk_as_ik:
             return self.right_leg
 
         return None
 
-    @left_arm_IK.setter
-    def left_arm_IK(self, value):
-        self._left_arm_IK = value
+    @left_arm_ik.setter
+    def left_arm_ik(self, value):
+        self._left_arm_ik = value
 
-    @right_arm_IK.setter
-    def right_arm_IK(self, value):
-        self._right_arm_IK = value
+    @right_arm_ik.setter
+    def right_arm_ik(self, value):
+        self._right_arm_ik = value
 
-    @left_leg_IK.setter
-    def left_leg_IK(self, value):
-        self._left_leg_IK = value
+    @left_leg_ik.setter
+    def left_leg_ik(self, value):
+        self._left_leg_ik = value
 
-    @right_leg_IK.setter
-    def right_leg_IK(self, value):
-        self._right_leg_IK = value
+    @right_leg_ik.setter
+    def right_leg_ik(self, value):
+        self._right_leg_ik = value
 
     def bone_names(self):
         if self.root:
@@ -175,20 +217,20 @@ class HumanSkeleton:
         for limb_name, bone_name in self.right_leg.items():
             yield bone_name
 
-        if self.left_arm_IK:
-            for limb_name, bone_name in self.left_arm_IK.items():
+        if self.left_arm_ik:
+            for limb_name, bone_name in self.left_arm_ik.items():
                 yield bone_name
 
-        if self.right_arm_IK:
-            for limb_name, bone_name in self.right_arm_IK.items():
+        if self.right_arm_ik:
+            for limb_name, bone_name in self.right_arm_ik.items():
                 yield bone_name
 
-        if self.left_leg_IK:
-            for limb_name, bone_name in self.left_leg_IK.items():
+        if self.left_leg_ik:
+            for limb_name, bone_name in self.left_leg_ik.items():
                 yield bone_name
 
-        if self.right_leg_IK:
-            for limb_name, bone_name in self.right_leg_IK.items():
+        if self.right_leg_ik:
+            for limb_name, bone_name in self.right_leg_ik.items():
                 yield bone_name
 
         for limb_name, bone_names in self.left_fingers.items():
@@ -212,13 +254,18 @@ class HumanSkeleton:
             if not target_limbs:
                 return
 
-            trg_name = target_limbs[limb]
+            trg_name = getattr(target_limbs, limb, None)
 
             if trg_name:
                 bone_map[bone_name] = trg_name
 
         if self.root:
             bone_map[self.root] = target_skeleton.root
+
+        for limb_name, bone_name in self.face.items():
+            if limb_name == "super_copy":
+                continue
+            bone_mapping('face', limb_name, bone_name)
 
         for limb_name, bone_name in self.spine.items():
             bone_mapping('spine', limb_name, bone_name)
@@ -235,21 +282,21 @@ class HumanSkeleton:
         for limb_name, bone_name in self.right_leg.items():
             bone_mapping('right_leg', limb_name, bone_name)
 
-        if self.left_arm_IK:
-            for limb_name, bone_name in self.left_arm_IK.items():
-                bone_mapping('left_arm_IK', limb_name, bone_name)
+        if self.left_arm_ik:
+            for limb_name, bone_name in self.left_arm_ik.items():
+                bone_mapping('left_arm_ik', limb_name, bone_name)
 
-        if self.right_arm_IK:
-            for limb_name, bone_name in self.right_arm_IK.items():
-                bone_mapping('right_arm_IK', limb_name, bone_name)
+        if self.right_arm_ik:
+            for limb_name, bone_name in self.right_arm_ik.items():
+                bone_mapping('right_arm_ik', limb_name, bone_name)
 
-        if self.left_leg_IK:
-            for limb_name, bone_name in self.left_leg_IK.items():
-                bone_mapping('left_leg_IK', limb_name, bone_name)
+        if self.left_leg_ik:
+            for limb_name, bone_name in self.left_leg_ik.items():
+                bone_mapping('left_leg_ik', limb_name, bone_name)
 
-        if self.right_leg_IK:
-            for limb_name, bone_name in self.right_leg_IK.items():
-                bone_mapping('right_leg_IK', limb_name, bone_name)
+        if self.right_leg_ik:
+            for limb_name, bone_name in self.right_leg_ik.items():
+                bone_mapping('right_leg_ik', limb_name, bone_name)
 
         def fingers_mapping(src_fingers, trg_fingers):
             for finger, bone_names in src_fingers.items():
@@ -361,6 +408,12 @@ class DazGenesis8(HumanSkeleton):
 
 class RigifySkeleton(HumanSkeleton):
     def __init__(self):
+        self.face = SimpleFace(
+            jaw='DEF-jaw',
+            left_eye='DEF-eye.L',
+            right_eye='DEF-eye.R'
+        )
+
         self.spine = HumanSpine(
             head='DEF-spine.006',
             neck='DEF-spine.004',
@@ -402,6 +455,12 @@ class RigifySkeleton(HumanSkeleton):
 
 class RigifyMeta(HumanSkeleton):
     def __init__(self):
+        self.face = SimpleFace(
+            jaw='jaw',
+            left_eye='eye.L',
+            right_eye='eye.R'
+        )
+
         self.spine = HumanSpine(
             head='spine.006',
             neck='spine.004',
@@ -452,6 +511,12 @@ class RigifyMeta(HumanSkeleton):
 
 class RigifyCtrlsBase(HumanSkeleton):
     def __init__(self):
+        self.face = SimpleFace(
+            jaw='',
+            left_eye='eye_master.L',
+            right_eye='eye_master.R'
+        )
+
         self.spine = HumanSpine(
             head='head',
             neck='neck',
@@ -500,11 +565,11 @@ class RigifyCtrls(RigifyCtrlsBase):
                                  foot="foot_fk.{0}".format(side),
                                  toe="toe.{0}".format(side))
 
-        self.left_arm_IK = HumanArm(shoulder="shoulder.{0}".format(side),
+        self.left_arm_ik = HumanArm(shoulder="shoulder.{0}".format(side),
                                  arm="upper_arm_ik.{0}".format(side),
                                  hand="hand_ik.{0}".format(side))
 
-        self.left_leg_IK = HumanLeg(upleg="thigh_ik.{0}".format(side),
+        self.left_leg_ik = HumanLeg(upleg="thigh_ik.{0}".format(side),
                                  foot="foot_ik.{0}".format(side),
                                  toe="toe.{0}".format(side))
 
@@ -519,11 +584,11 @@ class RigifyCtrls(RigifyCtrlsBase):
                                   foot="foot_fk.{0}".format(side),
                                   toe="toe.{0}".format(side))
 
-        self.right_arm_IK = HumanArm(shoulder="shoulder.{0}".format(side),
+        self.right_arm_ik = HumanArm(shoulder="shoulder.{0}".format(side),
                                   arm="upper_arm_ik.{0}".format(side),
                                   hand="hand_ik.{0}".format(side))
 
-        self.right_leg_IK = HumanLeg(upleg="thigh_ik.{0}".format(side),
+        self.right_leg_ik = HumanLeg(upleg="thigh_ik.{0}".format(side),
                                   foot="foot_ik.{0}".format(side),
                                   toe="toe.{0}".format(side))
 

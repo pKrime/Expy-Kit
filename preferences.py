@@ -1,7 +1,7 @@
+import os
+
 import bpy
 from bpy.props import StringProperty
-
-import os
 
 
 class ExpyToClipboard(bpy.types.Operator):
@@ -47,3 +47,13 @@ class ExpyPrefs(bpy.types.AddonPreferences):
         script_path = os.path.join(script_path, 'rig_mapping', 'unreal_mapping.py')
         op = sp_col.operator(ExpyToClipboard.bl_idname, text='Path of "Unreal Mapping" to Clipboard')
         op.clip_text = script_path
+
+
+def register_classes():
+    bpy.utils.register_class(ExpyPrefs)
+    bpy.utils.register_class(ExpyToClipboard)
+
+
+def unregister_classes():
+    bpy.utils.unregister_class(ExpyPrefs)
+    bpy.utils.unregister_class(ExpyToClipboard)

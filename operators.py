@@ -1,3 +1,7 @@
+from math import pi
+import os
+import typing
+
 import bpy
 from bpy.props import BoolProperty
 from bpy.props import EnumProperty
@@ -12,36 +16,18 @@ from bpy_extras.io_utils import ImportHelper
 from itertools import chain
 
 from .rig_mapping import bone_mapping
+from . import preset_handler
 from . import bone_utils
 from . import fbx_helper
 
-from importlib import reload
-reload(bone_mapping)
-reload(bone_utils)
-reload(fbx_helper)
-
 from mathutils import Vector
 from mathutils import Matrix
-from math import pi
-import os
-import typing
 
 
 status_types = (
     ('enable', "Enable", "Enable All Constraints"),
     ('disable', "Disable", "Disable All Constraints"),
     ('remove', "Remove", "Remove All Constraints")
-)
-
-
-skeleton_types = (
-    ('unreal', "Unreal", "UE4 Skeleton"),
-    ('rigify', "Rigify", "Rigify Skeleton"),
-    ('rigify_meta', "Rigify Metarig", "Rigify Metarig"),
-    ('rigify_ctrls', "Rigify Controls", "Rigify CTRLS"),
-    ('mixamo', "Mixamo", "Mixamo Skeleton"),
-    ('daz-gen8', "Daz Genesis 8", "Daz Genesis 8 Skeleton"),
-    ('--', "--", "None")
 )
 
 
@@ -183,13 +169,13 @@ class ConvertBoneNaming(bpy.types.Operator):
     bl_label = "Convert Bone Names"
     bl_options = {'REGISTER', 'UNDO'}
 
-    source: EnumProperty(items=skeleton_types,
-                         name="Source Type",
-                         default='--')
+    src_preset: EnumProperty(items=preset_handler.iterate_presets_with_current,
+                             name="Source Preset",
+                             )
 
-    target: EnumProperty(items=skeleton_types,
-                         name="Target Type",
-                         default='--')
+    trg_preset: EnumProperty(items=preset_handler.iterate_presets,
+                             name="Target Preset",
+                             )
 
     strip_prefix: BoolProperty(
         name="Strip Prefix",
@@ -217,9 +203,62 @@ class ConvertBoneNaming(bpy.types.Operator):
 
         return True
 
+    @staticmethod
+    def convert_presets(src_settings, target_settings):
+        src_skeleton = preset_handler.get_preset_skel(src_settings)
+        trg_skeleton = preset_handler.get_preset_skel(target_settings)
+
+        return src_skeleton, trg_skeleton
+
+    @staticmethod
+    def convert_settings(current_settings, target_settings):
+        src_settings = preset_handler.PresetSkeleton()
+        src_settings.copy(current_settings)
+
+        src_skeleton = preset_handler.get_settings_skel(src_settings)
+        trg_skeleton = preset_handler.set_preset_skel(target_settings)
+
+        return src_skeleton, trg_skeleton
+
+    @staticmethod
+    def rename_bones(context, src_skeleton, trg_skeleton, separator=""):
+        bone_names_map = src_skeleton.conversion_map(trg_skeleton)
+
+        if separator:
+            for bone in context.object.data.bones:
+                if separator not in bone.name:
+                    continue
+
+                bone.name = bone.name.rsplit(separator, 1)[1]
+
+        for src_name, trg_name in bone_names_map.items():
+            if not trg_name:
+                continue
+            if not src_name:
+                continue
+            try:
+                src_bone = context.object.data.bones.get(src_name, None)
+            except SystemError:
+                continue
+            if not src_bone:
+                continue
+
+            src_bone.name = trg_name
+
+        return bone_names_map
+
     def execute(self, context):
-        src_skeleton = skeleton_from_type(self.source)
-        trg_skeleton = skeleton_from_type(self.target)
+        if self.src_preset == "--Current--":
+            current_settings = context.object.data.expykit_retarget
+            trg_settings = preset_handler.PresetSkeleton()
+            trg_settings.copy(current_settings)
+            src_skeleton, trg_skeleton = self.convert_settings(trg_settings, self.trg_preset)
+
+            set_preset = False
+        else:
+            src_skeleton, trg_skeleton = self.convert_presets(self.src_preset, self.trg_preset)
+
+            set_preset = True
 
         if all((src_skeleton, trg_skeleton, src_skeleton != trg_skeleton)):
             if self.anim_tracks:
@@ -227,27 +266,7 @@ class ConvertBoneNaming(bpy.types.Operator):
             else:
                 actions = []
 
-            bone_names_map = src_skeleton.conversion_map(trg_skeleton)
-
-            if self.strip_prefix:
-                for bone in context.object.data.bones:
-                    if self._separator not in bone.name:
-                        continue
-
-                    bone.name = bone.name.rsplit(self._separator, 1)[1]
-
-            for src_name, trg_name in bone_names_map.items():
-                if not trg_name:
-                    continue
-                if not src_name:
-                    continue
-                try:
-                    src_bone = context.object.data.bones.get(src_name, None)
-                except SystemError:
-                    continue
-                if not src_bone:
-                    continue
-                src_bone.name = trg_name
+            bone_names_map = self.rename_bones(context, src_skeleton, trg_skeleton, self._separator if self.strip_prefix else "")
 
             if context.object.animation_data and context.object.data.animation_data:
                 for driver in chain(context.object.animation_data.drivers, context.object.data.animation_data.drivers):
@@ -283,6 +302,9 @@ class ConvertBoneNaming(bpy.types.Operator):
 
                     fc.data_path = fc.data_path.replace('bones["{0}"'.format(track_bone),
                                                         'bones["{0}"'.format(trg_name))
+
+            if set_preset:
+                preset_handler.set_preset_skel(self.trg_preset)
 
         if bpy.app.version[0] > 2:
             # blender 3.0 objects do not immediately update renamed vertex groups
@@ -428,48 +450,6 @@ class CreateTransformOffset(bpy.types.Operator):
         return {'FINISHED'}
 
 
-def skeleton_from_type(skeleton_type):
-    # TODO: this would be better handled by EnumTypes
-    if skeleton_type == 'mixamo':
-        return bone_mapping.MixamoSkeleton()
-    if skeleton_type == 'rigify':
-        return bone_mapping.RigifySkeleton()
-    if skeleton_type == 'rigify_meta':
-        return bone_mapping.RigifyMeta()
-    if skeleton_type == 'rigify_ctrls':
-        return bone_mapping.RigifyCtrls()
-    if skeleton_type == 'unreal':
-        return bone_mapping.UnrealSkeleton()
-    if skeleton_type == 'daz-gen8':
-        return bone_mapping.DazGenesis8()
-
-
-def align_to_closer_axis(src_bone, trg_bone):
-    src_rot = src_bone.matrix_local.to_3x3().inverted()
-    src_x_axis = src_rot[0]
-    src_y_axis = src_rot[1]
-    src_z_axis = src_rot[2]
-
-    bone_direction = trg_bone.parent.vector.normalized()
-    dot_x = abs(bone_direction.dot(src_x_axis))
-    dot_y = abs(bone_direction.dot(src_y_axis))
-    dot_z = abs(bone_direction.dot(src_z_axis))
-
-    matching_dot = max(dot_x, dot_y, dot_z)
-    if matching_dot == dot_x:
-        closer_axis = src_x_axis
-    elif matching_dot == dot_y:
-        closer_axis = src_y_axis
-    else:
-        closer_axis = src_z_axis
-
-    offset = closer_axis * src_bone.length
-    if closer_axis.dot(bone_direction) < 0:
-        offset *= -1
-
-    trg_bone.tail = trg_bone.head + offset
-
-
 class ExtractMetarig(bpy.types.Operator):
     """Create Metarig from current object"""
     bl_idname = "object.expykit_extract_metarig"
@@ -477,9 +457,9 @@ class ExtractMetarig(bpy.types.Operator):
     bl_description = "Create Metarig from current object"
     bl_options = {'REGISTER', 'UNDO'}
 
-    skeleton_type: EnumProperty(items=skeleton_types,
-                                name="Source Type",
-                                default='--')
+    rig_preset: EnumProperty(items=preset_handler.iterate_presets_with_current,
+                             name="Rig Type",
+                             )
 
     offset_knee: FloatProperty(name='Offset Knee',
                                default=0.0)
@@ -499,11 +479,51 @@ class ExtractMetarig(bpy.types.Operator):
                                  default=True,
                                  description='Rigify will generate to the active object')
 
-    forward_spine_roll: BoolProperty(name='Align spine frontally', default=False,
+    forward_spine_roll: BoolProperty(name='Align spine frontally', default=True,
                                      description='Spine Z will face the Y axis')
 
     apply_transforms: BoolProperty(name='Apply Transform', default=True,
                                    description='Apply current transforms before extraction')
+
+    def draw(self, context):
+        layout = self.layout
+        column = layout.column()
+
+        # if not context.active_object.data.expykit_retarget.has_settings():
+        row = column.row()
+        row.prop(self, 'rig_preset', text="Rig Type")
+
+        row = column.split(factor=0.5, align=True)
+        row.label(text="Offset Knee")
+        row.prop(self, 'offset_knee', text='')
+
+        row = column.split(factor=0.5, align=True)
+        row.label(text="Offset Elbow")
+        row.prop(self, 'offset_elbow', text='')
+
+        row = column.split(factor=0.5, align=True)
+        row.label(text="Offset Fingers")
+        row.prop(self, 'offset_fingers', text='')
+
+        row = column.split(factor=0.5, align=True)
+        row.label(text="No Face Bones")
+        row.prop(self, 'no_face', text='')
+
+        row = column.split(factor=0.5, align=True)
+        row.label(text="Use Rigify Names")
+        row.prop(self, 'rigify_names', text='')
+
+        row = column.split(factor=0.5, align=True)
+        row.label(text="Assign Metarig")
+        row.prop(self, 'assign_metarig', text='')
+
+        row = column.split(factor=0.5, align=True)
+        row.label(text="Align spine frontally")
+        row.prop(self, 'forward_spine_roll', text='')
+
+        row = column.split(factor=0.5, align=True)
+        row.label(text="Apply Transform")
+        row.prop(self, 'apply_transforms', text='')
 
     @classmethod
     def poll(cls, context):
@@ -519,7 +539,22 @@ class ExtractMetarig(bpy.types.Operator):
     def execute(self, context):
         src_object = context.object
         src_armature = context.object.data
-        src_skeleton = skeleton_from_type(self.skeleton_type)
+
+        if self.rig_preset == "--Current--":
+            current_settings = context.object.data.expykit_retarget
+
+            if current_settings.deform_preset and current_settings.deform_preset != '--':
+                deform_preset = current_settings.deform_preset
+
+                src_skeleton = preset_handler.set_preset_skel(deform_preset)
+                current_settings = src_skeleton
+            else:
+                src_settings = preset_handler.PresetSkeleton()
+                src_settings.copy(current_settings)
+                src_skeleton = preset_handler.get_settings_skel(src_settings)
+        else:
+            src_skeleton = preset_handler.set_preset_skel(self.rig_preset)
+            current_settings = context.object.data.expykit_retarget
 
         if not src_skeleton:
             return {'FINISHED'}
@@ -535,9 +570,15 @@ class ExtractMetarig(bpy.types.Operator):
             src_armature.transform(src_object.matrix_local)
             src_object.matrix_local = Matrix()
 
-        if self.skeleton_type != 'rigify' and self.rigify_names:
-            bpy.ops.object.expykit_convert_bone_names(source=self.skeleton_type, target='rigify')
-            src_skeleton = skeleton_from_type('rigify')
+        met_skeleton = bone_mapping.RigifyMeta()
+
+        if self.rigify_names:
+            # check if doesn't contain rigify deform bones already
+            bones_needed = met_skeleton.spine.hips, met_skeleton.spine.spine
+            if not [b for b in bones_needed if b in src_armature.bones]:
+                src_skeleton, trg_skeleton = ConvertBoneNaming.convert_settings(current_settings, 'Rigify_Deform.py')
+                ConvertBoneNaming.rename_bones(context, src_skeleton, trg_skeleton, separator=":")
+                src_skeleton = bone_mapping.RigifySkeleton()
 
         try:
             metarig = next(ob for ob in bpy.data.objects if ob.type == 'ARMATURE' and ob.data.rigify_target_rig == src_object)
@@ -563,24 +604,23 @@ class ExtractMetarig(bpy.types.Operator):
         bpy.ops.object.select_all(action='DESELECT')
 
         metarig.select_set(True)
-        bpy.context.view_layer.objects.active = metarig
+        context.view_layer.objects.active = metarig
         bpy.ops.object.mode_set(mode='EDIT')
 
         if create_metarig:
             from rigify.metarigs import human
             human.create(metarig)
 
-        met_skeleton = bone_mapping.RigifyMeta()
-
         def match_meta_bone(met_bone_group, src_bone_group, bone_attr, axis=None):
             try:
                 met_bone = met_armature.edit_bones[getattr(met_bone_group, bone_attr)]
-                src_bone = src_armature.bones.get(getattr(src_bone_group, bone_attr), None)
+                src_bone_name = getattr(src_bone_group, bone_attr)
+                src_bone = src_armature.bones.get(src_bone_name, None)
             except KeyError:
                 return
 
             if not src_bone:
-                print(bone_attr, "not found in", src_armature)
+                print(bone_attr, src_bone_name, "not found in", src_armature)
                 return
 
             met_bone.head = src_bone.head_local
@@ -601,6 +641,8 @@ class ExtractMetarig(bpy.types.Operator):
                 src_x_axis.normalize()
                 met_bone.roll = bone_utils.ebone_roll_to_vector(met_bone, src_x_axis)
 
+            return met_bone
+
         for bone_attr in ['hips', 'spine', 'spine1', 'spine2', 'neck', 'head']:
             if self.forward_spine_roll:
                 align = Vector((0.0, -1.0, 0.0))
@@ -615,6 +657,18 @@ class ExtractMetarig(bpy.types.Operator):
         for bone_attr in ['upleg', 'leg', 'foot', 'toe']:
             match_meta_bone(met_skeleton.right_leg, src_skeleton.right_leg, bone_attr)
             match_meta_bone(met_skeleton.left_leg, src_skeleton.left_leg, bone_attr)
+
+        rigify_face_bones = bone_mapping.rigify_face_bones
+        for bone_attr in ['left_eye', 'right_eye', 'jaw']:
+            met_bone = match_meta_bone(met_skeleton.face, src_skeleton.face, bone_attr)
+            if met_bone:
+                try:
+                    rigify_face_bones.remove(met_skeleton.face[bone_attr])
+                except ValueError:
+                    pass
+
+                if src_skeleton.face.super_copy:
+                    metarig.pose.bones[met_bone.name].rigify_type = "basic.super_copy"
 
         try:
             right_leg = met_armature.edit_bones[met_skeleton.right_leg.leg]
@@ -675,7 +729,7 @@ class ExtractMetarig(bpy.types.Operator):
                 try:
                     met_bone.tail = src_bone.children[0].head_local
                 except IndexError:
-                    align_to_closer_axis(src_bone, met_bone)
+                    bone_utils.align_to_closer_axis(src_bone, met_bone)
 
                 met_bone.roll = 0.0
 
@@ -758,7 +812,7 @@ class ExtractMetarig(bpy.types.Operator):
                     breast_bone.tail.z = spine_bone.head.z
 
         if self.no_face:
-            for bone_name in bone_mapping.rigify_face_bones:
+            for bone_name in rigify_face_bones:
                 try:
                     face_bone = met_armature.edit_bones[bone_name]
                 except KeyError:
@@ -771,6 +825,7 @@ class ExtractMetarig(bpy.types.Operator):
             met_armature.rigify_target_rig = src_object
 
         metarig.parent = src_object.parent
+
         return {'FINISHED'}
 
 
@@ -814,7 +869,7 @@ class ActionRangeToScene(bpy.types.Operator):
 
 
 class MergeHeadTails(bpy.types.Operator):
-    """Convert Rigify (0.5) rigs to a Game Friendly hierarchy"""
+    """Connect head/tails when closer than given max distance"""
     bl_idname = "armature.expykit_merge_head_tails"
     bl_label = "Merge Head/Tails"
     bl_description = "Connect head/tails when closer than given max distance"
@@ -975,13 +1030,15 @@ class ConstrainToArmature(bpy.types.Operator):
     bl_description = "Constrain bones of selected armatures to active armature"
     bl_options = {'REGISTER', 'UNDO'}
 
-    source: EnumProperty(items=skeleton_types,
-                         name="To Bind",
-                         default='--')
+    src_preset: EnumProperty(items=preset_handler.iterate_presets,
+                             name="To Bind",
+                             options={'SKIP_SAVE'}
+                             )
 
-    skeleton_type: EnumProperty(items=skeleton_types,
-                                name="Bind Target",
-                                default='--')
+    trg_preset: EnumProperty(items=preset_handler.iterate_presets,
+                             name="Bind Target",
+                             options={'SKIP_SAVE'}
+                             )
 
     ret_bones_layer: IntProperty(name="Binding-Bones layer",
                                  min=0, max=29, default=24,
@@ -1059,13 +1116,13 @@ class ConstrainToArmature(bpy.types.Operator):
         layout = self.layout
         column = layout.column()
 
-        row = column.split(factor=0.25, align=True)
-        row.label(text="To Bind")
-        row.prop(self, 'source', text="")
-
-        row = column.split(factor=0.25, align=True)
-        row.label(text="Bind Target")
-        row.prop(self, 'skeleton_type', text="")
+        to_bind = next(ob for ob in context.selected_objects if ob != context.active_object)
+        if not to_bind.data.expykit_retarget.has_settings():
+            row = column.row()
+            row.prop(self, 'src_preset', text="To Bind")
+        if not context.active_object.data.expykit_retarget.has_settings():
+            row = column.row()
+            row.prop(self, 'trg_preset', text="Bind Target")
 
         row = column.split(factor=0.25, align=True)
         row.separator()
@@ -1164,20 +1221,17 @@ class ConstrainToArmature(bpy.types.Operator):
         return False
 
     def execute(self, context):
-        src_skeleton = skeleton_from_type(self.source)
-        trg_skeleton = skeleton_from_type(self.skeleton_type)
-
-        if not src_skeleton:
-            return {'FINISHED'}
-        if not trg_skeleton:
-            return {'FINISHED'}
-
-        bone_names_map = src_skeleton.conversion_map(trg_skeleton)
-        deformation_map = src_skeleton.deformation_bone_map
-
         trg_ob = context.active_object
-        cp_suffix = 'RET'
 
+        trg_settings = trg_ob.data.expykit_retarget
+        if not trg_settings.has_settings():
+            trg_skeleton = preset_handler.set_preset_skel(self.trg_preset)
+            if not trg_skeleton:
+                return {'FINISHED'}
+        else:
+            trg_skeleton = preset_handler.get_settings_skel(trg_settings)
+
+        cp_suffix = 'RET'
         prefix = ""
         if self.check_prefix:
             first_bone = trg_ob.data.bones[0]
@@ -1188,6 +1242,21 @@ class ConstrainToArmature(bpy.types.Operator):
         for ob in context.selected_objects:
             if ob == trg_ob:
                 continue
+
+            src_settings = ob.data.expykit_retarget
+            if not src_settings.has_settings():
+                src_skeleton = preset_handler.get_preset_skel(self.src_preset, src_settings)
+                if not src_skeleton:
+                    return {'FINISHED'}
+            else:
+                src_skeleton = preset_handler.get_settings_skel(src_settings)
+
+            bone_names_map = src_skeleton.conversion_map(trg_skeleton)
+            def_skeleton = preset_handler.get_preset_skel(src_settings.deform_preset)
+            if def_skeleton:
+                deformation_map = src_skeleton.conversion_map(def_skeleton)
+            else:
+                deformation_map = None
 
             look_ats = {}
 
@@ -1276,14 +1345,14 @@ class ConstrainToArmature(bpy.types.Operator):
                         new_bone.layers[i] = False
 
                     if self.math_look_at:
-                        if src_name == src_skeleton.right_arm_IK.arm:
-                            start_bone_name = trg_skeleton.right_arm_IK.forearm
-                        elif src_name == src_skeleton.left_arm_IK.arm:
-                            start_bone_name = trg_skeleton.left_arm_IK.forearm
-                        elif src_name == src_skeleton.right_leg_IK.upleg:
-                            start_bone_name = trg_skeleton.right_leg_IK.leg
-                        elif src_name == src_skeleton.left_leg_IK.upleg:
-                            start_bone_name = trg_skeleton.left_leg_IK.leg
+                        if src_name == src_skeleton.right_arm_ik.arm:
+                            start_bone_name = trg_skeleton.right_arm_ik.forearm
+                        elif src_name == src_skeleton.left_arm_ik.arm:
+                            start_bone_name = trg_skeleton.left_arm_ik.forearm
+                        elif src_name == src_skeleton.right_leg_ik.upleg:
+                            start_bone_name = trg_skeleton.right_leg_ik.leg
+                        elif src_name == src_skeleton.left_leg_ik.upleg:
+                            start_bone_name = trg_skeleton.left_leg_ik.leg
                         else:
                             start_bone_name = ""
 
@@ -1412,9 +1481,8 @@ class BakeConstrainedActions(bpy.types.Operator):
     bl_description = "Bake Actions constrained from another Armature"
     bl_options = {'REGISTER', 'UNDO'}
 
-    skeleton_type: EnumProperty(items=skeleton_types,
-                                name="Skeleton Type to Bake",
-                                default='--')
+    rig_preset: EnumProperty(items=preset_handler.iterate_presets,
+                             name="Type to Bake")
 
     clear_users_old: BoolProperty(name="Clear original Action Users",
                                   default=True)
@@ -1429,9 +1497,10 @@ class BakeConstrainedActions(bpy.types.Operator):
         layout = self.layout
         column = layout.column()
 
-        row = column.split(factor=0.30, align=True)
-        row.label(text="Type to Bake")
-        row.prop(self, 'skeleton_type', text="")
+        to_bake = next(ob for ob in context.selected_objects if ob != context.active_object)
+        if not to_bake.data.expykit_retarget.has_settings():
+            row = column.row()
+            row.prop(self, 'rig_preset', text="Type to Bake")
 
         row = column.split(factor=0.30, align=True)
         row.label(text="")
@@ -1461,11 +1530,6 @@ class BakeConstrainedActions(bpy.types.Operator):
         if not self.do_bake:
             return {'FINISHED'}
 
-        src_skeleton = skeleton_from_type(self.skeleton_type)
-        if not src_skeleton:
-            return {'FINISHED'}
-
-        bone_names = list(bn for bn in src_skeleton.bone_names() if bn)
         trg_ob = context.active_object
         trg_ob.select_set(False)
         path_resolve = trg_ob.path_resolve
@@ -1475,6 +1539,15 @@ class BakeConstrainedActions(bpy.types.Operator):
                 # should not happen, but anyway
                 continue
 
+            rig_settings = ob.data.expykit_retarget
+            if not rig_settings.has_settings():
+                src_skeleton = preset_handler.get_preset_skel(self.rig_preset, rig_settings)
+                if not src_skeleton:
+                    return {'FINISHED'}
+            else:
+                src_skeleton = preset_handler.get_settings_skel(rig_settings)
+
+            bone_names = list(bn for bn in src_skeleton.bone_names() if bn)
             for bone in ob.data.bones:
                 bone.select = bone.name in bone_names
 
@@ -1543,13 +1616,20 @@ def add_loc_rot_key(bone, frame, options):
 
 class AddRootMotion(bpy.types.Operator):
     bl_idname = "armature.expykit_add_rootmotion"
-    bl_label = "Hips to Root Motion"
-    bl_description = "Bring Hips Motion to Root Bone"
+    bl_label = "Transfer Root Motion"
+    bl_description = "Bring Motion to Root Bone"
     bl_options = {'REGISTER', 'UNDO'}
 
-    rig_type: EnumProperty(items=skeleton_types,
-                           name="Rig Type",
-                           default='--')
+    rig_preset: EnumProperty(items=preset_handler.iterate_presets,
+                             name="Target Preset")
+
+    motion_bone: StringProperty(name="Motion",
+                                description="Constrain Root bone to Hip motion",
+                                default="")
+
+    root_motion_bone: StringProperty(name="Root Motion",
+                                     description="Constrain Root bone to Hip motion",
+                                     default="")
 
     new_anim_suffix: StringProperty(name="Suffix",
                                     default="_RM",
@@ -1562,8 +1642,6 @@ class AddRootMotion(bpy.types.Operator):
         ('rest', "Rest Pose", "Offset to Match Rest Pose")],
                               name="Offset",
                               default='rest')
-
-    # TODO: offset_type start/end: matches first frame at start, last frame at end, weighted average inbetween
 
     root_cp_loc_x: BoolProperty(name="Root Copy Loc X", description="Copy Root X Location", default=False)
     root_cp_loc_y: BoolProperty(name="Root Copy Loc y", description="Copy Root Y Location", default=True)
@@ -1609,9 +1687,21 @@ class AddRootMotion(bpy.types.Operator):
         layout = self.layout
         column = layout.column()
 
+        if not context.object.data.expykit_retarget.has_settings():
+            row = column.row()
+            row.prop(self, 'rig_preset', text="Rig Type:")
+
         row = column.split(factor=0.25, align=True)
-        row.label(text="Rig Type")
-        row.prop(self, 'rig_type', text="")
+        row.label(text="From")
+        row.prop_search(self, 'motion_bone',
+                        context.active_object.data,
+                        "bones", text="")
+
+        row = column.split(factor=0.25, align=True)
+        row.label(text="To")
+        row.prop_search(self, 'root_motion_bone',
+                        context.active_object.data,
+                        "bones", text="")
 
         row = column.split(factor=0.25, align=True)
         row.label(text="Suffix:")
@@ -1684,11 +1774,29 @@ class AddRootMotion(bpy.types.Operator):
         subcol.enabled = self.root_use_loc_max_z
         row.enabled = self.root_cp_loc_z
 
-    def execute(self, context):
-        if not self.rig_type:
-            return {'FINISHED'}
+    def set_defaults(self, rig_settings):
+        if not rig_settings:
+            return
+        if not self.root_motion_bone:
+            self.root_motion_bone = rig_settings.root
 
-        if self.rig_type == '--':
+        if not self.motion_bone:
+            self.motion_bone = rig_settings.spine.hips
+
+    def invoke(self, context, event):
+        """Fill root and hips field according to character settings"""
+        rig_settings = context.object.data.expykit_retarget
+        self.set_defaults(rig_settings)
+        return self.execute(context)
+
+    def execute(self, context):
+        rig_settings = context.object.data.expykit_retarget
+        if not rig_settings.has_settings():
+            rig_settings = preset_handler.set_preset_skel(self.rig_preset)
+            self.set_defaults(rig_settings)
+        if not self.root_motion_bone:
+            return {'FINISHED'}
+        if not self.motion_bone:
             return {'FINISHED'}
 
         self._armature = context.active_object
@@ -1700,9 +1808,7 @@ class AddRootMotion(bpy.types.Operator):
             action_dupli.use_fake_user = self._armature.animation_data.action.use_fake_user
             self._armature.animation_data.action = action_dupli
 
-        rig_map = skeleton_from_type(self.rig_type)
-        self.action_offs(rig_map.root, rig_map.spine.hips)
-
+        self.action_offs(self.root_motion_bone, self.motion_bone)
         return {'FINISHED'}
 
     def action_offs(self, root_bone_name, hips_bone_name):
@@ -1739,7 +1845,7 @@ class AddRootMotion(bpy.types.Operator):
             self.report({'WARNING'}, f"{root_bone_name} not found in target")
             return
 
-        skeleton = skeleton_from_type(self.rig_type)
+        skeleton = preset_handler.get_settings_skel(self._armature.data.expykit_retarget)
 
         # TODO: check controls with animation curves instead
 
@@ -1930,3 +2036,41 @@ class RenameActionsFromFbxFiles(bpy.types.Operator, ImportHelper):
             action.name = fbx_match
 
         return {'FINISHED'}
+
+
+def register_classes():
+    bpy.utils.register_class(ActionRangeToScene)
+    bpy.utils.register_class(ConstraintStatus)
+    bpy.utils.register_class(SelectConstrainedControls)
+    bpy.utils.register_class(ConvertBoneNaming)
+    bpy.utils.register_class(ConvertGameFriendly)
+    bpy.utils.register_class(ExtractMetarig)
+    bpy.utils.register_class(MergeHeadTails)
+    bpy.utils.register_class(RevertDotBoneNames)
+    bpy.utils.register_class(ConstrainToArmature)
+    bpy.utils.register_class(BakeConstrainedActions)
+    bpy.utils.register_class(RenameActionsFromFbxFiles)
+    bpy.utils.register_class(CreateTransformOffset)
+    bpy.utils.register_class(AddRootMotion)
+    bpy.utils.register_class(ActionNameCandidates)
+
+    bpy.types.Action.expykit_name_candidates = bpy.props.CollectionProperty(type=ActionNameCandidates)
+
+
+def unregister_classes():
+    del bpy.types.Action.expykit_name_candidates
+
+    bpy.utils.unregister_class(ActionRangeToScene)
+    bpy.utils.unregister_class(ConstraintStatus)
+    bpy.utils.unregister_class(SelectConstrainedControls)
+    bpy.utils.unregister_class(ConvertBoneNaming)
+    bpy.utils.unregister_class(ConvertGameFriendly)
+    bpy.utils.unregister_class(ExtractMetarig)
+    bpy.utils.unregister_class(MergeHeadTails)
+    bpy.utils.unregister_class(RevertDotBoneNames)
+    bpy.utils.unregister_class(ConstrainToArmature)
+    bpy.utils.unregister_class(BakeConstrainedActions)
+    bpy.utils.unregister_class(RenameActionsFromFbxFiles)
+    bpy.utils.unregister_class(CreateTransformOffset)
+    bpy.utils.unregister_class(AddRootMotion)
+    bpy.utils.unregister_class(ActionNameCandidates)

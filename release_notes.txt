@@ -1,3 +1,13 @@
+
+version 0.5
+
+- Rig Mapping panel for Custom Bone Names
+
+version 0.4
+
+- blender 3.1 fixes
+- Extract Metarig from incomplete characters
+
 version 0.2
 
 - Root Motion Binding
