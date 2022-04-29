@@ -20,12 +20,6 @@ from . import preset_handler
 from . import bone_utils
 from . import fbx_helper
 
-from importlib import reload
-reload(bone_mapping)
-reload(bone_utils)
-reload(fbx_helper)
-reload(preset_handler)
-
 from mathutils import Vector
 from mathutils import Matrix
 

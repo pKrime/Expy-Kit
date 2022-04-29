@@ -18,8 +18,8 @@
 
 bl_info = {
     "name": "Expy Kit",
-    "version": (0, 4, 0),
-    "author": "Paolo Acampora",
+    "version": (0, 5, 0),
+    "author": "Paolo Acampora (Balls & Ninjas)",
     "blender": (2, 90, 0),
     "description": "Tools for Character Rig Conversion",
     "category": "Rigging",
@@ -32,11 +32,6 @@ from . import preferences
 from . import preset_handler
 from . import properties
 from .preferences import ExpyPrefs, ExpyToClipboard
-
-from importlib import reload
-reload(operators)
-reload(properties)
-reload(ui)
 
 
 def register():
