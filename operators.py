@@ -1004,9 +1004,11 @@ class ConvertGameFriendly(bpy.types.Operator):
                     # Removed in rigify 0.6.4
                     pass
 
-        if self.eye_bones:
-            # Oddly, changes to use_deform are not kept
+        if self.eye_bones and 'DEF-eye.L' not in ob.pose.bones:
+            # Old rigify face: eyes deform is disabled
+            # FIXME: the 'DEF-eye.L' condition should be checked on invoke
             try:
+                # Oddly, changes to use_deform are not kept
                 ob.pose.bones["MCH-eye.L"].bone.use_deform = True
                 ob.pose.bones["MCH-eye.R"].bone.use_deform = True
             except KeyError:

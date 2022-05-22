@@ -490,7 +490,10 @@ def gamefriendly_hierarchy(ob, fix_tail=True, limit_scale=False):
 
         # Look for a DEF- bone that would be a good parent. Unlike DEF- bones, ORG- bones retain the
         # hierarchy from the metarig, so we are going to reproduce the ORG- hierarchy
-        org_name = "ORG-{0}".format(bone_name[4:])
+        if bone_name.startswith('DEF-eye'):
+            org_name = "ORG-eye." + bone_name[-1]
+        else:
+            org_name = "ORG-{0}".format(bone_name[4:])
 
         try:
             org_bone = ob.pose.bones[org_name]
