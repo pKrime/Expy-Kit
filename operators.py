@@ -969,6 +969,11 @@ class ConvertGameFriendly(bpy.types.Operator):
         description="Reverse the tail direction so that it spawns from hip",
         default=True
     )
+    reparent_twist: BoolProperty(
+        name="Dispossess Twist Bones",
+        description="Rearrange Twist Hierarchy in limbs for in game IK",
+        default=True
+    )
 
     @classmethod
     def poll(cls, context):
@@ -1016,11 +1021,28 @@ class ConvertGameFriendly(bpy.types.Operator):
 
         bpy.ops.object.mode_set(mode='EDIT')
         num_reparents = bone_utils.gamefriendly_hierarchy(ob, fix_tail=self.fix_tail, limit_scale=self.limit_scale)
+
+        if self.reparent_twist:
+            arm_bones = ["DEF-upper_arm", "DEF-forearm", "DEF-hand"]
+            leg_bones = ["DEF-thigh", "DEF-shin", "DEF-foot"]
+            for side in ".L", ".R":
+                for bone_names in arm_bones, leg_bones:
+                    parent_bone = ob.data.edit_bones[bone_names.pop(0) + side] 
+                    for bone in bone_names:
+                        e_bone = ob.data.edit_bones[bone + side]
+                        e_bone.use_connect = False
+
+                        e_bone.parent = parent_bone
+                        parent_bone = e_bone
+
+                        num_reparents += 1
+
         bpy.ops.object.mode_set(mode='POSE')
 
         if self.disable_bendy:
             for bone in ob.data.bones:
                 bone.bbone_segments = 1
+                # TODO: disable bbone drivers
 
         self.report({'INFO'}, f'{num_reparents} bones were re-parented')
         return {'FINISHED'}
