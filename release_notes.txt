@@ -2,6 +2,7 @@ version 0.51
 
 - Convert Game Friendly working on new rigify face
 - Convert Game Friendly rearranges rigify twist hierarchy
+- Including Actor Core Preset
 
 
 version 0.5
