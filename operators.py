@@ -529,6 +529,8 @@ class ExtractMetarig(bpy.types.Operator):
     def poll(cls, context):
         if not context.object:
             return False
+        if 'rigify' not in context.preferences.addons:
+            return False
         if context.mode != 'POSE':
             return False
         if context.object.type != 'ARMATURE':
@@ -1095,6 +1097,10 @@ class ConstrainToArmature(bpy.types.Operator):
     rot_constraints: BoolProperty(name="Copy Rotation",
                                   description="Use Rotation Constraint when binding",
                                   default=True)
+    
+    bind_floating: BoolProperty(name="Bind Floating",
+                                description="Always bind unparented bones Location and Rotation",
+                                default=True)
 
     root_motion_bone: StringProperty(name="Root Motion",
                                      description="Constrain Root bone to Hip motion",
@@ -1179,13 +1185,15 @@ class ConstrainToArmature(bpy.types.Operator):
         row = column.row()
         row = column.split(factor=0.25, align=True)
         row.separator()
-        constr_ops_a = row.column()
-        constr_ops_b = row.column()
 
-        constr_ops_a.prop(self, 'loc_constraints')
-        constr_ops_b.prop(self, 'rot_constraints')
-        constr_ops_a.prop(self, 'math_look_at')
-        constr_ops_b.prop(self, 'no_finger_loc')
+        col = row.column()
+        col.prop(self, 'loc_constraints')
+        col.prop(self, 'rot_constraints')
+        col.prop(self, 'bind_floating')
+
+        col = row.column()     
+        col.prop(self, 'math_look_at')
+        col.prop(self, 'no_finger_loc')
 
         column.separator()
         row = column.row()
@@ -1445,6 +1453,9 @@ class ConstrainToArmature(bpy.types.Operator):
                 constr.lock_axis = 'LOCK_Y'
                 constr.track_axis = 'TRACK_NEGATIVE_Z'
 
+            left_finger_bones = chain(*src_skeleton.left_fingers.values())
+            right_finger_bones = chain(*src_skeleton.right_fingers.values())
+
             for src_name in bone_names_map.keys():
                 if not src_name:
                     continue
@@ -1459,15 +1470,13 @@ class ConstrainToArmature(bpy.types.Operator):
                     continue
 
                 if not self._bone_bound_already(src_pbone):
-                    if self.no_finger_loc:
-                        left_finger_bones = chain(*src_skeleton.left_fingers.values())
-                        right_finger_bones = chain(*src_skeleton.right_fingers.values())
-                        if src_name in left_finger_bones or src_name in right_finger_bones:
-                            constr_types = ['COPY_ROTATION']
-                        else:
-                            constr_types = self._bind_constraints
+                    if not src_pbone.parent and self.bind_floating:
+                        constr_types = ['COPY_LOCATION', 'COPY_ROTATION']
+                    elif src_name in left_finger_bones or src_name in right_finger_bones and self.no_finger_loc:
+                        constr_types = ['COPY_ROTATION']
                     else:
                         constr_types = self._bind_constraints
+
                     for constr_type in constr_types:
                         constr = src_pbone.constraints.new(type=constr_type)
                         constr.target = trg_ob
