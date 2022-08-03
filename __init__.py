@@ -18,7 +18,7 @@
 
 bl_info = {
     "name": "Expy Kit",
-    "version": (0, 5, 1),
+    "version": (0, 5, 2),
     "author": "Paolo Acampora (Balls & Ninjas)",
     "blender": (2, 90, 0),
     "description": "Tools for Character Rig Conversion",
@@ -31,7 +31,6 @@ from . import ui
 from . import preferences
 from . import preset_handler
 from . import properties
-
 
 
 def register():
