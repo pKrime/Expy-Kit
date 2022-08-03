@@ -1,3 +1,9 @@
+version 0.52
+
+ - Allow to turn off Location/Rotation constraints when Binding
+ - Fix Rigify presets for blender 3.2
+ 
+
 version 0.51
 
 - Convert Game Friendly working on new rigify face

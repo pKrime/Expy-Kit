@@ -31,7 +31,7 @@ from . import ui
 from . import preferences
 from . import preset_handler
 from . import properties
-from .preferences import ExpyPrefs, ExpyToClipboard
+
 
 
 def register():
