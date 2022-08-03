@@ -1088,6 +1088,14 @@ class ConstrainToArmature(bpy.types.Operator):
         name="Constrain Root",
         default='Bone')
 
+    loc_constraints: BoolProperty(name="Copy Location",
+                                  description="Use Location Constraint when binding",
+                                  default=True)
+    
+    rot_constraints: BoolProperty(name="Copy Rotation",
+                                  description="Use Rotation Constraint when binding",
+                                  default=True)
+
     root_motion_bone: StringProperty(name="Root Motion",
                                      description="Constrain Root bone to Hip motion",
                                      default="")
@@ -1122,7 +1130,16 @@ class ConstrainToArmature(bpy.types.Operator):
     _separator = ":"  # TODO: StringProperty
     _autovars_unset = True
     _constrained_root = None
-    _bind_constraints = 'COPY_ROTATION', 'COPY_LOCATION'
+    
+    @property
+    def _bind_constraints(self):
+        constrs = []
+        if self.loc_constraints:
+            constrs.append('COPY_LOCATION')
+        if self.rot_constraints:
+            constrs.append('COPY_ROTATION')
+
+        return constrs
 
     @classmethod
     def poll(cls, context):
@@ -1141,6 +1158,9 @@ class ConstrainToArmature(bpy.types.Operator):
         column = layout.column()
 
         to_bind = next(ob for ob in context.selected_objects if ob != context.active_object)
+
+        row = column.row()
+        row.label(text='Binding')
         if not to_bind.data.expykit_retarget.has_settings():
             row = column.row()
             row.prop(self, 'src_preset', text="To Bind")
@@ -1151,18 +1171,35 @@ class ConstrainToArmature(bpy.types.Operator):
         row = column.split(factor=0.25, align=True)
         row.separator()
         row.prop(self, 'ret_bones_layer')
+        
+        column.separator()
+        row = column.row()
+        row.label(text='Constraints')
 
-        row = column.split(factor=0.25, align=True)
-        row.label(text="Match Transform")
-        row.prop(self, 'match_transform', text='')
-
+        row = column.row()
         row = column.split(factor=0.25, align=True)
         row.separator()
-        row.prop(self, 'math_look_at')
-        row.prop(self, 'no_finger_loc')
+        constr_ops_a = row.column()
+        constr_ops_b = row.column()
+
+        constr_ops_a.prop(self, 'loc_constraints')
+        constr_ops_b.prop(self, 'rot_constraints')
+        constr_ops_a.prop(self, 'math_look_at')
+        constr_ops_b.prop(self, 'no_finger_loc')
+
+        column.separator()
+        row = column.row()
+        row.label(text='Transform')
 
         row = column.split(factor=0.25, align=True)
+        row.label(text="Matching")
+        row.prop(self, 'match_transform', text='')
+
+        column.separator()
+        row = column.row()
         row.label(text="Root Animation")
+        row = column.split(factor=0.25, align=True)
+        row.separator()
         row.prop(self, 'constrain_root', text="")
 
         if self.constrain_root != 'None':
