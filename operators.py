@@ -24,10 +24,21 @@ from mathutils import Vector
 from mathutils import Matrix
 
 
-status_types = (
+CONSTR_STATUS = (
     ('enable', "Enable", "Enable All Constraints"),
     ('disable', "Disable", "Disable All Constraints"),
     ('remove', "Remove", "Remove All Constraints")
+)
+
+
+CONSTR_TYPES = (
+    'ALL_TYPES', 'CAMERA_SOLVER', 'FOLLOW_TRACK', 'OBJECT_SOLVER',
+    'COPY_LOCATION', 'COPY_ROTATION', 'COPY_SCALE', 'COPY_TRANSFORMS',
+    'LIMIT_DISTANCE', 'LIMIT_LOCATION', 'LIMIT_ROTATION', 'LIMIT_SCALE',
+    'MAINTAIN_VOLUME', 'TRANSFORM', 'TRANSFORM_CACHE', 'CLAMP_TO',
+    'DAMPED_TRACK', 'IK', 'LOCKED_TRACK', 'SPLINE_IK', 'STRETCH_TO',
+    'TRACK_TO', 'ACTION', 'ARMATURE', 'CHILD_OF', 'FLOOR',
+    'FOLLOW_PATH', 'PIVOT', 'SHRINKWRAP'
 )
 
 
@@ -37,12 +48,16 @@ class ConstraintStatus(bpy.types.Operator):
     bl_label = "Enable/disable constraints"
     bl_options = {'REGISTER', 'UNDO'}
 
-    set_status: EnumProperty(items=status_types,
-                              name="Status",
-                              default='enable')
+    set_status: EnumProperty(items=CONSTR_STATUS,
+                             name="Status",
+                             default='enable')
 
     selected_only: BoolProperty(name="Only Selected",
                                 default=False)
+    
+    constr_type: EnumProperty(items=[(ct, ct.replace('_', ' ').title(), ct) for ct in CONSTR_TYPES],
+                              name="Constraint Type",
+                              default='ALL_TYPES')
 
     @classmethod
     def poll(cls, context):
@@ -60,11 +75,18 @@ class ConstraintStatus(bpy.types.Operator):
         if self.set_status == 'remove':
             for bone in bones:
                 for constr in reversed(bone.constraints):
+                    if self.constr_type != 'ALL_TYPES' and constr.type != self.constr_type:
+                        continue
+
                     bone.constraints.remove(constr)
         else:
             for bone in bones:
                 for constr in bone.constraints:
+                    if self.constr_type != 'ALL_TYPES' and constr.type != self.constr_type:
+                        continue
+
                     constr.mute = self.set_status == 'disable'
+
         return {'FINISHED'}
 
 
