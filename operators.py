@@ -1120,6 +1120,16 @@ class ConstrainToArmature(bpy.types.Operator):
                                   description="Use Rotation Constraint when binding",
                                   default=True)
     
+    constraint_policy: EnumProperty(items=[
+        ('skip', "Skip Constrained", "Skip Bones that are constrained already"),
+        ('disable', "Disable Existing Constraints", "Disable existing binding constraints and add new ones"),
+        ('remove', "Delete Existing Constraints", "Delete existing binding constraints")
+        ],
+        name="Policy",
+        description="Action to take with existing constraints",
+        default='skip'
+        )
+
     bind_floating: BoolProperty(name="Bind Floating",
                                 description="Always bind unparented bones Location and Rotation",
                                 default=True)
@@ -1225,6 +1235,10 @@ class ConstrainToArmature(bpy.types.Operator):
         col = row.column()     
         col.prop(self, 'math_look_at')
         col.prop(self, 'no_finger_loc')
+
+        row = column.split(factor=0.25, align=True)
+        row.label(text="    Policy")
+        row.prop(self, 'constraint_policy', text='')
 
         column.separator()
         row = column.row()
@@ -1508,21 +1522,34 @@ class ConstrainToArmature(bpy.types.Operator):
                 except KeyError:
                     continue
 
-                if not self._bone_bound_already(src_pbone):
-                    if not src_pbone.parent and self.bind_floating:
-                        constr_types = ['COPY_LOCATION', 'COPY_ROTATION']
-                    elif src_name in left_finger_bones or src_name in right_finger_bones and self.no_finger_loc:
-                        constr_types = ['COPY_ROTATION']
-                    else:
-                        constr_types = self._bind_constraints
+                if self._bone_bound_already(src_pbone):
+                    if self.constraint_policy == 'skip':
+                       continue
+                    
+                    if self.constraint_policy == 'disable':
+                        for constr in src_pbone.constraints:
+                            if constr.type in self._bind_constraints:
+                                constr.mute = True
+                    elif self.constraint_policy == 'remove':
+                        for constr in reversed(src_pbone.constraints):
+                            if constr.type in self._bind_constraints:
+                                src_pbone.constraints.remove(constr)
+                    # TODO: should unconstrain mid bones to!
 
-                    for constr_type in constr_types:
-                        constr = src_pbone.constraints.new(type=constr_type)
-                        constr.target = trg_ob
+                if not src_pbone.parent and self.bind_floating:
+                    constr_types = ['COPY_LOCATION', 'COPY_ROTATION']
+                elif src_name in left_finger_bones or src_name in right_finger_bones and self.no_finger_loc:
+                    constr_types = ['COPY_ROTATION']
+                else:
+                    constr_types = self._bind_constraints
 
-                        subtarget_name = f'{src_name}_{cp_suffix}'
-                        if subtarget_name in trg_ob.data.bones:
-                            constr.subtarget = subtarget_name
+                for constr_type in constr_types:
+                    constr = src_pbone.constraints.new(type=constr_type)
+                    constr.target = trg_ob
+
+                    subtarget_name = f'{src_name}_{cp_suffix}'
+                    if subtarget_name in trg_ob.data.bones:
+                        constr.subtarget = subtarget_name
 
                 if self.constrain_root == 'Bone' and src_name == src_skeleton.root:
                     self._constrained_root = src_pbone

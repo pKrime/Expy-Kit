@@ -3,6 +3,8 @@ version 0.52
  - Allow to turn off Location/Rotation constraints when Binding
  - Fix Rigify presets for blender 3.2
  - Extract Metarig is disabled if rigify is not found
+ - Enable/Disable/Remove constraints can target specific types
+ - Bind Source and Bind Target are always displayed, deafaulted to 'Current' if settings are found
 
 
 version 0.51
