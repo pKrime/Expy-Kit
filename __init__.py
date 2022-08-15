@@ -32,6 +32,9 @@ from . import preferences
 from . import preset_handler
 from . import properties
 
+from . import __refresh__
+__refresh__.reload_modules()
+
 
 def register():
     properties.register_classes()
