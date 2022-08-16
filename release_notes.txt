@@ -2,10 +2,10 @@ version 0.52
 
  - Bind Source and Bind Target are always displayed, deafaulted to 'Current' if settings are found
  - Allow to turn off Location/Rotation constraints when Binding
- - Fix Rigify presets for blender 3.2
  - Extract Metarig is disabled if rigify is not found
  - Enable/Disable/Remove constraints can target specific types
- - Option to Disable/Remove existing constraints on Bind
+ - Option to Disable/Remove existing constraints when binding
+ - Fix Rigify presets for blender 3.2
  - Fix extracted metarig heel orientation
  - Fix option for No-Finger Location constraints
 
