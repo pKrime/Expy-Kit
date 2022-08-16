@@ -802,7 +802,10 @@ class ExtractMetarig(bpy.types.Operator):
             leftmost_x = max([foot_ob.data.vertices[v].co[0] for v in foot_verts])  # FIXME: we should counter rotate verts for more accuracy
             rightmost_x = min([foot_ob.data.vertices[v].co[0] for v in foot_verts])
 
-            for side in "L", "R":
+            for side in 'L', 'R':
+                # invert left/right vertices when we switch sides
+                leftmost_x, rightmost_x = rightmost_x, leftmost_x
+
                 heel_bone = met_armature.edit_bones['heel.02.' + side]
 
                 heel_bone.head.y = rearest_y
