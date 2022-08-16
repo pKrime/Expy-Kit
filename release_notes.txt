@@ -7,6 +7,7 @@ version 0.52
  - Enable/Disable/Remove constraints can target specific types
  - Option to Disable/Remove existing constraints on Bind
  - Fix extracted metarig heel orientation
+ - Fix option for No-Finger Location constraints
 
 
 version 0.51

@@ -1509,8 +1509,8 @@ class ConstrainToArmature(bpy.types.Operator):
                 constr.lock_axis = 'LOCK_Y'
                 constr.track_axis = 'TRACK_NEGATIVE_Z'
 
-            left_finger_bones = chain(*src_skeleton.left_fingers.values())
-            right_finger_bones = chain(*src_skeleton.right_fingers.values())
+            left_finger_bones = list(chain(*src_skeleton.left_fingers.values()))
+            right_finger_bones = list(chain(*src_skeleton.right_fingers.values()))
 
             for src_name in bone_names_map.keys():
                 if not src_name:
@@ -1541,7 +1541,7 @@ class ConstrainToArmature(bpy.types.Operator):
 
                 if not src_pbone.parent and self.bind_floating:
                     constr_types = ['COPY_LOCATION', 'COPY_ROTATION']
-                elif src_name in left_finger_bones or src_name in right_finger_bones and self.no_finger_loc:
+                elif (src_name in left_finger_bones or src_name in right_finger_bones) and self.no_finger_loc:
                     constr_types = ['COPY_ROTATION']
                 else:
                     constr_types = self._bind_constraints
