@@ -35,6 +35,8 @@ class RetargetArm(RetargetBase):
     forearm_twist: StringProperty(name="forearm_twist")
     hand: StringProperty(name="hand")
 
+    name: StringProperty(default='arm')
+
 
 class RetargetLeg(RetargetBase):
     upleg: StringProperty(name="upleg")
@@ -43,6 +45,8 @@ class RetargetLeg(RetargetBase):
     leg_twist: StringProperty(name="leg_twist")
     foot: StringProperty(name="foot")
     toe: StringProperty(name="toe")
+
+    name: StringProperty(default='leg')
 
 
 class RetargetFinger(RetargetBase):
@@ -57,6 +61,8 @@ class RetargetFingers(PropertyGroup):
     middle: PointerProperty(type=RetargetFinger)
     ring: PointerProperty(type=RetargetFinger)
     pinky: PointerProperty(type=RetargetFinger)
+
+    name: StringProperty(default='fingers')
 
     def has_settings(self):
         for setting in (self.thumb, self.index, self.middle, self.ring, self.pinky):

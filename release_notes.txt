@@ -1,3 +1,7 @@
+version 0.53
+
+- Set to Active button in Skeleton Map
+
 version 0.52
 
  - Bind Source and Bind Target are always displayed, deafaulted to 'Current' if settings are found

@@ -1,12 +1,12 @@
 import bpy
 from bpy.props import StringProperty
+from bpy.props import PointerProperty
 from bpy.types import Operator, Menu
 from bl_operators.presets import AddPresetBase
 
 from . import operators
 from . import preset_handler
-from importlib import reload
-reload(operators)
+from . import properties
 
 
 def menu_header(layout):
@@ -347,6 +347,55 @@ class ClearArmatureRetarget(Operator):
         return {'FINISHED'}
 
 
+class SetToActiveBone(Operator):
+    """Set adjacent UI entry to active bone"""
+    bl_idname = "object.expy_kit_set_to_active_bone"
+    bl_label = "Set Expy Kit value to active bone"
+
+    attr_name: StringProperty(default="")
+    sub_attr_name: StringProperty(default="")
+    slot_name: StringProperty(default="")
+    attr_ptr = PointerProperty(type=properties.RetargetBase)
+
+    @classmethod
+    def poll(cls, context):
+        if not context.object:
+            return False
+        if not context.active_pose_bone:
+            return False
+        if context.object.type != 'ARMATURE':
+            return False
+        if not context.object.data.expykit_retarget:
+            return False
+
+        return True
+
+    def execute(self, context):
+        skeleton = context.object.data.expykit_retarget
+
+        if not self.attr_name:
+            return {'FINISHED'}
+
+        if not self.slot_name:
+            if self.attr_name == 'root':
+                setattr(skeleton, 'root', context.active_pose_bone.name)
+            
+            return {'FINISHED'}
+
+        try:
+            rig_grp = getattr(skeleton, self.attr_name)
+        except AttributeError:
+            #TODO: warning
+            return {'FINISHED'}
+        else:
+            if self.sub_attr_name:
+                rig_grp = getattr(rig_grp, self.sub_attr_name)
+                
+            setattr(rig_grp, self.slot_name, context.active_pose_bone.name)
+
+        return {'FINISHED'}
+
+
 class DATA_MT_retarget_presets(Menu):
     bl_label = "Retarget Presets"
     preset_subdir = AddPresetArmatureRetarget.preset_subdir
@@ -377,16 +426,28 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
             col = split.column()
             row = col.row()
             if not labels:
-                row.label(text='Right')
+                side = 'right'
+                row.label(text=side.title())
                 labels = split.column()
                 row = labels.row()
                 row.label(text="")
             else:
-                row.label(text='Left')
+                side = 'left'
+                row.label(text=side.title())
 
             for k in bone_names:
-                row = col.row()
-                row.prop_search(group, k, ob.data, "bones", text="")
+                bsplit = col.split(factor=0.85)
+                bsplit.prop_search(group, k, ob.data, "bones", text="")
+
+                props = bsplit.operator(SetToActiveBone.bl_idname, text="<-")
+                
+                attr_tokens = [side, group.name]
+                attr_suffix = suffix.strip(' ').lower()
+                if attr_suffix:
+                    attr_tokens.append(attr_suffix)
+
+                props.attr_name = '_'.join(attr_tokens)
+                props.slot_name = k
 
         for k in bone_names:
             row = labels.row()
@@ -411,14 +472,30 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
         row.prop(skeleton, "ik_on", text="IK", toggle=True)
 
         if skeleton.face_on:
-            row = layout.row()
-            row.prop_search(skeleton.face, "jaw", ob.data, "bones", text="Jaw")
+            bsplit = layout.split(factor=0.85)
+            bsplit.prop_search(skeleton.face, "jaw", ob.data, "bones", text="Jaw")
+            props = bsplit.operator(SetToActiveBone.bl_idname, text="<-")
+            props.attr_name = 'face'
+            props.slot_name = 'jaw'
 
             split = layout.split()
             col = split.column()
             col.label(text="Right")
+
+            bsplit = col.split(factor=0.85)
+            col = bsplit.column()
             col.prop_search(skeleton.face, "right_eye", ob.data, "bones", text="")
             col.prop_search(skeleton.face, "right_upLid", ob.data, "bones", text="")
+
+            col = bsplit.column()
+            props = col.operator(SetToActiveBone.bl_idname, text="<-")
+            props.attr_name = 'face'
+            props.slot_name = 'right_eye'
+
+            props = col.operator(SetToActiveBone.bl_idname, text="<-")
+            props.attr_name = 'face'
+            props.slot_name = 'right_upLid'
+
 
             col = split.column()
             col.label(text="")
@@ -427,8 +504,20 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
 
             col = split.column()
             col.label(text="Left")
+
+            bsplit = col.split(factor=0.85)
+            col = bsplit.column()
             col.prop_search(skeleton.face, "left_eye", ob.data, "bones", text="")
             col.prop_search(skeleton.face, "left_upLid", ob.data, "bones", text="")
+
+            col = bsplit.column()
+            props = col.operator(SetToActiveBone.bl_idname, text="<-")
+            props.attr_name = 'face'
+            props.slot_name = 'left_eye'
+
+            props = col.operator(SetToActiveBone.bl_idname, text="<-")
+            props.attr_name = 'face'
+            props.slot_name = 'left_upLid'
 
             row = layout.row()
             row.prop(skeleton.face, "super_copy", text="As Rigify Super Copy")
@@ -449,8 +538,14 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
                     row.label(text=" ".join((side, k)).title())
                     finger = getattr(group, k)
                     for slot in finger_bones:
-                        row = col.row()
-                        row.prop_search(finger, slot, ob.data, "bones", text="")
+                        bsplit = col.split(factor=0.85)
+                        bsplit.prop_search(finger, slot, ob.data, "bones", text="")
+                        
+                        props = bsplit.operator(SetToActiveBone.bl_idname, text="<-")
+                        props.attr_name = '_'.join([side, group.name])
+                        props.sub_attr_name = k
+                        props.slot_name = slot
+
             layout.separator()
 
         if skeleton.twist_on:
@@ -463,8 +558,11 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
 
         layout.separator()
         for slot in ('head', 'neck', 'spine2', 'spine1', 'spine', 'hips'):
-            row = layout.row()
-            row.prop_search(skeleton.spine, slot, ob.data, "bones", text=slot.title())
+            split = layout.split(factor=0.85)
+            split.prop_search(skeleton.spine, slot, ob.data, "bones", text=slot.title())
+            props = split.operator(SetToActiveBone.bl_idname, text="<-")
+            props.attr_name = 'spine'
+            props.slot_name = slot
 
         layout.separator()
         if skeleton.twist_on:
@@ -476,8 +574,11 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
         self.sided_rows(ob, (skeleton.right_leg, skeleton.left_leg), leg_bones)
 
         layout.separator()
-        row = layout.row()
-        row.prop_search(skeleton, 'root', ob.data, "bones", text="Root")
+
+        split = layout.split(factor=0.85)
+        split.prop_search(skeleton, 'root', ob.data, "bones", text="Root")
+        props = split.operator(SetToActiveBone.bl_idname, text="<-")
+        props.attr_name = 'root'
 
         layout.separator()
         row = layout.row()
@@ -492,6 +593,7 @@ def register_classes():
     bpy.utils.register_class(DATA_MT_retarget_presets)
     bpy.utils.register_class(ExecutePresetArmatureRetarget)
     bpy.utils.register_class(AddPresetArmatureRetarget)
+    bpy.utils.register_class(SetToActiveBone)
 
     bpy.utils.register_class(BindingsMenu)
     bpy.utils.register_class(ConvertMenu)
@@ -521,3 +623,4 @@ def unregister_classes():
     bpy.utils.unregister_class(ActionRenameSimple)
     bpy.utils.unregister_class(DATA_PT_expy_buttons)
     bpy.utils.unregister_class(DATA_PT_expy_retarget)
+    bpy.utils.unregister_class(SetToActiveBone)
