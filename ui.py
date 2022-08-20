@@ -371,10 +371,10 @@ class SetToActiveBone(Operator):
         return True
 
     def execute(self, context):
-        skeleton = context.object.data.expykit_retarget
-
         if not self.attr_name:
             return {'FINISHED'}
+
+        skeleton = context.object.data.expykit_retarget
 
         if not self.slot_name:
             if self.attr_name == 'root':
@@ -385,13 +385,96 @@ class SetToActiveBone(Operator):
         try:
             rig_grp = getattr(skeleton, self.attr_name)
         except AttributeError:
-            #TODO: warning
+            # TODO: warning
             return {'FINISHED'}
         else:
             if self.sub_attr_name:
                 rig_grp = getattr(rig_grp, self.sub_attr_name)
                 
             setattr(rig_grp, self.slot_name, context.active_pose_bone.name)
+
+        return {'FINISHED'}
+
+
+class MirrorSettings(Operator):
+    """Mirror Settings to the other side"""
+    bl_idname = "object.expy_kit_settings_mirror"
+    bl_label = "Mirror Skeleton Mapping"
+
+    src_setting: StringProperty(default="")
+    trg_setting: StringProperty(default="")
+
+    @classmethod
+    def poll(cls, context):
+        if not context.object:
+            return False
+        if not context.active_pose_bone:
+            return False
+        if context.object.type != 'ARMATURE':
+            return False
+        if not context.object.data.expykit_retarget:
+            return False
+
+        return True
+
+    def _is_mirrored(self, trg_head, src_head):
+        epsilon = 0.000001
+        if abs(trg_head.x + src_head.x) > epsilon:
+            return False
+        if abs(trg_head.y - src_head.y) > epsilon:
+            return False
+        return abs(trg_head.z - src_head.z) < epsilon
+
+    def find_mirrored(self, arm_data, bone):
+        # TODO: should be in bone_utils
+        src_head = bone.head_local
+        return next((b for b in arm_data.bones if self._is_mirrored(b.head_local, src_head)), None)
+
+    def execute(self, context):
+        if not self.src_setting:
+            return {'FINISHED'}
+        if not self.trg_setting:
+            return {'FINISHED'}
+
+        skeleton = context.object.data.expykit_retarget
+
+        try:
+            src_grp = getattr(skeleton, self.src_setting)
+        except AttributeError:
+            # TODO: warning
+            return {'FINISHED'}
+        
+        try:
+            trg_grp = getattr(skeleton, self.trg_setting)
+        except AttributeError:
+            # TODO: warning
+            return {'FINISHED'}
+
+        arm_data = context.object.data
+        if 'fingers' in self.trg_setting:
+            for finger_name in ('thumb', 'index', 'middle', 'ring', 'pinky'):
+                for attr_name in ('a', 'b', 'c'):
+                    m_bone = self.find_mirrored(arm_data,
+                                                arm_data.bones[getattr(getattr(src_grp, finger_name), attr_name)])
+                    if not m_bone:
+                        continue
+
+                    setattr(getattr(trg_grp, finger_name), attr_name, m_bone.name)
+
+            return {'FINISHED'}
+
+        for k, v in src_grp.items():
+            if not v:
+                continue
+
+            try:
+                bone = arm_data.bones[v]
+            except KeyError:
+                continue
+
+            m_bone = self.find_mirrored(arm_data, bone)
+            if m_bone:
+                setattr(trg_grp, k, m_bone.name)
 
         return {'FINISHED'}
 
@@ -422,17 +505,31 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
         split = self.layout.split()
 
         labels = None
+        side = 'right'
         for group in limbs:
+            attr_tokens = [side, group.name]
+            attr_suffix = suffix.strip(' ').lower()
+            if attr_suffix:
+                attr_tokens.append(attr_suffix)
+
+            attr_name = '_'.join(attr_tokens)
+            
             col = split.column()
             row = col.row()
             if not labels:
-                side = 'right'
                 row.label(text=side.title())
                 labels = split.column()
                 row = labels.row()
-                row.label(text="")
-            else:
+
+                mirror_props = row.operator(MirrorSettings.bl_idname, text="<--")
+                mirror_props.trg_setting = attr_name
+
+                mirror_props_2 = row.operator(MirrorSettings.bl_idname, text="-->")
+                mirror_props_2.src_setting = attr_name
                 side = 'left'
+            else:
+                mirror_props.src_setting = attr_name
+                mirror_props_2.trg_setting = attr_name
                 row.label(text=side.title())
 
             for k in bone_names:
@@ -440,13 +537,7 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
                 bsplit.prop_search(group, k, ob.data, "bones", text="")
 
                 props = bsplit.operator(SetToActiveBone.bl_idname, text="<-")
-                
-                attr_tokens = [side, group.name]
-                attr_suffix = suffix.strip(' ').lower()
-                if attr_suffix:
-                    attr_tokens.append(attr_suffix)
-
-                props.attr_name = '_'.join(attr_tokens)
+                props.attr_name = attr_name
                 props.slot_name = k
 
         for k in bone_names:
@@ -528,8 +619,10 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
             split = layout.split()
             finger_bones = ('a', 'b', 'c')
             fingers = ('thumb', 'index', 'middle', 'ring', 'pinky')
+            m_props = []
             for side, group in zip(sides, [skeleton.right_fingers, skeleton.left_fingers]):
                 col = split.column()
+                m_props.append(col.operator(MirrorSettings.bl_idname, text="<--" if side == 'right' else "-->"))
 
                 for k in fingers:
                     if k == 'name':  # skip Property Group name
@@ -541,10 +634,16 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
                         bsplit = col.split(factor=0.85)
                         bsplit.prop_search(finger, slot, ob.data, "bones", text="")
                         
-                        props = bsplit.operator(SetToActiveBone.bl_idname, text="<-")
-                        props.attr_name = '_'.join([side, group.name])
-                        props.sub_attr_name = k
-                        props.slot_name = slot
+                        f_props = bsplit.operator(SetToActiveBone.bl_idname, text="<-")
+                        f_props.attr_name = '_'.join([side, group.name])
+                        f_props.sub_attr_name = k
+                        f_props.slot_name = slot
+
+            m_props[0].trg_setting = "right_fingers"
+            m_props[0].src_setting = "left_fingers"
+
+            m_props[1].trg_setting = "left_fingers"
+            m_props[1].src_setting = "right_fingers"
 
             layout.separator()
 
@@ -559,7 +658,7 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
         layout.separator()
         for slot in ('head', 'neck', 'spine2', 'spine1', 'spine', 'hips'):
             split = layout.split(factor=0.85)
-            split.prop_search(skeleton.spine, slot, ob.data, "bones", text=slot.title())
+            split.prop_search(skeleton.spine, slot, ob.data, "bones", text="Chest" if slot == 'spine2' else slot.title())
             props = split.operator(SetToActiveBone.bl_idname, text="<-")
             props.attr_name = 'spine'
             props.slot_name = slot
@@ -593,7 +692,9 @@ def register_classes():
     bpy.utils.register_class(DATA_MT_retarget_presets)
     bpy.utils.register_class(ExecutePresetArmatureRetarget)
     bpy.utils.register_class(AddPresetArmatureRetarget)
+    
     bpy.utils.register_class(SetToActiveBone)
+    bpy.utils.register_class(MirrorSettings)
 
     bpy.utils.register_class(BindingsMenu)
     bpy.utils.register_class(ConvertMenu)
@@ -623,4 +724,6 @@ def unregister_classes():
     bpy.utils.unregister_class(ActionRenameSimple)
     bpy.utils.unregister_class(DATA_PT_expy_buttons)
     bpy.utils.unregister_class(DATA_PT_expy_retarget)
+
     bpy.utils.unregister_class(SetToActiveBone)
+    bpy.utils.unregister_class(MirrorSettings)

@@ -1,6 +1,9 @@
 version 0.53
 
-- Set to Active button in Skeleton Map
+- Set To Active button in Retargeting panel
+- Mirror button in Retargeting panel
+- Spine2 is now displayed as Chest in Retargeting panel
+
 
 version 0.52
 
