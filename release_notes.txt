@@ -3,6 +3,7 @@ version 0.53
 - Set To Active button in Retargeting panel
 - Mirror button in Retargeting panel
 - Spine2 is now displayed as Chest in Retargeting panel
+- Fix missing eyes in extracted metarig
 
 
 version 0.52

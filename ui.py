@@ -267,6 +267,18 @@ class ExecutePresetArmatureRetarget(Operator):
 
         self.validate(context.object.data)
 
+        # fix default names used by operators
+        settings = context.object.data.expykit_retarget
+        
+        settings.right_arm.name = 'arm'
+        settings.left_arm.name = 'arm'
+
+        settings.right_leg.name = 'leg'
+        settings.left_leg.name = 'leg'
+
+        settings.right_fingers.name = 'fingers'
+        settings.left_fingers.name = 'fingers'
+
         return {'FINISHED'}
 
 
