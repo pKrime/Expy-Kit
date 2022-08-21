@@ -676,8 +676,8 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
 
         split = layout.split(factor=0.85)
         split.prop_search(skeleton, 'root', ob.data, "bones", text="Root")
-        props = split.operator(SetToActiveBone.bl_idname, text="<-")
-        props.attr_name = 'root'
+        s_props = split.operator(SetToActiveBone.bl_idname, text="<-")
+        s_props.attr_name = 'root'
 
         layout.separator()
         row = layout.row()

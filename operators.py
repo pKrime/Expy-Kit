@@ -604,6 +604,12 @@ class ExtractMetarig(bpy.types.Operator):
                 ConvertBoneNaming.rename_bones(context, src_skeleton, trg_skeleton, separator=":")
                 src_skeleton = bone_mapping.RigifySkeleton()
 
+                # fix eye bones lacking "DEF-" prefix on b3.2
+                for name_attr in ('left_eye', 'right_eye'):
+                    bone_name = getattr(src_skeleton.face, name_attr)
+                    if bone_name not in src_armature.bones and bone_name[4:] in src_armature.bones:
+                        setattr(src_skeleton.face, name_attr, bone_name[4:])
+
         try:
             metarig = next(ob for ob in bpy.data.objects if ob.type == 'ARMATURE' and ob.data.rigify_target_rig == src_object)
         except AttributeError:
