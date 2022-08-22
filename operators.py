@@ -610,6 +610,9 @@ class ExtractMetarig(bpy.types.Operator):
                     if bone_name not in src_armature.bones and bone_name[4:] in src_armature.bones:
                         setattr(src_skeleton.face, name_attr, bone_name[4:])
 
+        # bones that have rigify attr will be copied when the metarig is in edit mode
+        additional_bones = [(b.name, b.rigify_type) for b in src_object.pose.bones if b.rigify_type]
+
         try:
             metarig = next(ob for ob in bpy.data.objects if ob.type == 'ARMATURE' and ob.data.rigify_target_rig == src_object)
         except AttributeError:
@@ -699,6 +702,8 @@ class ExtractMetarig(bpy.types.Operator):
 
                 if src_skeleton.face.super_copy:
                     metarig.pose.bones[met_bone.name].rigify_type = "basic.super_copy"
+                    # FIXME: sometimes eye bone group is not renamed accordingly
+                    # TODO: then maybe change jaw shape to box
 
         try:
             right_leg = met_armature.edit_bones[met_skeleton.right_leg.leg]
@@ -853,7 +858,38 @@ class ExtractMetarig(bpy.types.Operator):
 
                 met_armature.edit_bones.remove(face_bone)
 
+        for src_name, src_attr in additional_bones:
+            new_bone_name = bone_utils.copy_bone_to_arm(src_object, metarig, src_name, suffix="")
+
+            if 'chain' in src_attr:
+                bone = src_armature.bones[src_name]
+                new_parent_name = new_bone_name
+                while bone:
+                    # optional: use connect
+                    try:
+                        bone = bone.children[0]
+                    except IndexError:
+                        break
+
+                    child_bone_name = bone_utils.copy_bone_to_arm(src_object, metarig, bone.name, suffix="")
+                    child_bone = met_armature.edit_bones[child_bone_name]
+                    child_bone.parent = met_armature.edit_bones[new_parent_name]
+                    child_bone.use_connect = True
+
+                    bone.name = f"DEF-{bone.name}"
+                    new_parent_name = child_bone_name
+
+            # FIXME: should use mapping to get parent bone name
+            parent_name = src_armature.bones[src_name].parent.name.replace('DEF-', '')
+            met_armature.edit_bones[new_bone_name].parent = met_armature.edit_bones[parent_name]            
+            src_armature.bones[src_name].name = f'DEF-{src_armature.bones[src_name].name}'
+
         bpy.ops.object.mode_set(mode='POSE')
+        # now we can copy the stored rigify attrs
+        for src_name, src_attr in additional_bones:
+            metarig.pose.bones[src_name].rigify_type = src_attr
+            # TODO: should copy rigify options of specific types as well
+
         if self.assign_metarig:
             met_armature.rigify_target_rig = src_object
 

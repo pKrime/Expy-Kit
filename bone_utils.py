@@ -117,7 +117,8 @@ def copy_bone_to_arm(src_ob, trg_ob, bone_name, suffix='CP'):
     except KeyError:
         return
 
-    new_bone = trg_ob.data.edit_bones.new('_'.join((bone_name, suffix)))
+    new_name = '_'.join((bone_name, suffix)) if suffix else bone_name
+    new_bone = trg_ob.data.edit_bones.new(new_name)
     new_bone.head = src_bone.head_local
     new_bone.tail = src_bone.tail_local
 
