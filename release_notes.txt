@@ -6,6 +6,7 @@ version 0.53
 - Fix missing eyes in extracted metarig
 - Transfer Root Motion to armature object
 - Faster Transfer Root Motion
+- Extract Metarig copies bones that have a rigify_type set
 
 version 0.52
 
