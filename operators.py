@@ -1545,7 +1545,7 @@ class ConstrainToArmature(bpy.types.Operator):
                                 src_pbone.constraints.remove(constr)
                     # TODO: should unconstrain mid bones to!
 
-                if not src_pbone.parent and self.bind_floating:
+                if is_bone_floating(src_pbone, src_skeleton.spine.hips) and self.bind_floating:
                     constr_types = ['COPY_LOCATION', 'COPY_ROTATION']
                 elif (src_name in left_finger_bones or src_name in right_finger_bones) and self.no_finger_loc:
                     constr_types = ['COPY_ROTATION']
