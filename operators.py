@@ -1750,13 +1750,21 @@ def add_loc_key(bone, frame, options):
     bone.keyframe_insert('location', index=2, frame=frame, options=options)
 
 
+def get_rot_ani_path(to_animate):
+    if to_animate.rotation_mode == 'QUATERNION':
+        return 'rotation_quaternion', 4
+    if to_animate.rotation_mode == 'AXIS_ANGLE':
+        return 'rotation_axis_angle', 4
+    
+    return 'rotation_euler', 3
+
+
 def add_loc_rot_key(bone, frame, options):
     add_loc_key(bone, frame, options)
 
-    bone.keyframe_insert('rotation_quaternion', index=0, frame=frame, options=options)
-    bone.keyframe_insert('rotation_quaternion', index=1, frame=frame, options=options)
-    bone.keyframe_insert('rotation_quaternion', index=2, frame=frame, options=options)
-    bone.keyframe_insert('rotation_quaternion', index=3, frame=frame, options=options)
+    mode, channels = get_rot_ani_path(bone)
+    for i in range(channels):
+        bone.keyframe_insert(mode, index=i, frame=frame, options=options)
 
 
 class AddRootMotion(bpy.types.Operator):
@@ -1779,6 +1787,11 @@ class AddRootMotion(bpy.types.Operator):
     new_anim_suffix: StringProperty(name="Suffix",
                                     default="_RM",
                                     description="Suffix of the duplicate animation, leave empty to overwrite")
+
+    obj_or_bone: EnumProperty(items=[
+        ('object', "Object", "Transfer Root Motion To Object"),
+        ('bone', "Bone", "Transfer Root Motion To Bone")],
+                              name="Object/Bone", default='bone')
 
     keep_offset: BoolProperty(name="Keep Offset", default=True)
     offset_type: EnumProperty(items=[
@@ -1844,6 +1857,10 @@ class AddRootMotion(bpy.types.Operator):
 
         row = column.split(factor=0.25, align=True)
         row.label(text="To")
+
+        row.prop(self, 'obj_or_bone', expand=True)
+        
+        row = column.row()
         row.prop_search(self, 'root_motion_bone',
                         context.active_object.data,
                         "bones", text="")
@@ -1919,20 +1936,89 @@ class AddRootMotion(bpy.types.Operator):
         subcol.enabled = self.root_use_loc_max_z
         row.enabled = self.root_cp_loc_z
 
-    def set_defaults(self, rig_settings):
+    def _set_defaults(self, rig_settings):
         if not rig_settings:
-            return
+            return False
+
         if not self.root_motion_bone:
             self.root_motion_bone = rig_settings.root
 
         if not self.motion_bone:
             self.motion_bone = rig_settings.spine.hips
+        
+        return(bool(self.motion_bone))
 
     def invoke(self, context, event):
         """Fill root and hips field according to character settings"""
+        self._rootmo_transfs = []
+        self._rootbo_transfs = []
+        self._hip_bone_transfs = []
+        self._all_floating_mats = []
+        
+        self._stored_motion_bone = ""
+        self._stored_motion_type = self.obj_or_bone
+        self._transforms_stored = False
+
         rig_settings = context.object.data.expykit_retarget
-        self.set_defaults(rig_settings)
+        if self._set_defaults(rig_settings):
+            self._store_transforms(context)
+
         return self.execute(context)
+
+    def _get_floating_bones(self, context):
+        arm_ob = context.active_object
+        skeleton = preset_handler.get_settings_skel(arm_ob.data.expykit_retarget)
+        
+        # TODO: check controls with animation curves instead
+        def consider_bone(b_name):
+            if b_name == self.root_motion_bone:
+                return False
+            return b_name in arm_ob.pose.bones
+
+        rig_bones = [arm_ob.pose.bones[b_name] for b_name in skeleton.bone_names() if b_name and consider_bone(b_name)]
+        return list([bone for bone in rig_bones if is_bone_floating(bone, self.motion_bone)])
+
+    def _clear_cache(self):
+        self._all_floating_mats.clear()
+        self._hip_bone_transfs.clear()
+        self._rootmo_transfs.clear()
+
+        self._rootbo_transfs.clear()
+
+    def _store_transforms(self, context):
+        self._clear_cache()
+        arm_ob = context.active_object
+        
+        root_bone = arm_ob.pose.bones[self.root_motion_bone]
+        hip_bone = arm_ob.pose.bones[self.motion_bone]
+        floating_bones = self._get_floating_bones(context)
+
+        start, end = self._get_start_end(context)
+        context.scene.frame_set(start)
+        
+        start_mat_inverse = hip_bone.matrix.inverted()  # FIXME: should change according to "Match" setting?
+
+        for frame_num in range(start, end + 1):
+            context.scene.frame_set(frame_num)
+
+            self._all_floating_mats.append(list([b.matrix.copy() for b in floating_bones]))
+            self._hip_bone_transfs.append(hip_bone.matrix.copy())
+            self._rootmo_transfs.append(hip_bone.matrix @ start_mat_inverse)
+
+            if self.obj_or_bone == 'object' and root_bone:
+                self._rootbo_transfs.append(root_bone.matrix.copy())
+
+        self._stored_motion_bone = self.motion_bone
+        self._stored_motion_type = self.obj_or_bone
+        self._transforms_stored = True
+
+    def _cache_dirty(self):
+        if self._stored_motion_bone != self.motion_bone:
+            return True
+        if self._stored_motion_type != self.obj_or_bone:
+            return True
+
+        return False
 
     def execute(self, context):
         rig_settings = context.object.data.expykit_retarget
@@ -1944,39 +2030,51 @@ class AddRootMotion(bpy.types.Operator):
         if not self.motion_bone:
             return {'FINISHED'}
 
-        self._armature = context.active_object
+        armature = context.active_object
         if self.new_anim_suffix:
-            action_dupli = self._armature.animation_data.action.copy()
+            action_dupli = armature.animation_data.action.copy()
 
-            action_name = self._armature.animation_data.action.name
+            action_name = armature.animation_data.action.name
             action_dupli.name = f'{action_name}{self.new_anim_suffix}'
-            action_dupli.use_fake_user = self._armature.animation_data.action.use_fake_user
-            self._armature.animation_data.action = action_dupli
+            action_dupli.use_fake_user = armature.animation_data.action.use_fake_user
+            armature.animation_data.action = action_dupli
 
-        self.action_offs(self.root_motion_bone, self.motion_bone)
+        if self._cache_dirty():
+            self._store_transforms(context)
+            
+        if not self._transforms_stored:
+            self.report({'WARNING'}, "No transforms stored")
+
+        self.action_offs(context)
         return {'FINISHED'}
 
-    def action_offs(self, root_bone_name, hips_bone_name):
-        action = self._armature.animation_data.action
+    @staticmethod
+    def _get_start_end(context):
+        action = context.active_object.animation_data.action
         start, end = action.frame_range
-        start = int(start)
-        end = int(end)
-        current = bpy.context.scene.frame_current
+        
+        return int(start), int(end)
 
-        hip_bone = self._armature.pose.bones[hips_bone_name]
+    def action_offs(self, context):
+        start, end = self._get_start_end(context)
+        current = context.scene.frame_current
+
+        hips_bone_name = self.motion_bone
+        hip_bone = context.active_object.pose.bones[hips_bone_name]
 
         if self.keep_offset and self.offset_type == 'end':
-            bpy.context.scene.frame_set(end)
+            context.scene.frame_set(end)
             end_mat = hip_bone.matrix.copy()
         else:
             end_mat = Matrix()
 
-        bpy.context.scene.frame_set(start)
+        context.scene.frame_set(start)
         start_mat = hip_bone.matrix.copy()
         start_mat_inverse = start_mat.inverted()
+
         if self.keep_offset:
             if self.offset_type == 'rest':
-                offset_mat = self._armature.data.bones[hip_bone.name].matrix_local.inverted()
+                offset_mat = context.active_object.data.bones[hip_bone.name].matrix_local.inverted()
             elif self.offset_type == 'start':
                 offset_mat = start_mat_inverse
             elif self.offset_type == 'end':
@@ -1984,63 +2082,47 @@ class AddRootMotion(bpy.types.Operator):
         else:
             offset_mat = Matrix()
 
-        try:
-            root_bone = self._armature.pose.bones[root_bone_name]
-        except (TypeError, KeyError):
-            self.report({'WARNING'}, f"{root_bone_name} not found in target")
-            return
+        root_bone_name = self.root_motion_bone
 
-        skeleton = preset_handler.get_settings_skel(self._armature.data.expykit_retarget)
-
-        # TODO: check controls with animation curves instead
-
-        def consider_bone(b_name):
-            if b_name == root_bone_name:
-                return False
-            return b_name in self._armature.pose.bones
-
-        rig_bones = [self._armature.pose.bones[b_name] for b_name in skeleton.bone_names() if b_name and consider_bone(b_name)]
-        floating_bones = list([bone for bone in rig_bones if is_bone_floating(bone, hips_bone_name)])
-
-        rootmo_transfs = []
-        hip_bone_transfs = []
-        all_floating_mats = []
-        for frame_num in range(start, end + 1):
-            bpy.context.scene.frame_set(frame_num)
-
-            all_floating_mats.append(list([b.matrix.copy() for b in floating_bones]))
-            hip_bone_transfs.append(hip_bone.matrix.copy())
-            rootmo_transfs.append(hip_bone.matrix @ start_mat_inverse)
-
+        if self.obj_or_bone == 'object':
+            root_bone = context.active_object
+        else:
+            try:
+                root_bone = context.active_object.pose.bones[root_bone_name]
+            except (TypeError, KeyError):
+                self.report({'WARNING'}, f"{root_bone_name} not found in target")
+                return {'FINISHED'}
+        
         bpy.context.scene.frame_set(start)
         keyframe_options = {'INSERTKEY_VISUAL', 'INSERTKEY_CYCLE_AWARE'}
         add_loc_rot_key(root_bone, start, keyframe_options)
 
+        root_matrix = root_bone.matrix if self.obj_or_bone == 'bone' else context.active_object.matrix_world
         for i, frame_num in enumerate(range(start, end + 1)):
             bpy.context.scene.frame_set(frame_num)
 
-            rootmo_transf = hip_bone_transfs[i] @ offset_mat
+            rootmo_transf = self._hip_bone_transfs[i] @ offset_mat
             if self.root_cp_loc_x:
                 if self.root_use_loc_min_x:
                     rootmo_transf[0][3] = max(rootmo_transf[0][3], self.root_loc_min_x)
                 if self.root_use_loc_max_x:
                     rootmo_transf[0][3] = min(rootmo_transf[0][3], self.root_loc_max_x)
             else:
-                rootmo_transf[0][3] = root_bone.matrix[0][3]
+                rootmo_transf[0][3] = root_matrix[0][3]
             if self.root_cp_loc_y:
                 if self.root_use_loc_min_y:
                     rootmo_transf[1][3] = max(rootmo_transf[1][3], self.root_loc_min_y)
                 if self.root_use_loc_max_y:
                     rootmo_transf[1][3] = min(rootmo_transf[1][3], self.root_loc_max_y)
             else:
-                rootmo_transf[1][3] = root_bone.matrix[1][3]
+                rootmo_transf[1][3] = root_matrix[1][3]
             if self.root_cp_loc_z:
                 if self.root_use_loc_min_z:
                     rootmo_transf[2][3] = max(rootmo_transf[2][3], self.root_loc_min_z)
                 if self.root_use_loc_max_z:
                     rootmo_transf[2][3] = min(rootmo_transf[2][3], self.root_loc_max_z)
             else:
-                rootmo_transf[2][3] = root_bone.matrix[2][3]
+                rootmo_transf[2][3] = root_matrix[2][3]
 
             if not all((self.root_cp_rot_x, self.root_cp_rot_y, self.root_cp_rot_z)):
                 if self.root_cp_rot_x + self.root_cp_rot_y + self.root_cp_rot_z < 2:
@@ -2053,7 +2135,7 @@ class AddRootMotion(bpy.types.Operator):
                     rootmo_transf = no_rot
                 else:
                     rootmo_transf.transpose()
-                    root_transp = root_bone.matrix.transposed()
+                    root_transp = root_matrix.transposed()
 
                     if not self.root_cp_rot_z:
                         # XY plane
@@ -2094,16 +2176,26 @@ class AddRootMotion(bpy.types.Operator):
 
                     rootmo_transf.transpose()
 
-            root_bone.matrix = rootmo_transf
+            if self.obj_or_bone == 'object':
+                root_bone.matrix_world = rootmo_transf
+            else:
+                root_bone.matrix = rootmo_transf
             add_loc_rot_key(root_bone, frame_num, keyframe_options)
 
+        floating_bones = self._get_floating_bones(context)
         for i, frame_num in enumerate(range(start, end + 1)):
             bpy.context.scene.frame_set(frame_num)
 
-            floating_mats = all_floating_mats[i]
-            for bone, mat in zip(floating_bones, floating_mats):
-                bone.matrix = mat
+            if self.obj_or_bone == 'object' and self.root_motion_bone:
+                context.active_object.pose.bones[self.root_motion_bone].matrix = root_bone.matrix_world.inverted() @ context.active_object.pose.bones[self.root_motion_bone].matrix
 
+            floating_mats = self._all_floating_mats[i]
+            for bone, mat in zip(floating_bones, floating_mats):
+                if self.obj_or_bone == 'object':
+                    # TODO: should get matrix at frame 0
+                    mat = root_bone.matrix_world.inverted() @ mat
+
+                bone.matrix = mat
                 add_loc_rot_key(bone, frame_num, set())
 
         bpy.context.scene.frame_set(current)
