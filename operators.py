@@ -1855,13 +1855,13 @@ class AddRootMotion(bpy.types.Operator):
                         context.active_object.data,
                         "bones", text="")
 
-        row = column.split(factor=0.25, align=True)
-        row.label(text="To")
+        split = column.split(factor=0.25, align=True)
+        split.label(text="To")
 
-        row.prop(self, 'obj_or_bone', expand=True)
+        col = split.column()
+        col.prop(self, 'obj_or_bone', expand=True)
         
-        row = column.row()
-        row.prop_search(self, 'root_motion_bone',
+        col.prop_search(self, 'root_motion_bone',
                         context.active_object.data,
                         "bones", text="")
 
