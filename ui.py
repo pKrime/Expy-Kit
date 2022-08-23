@@ -1,5 +1,7 @@
+from email.policy import default
 import bpy
 from bpy.props import StringProperty
+from bpy.props import FloatProperty
 from bpy.props import PointerProperty
 from bpy.types import Operator, Menu
 from bl_operators.presets import AddPresetBase
@@ -412,9 +414,12 @@ class MirrorSettings(Operator):
     """Mirror Settings to the other side"""
     bl_idname = "object.expy_kit_settings_mirror"
     bl_label = "Mirror Skeleton Mapping"
+    bl_options = {'REGISTER', 'UNDO'}
 
     src_setting: StringProperty(default="")
     trg_setting: StringProperty(default="")
+
+    tolerance: FloatProperty(default=0.001)
 
     @classmethod
     def poll(cls, context):
@@ -430,7 +435,7 @@ class MirrorSettings(Operator):
         return True
 
     def _is_mirrored(self, trg_head, src_head):
-        epsilon = 0.000001
+        epsilon = self.tolerance
         if abs(trg_head.x + src_head.x) > epsilon:
             return False
         if abs(trg_head.y - src_head.y) > epsilon:
@@ -690,6 +695,7 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
         split.prop_search(skeleton, 'root', ob.data, "bones", text="Root")
         s_props = split.operator(SetToActiveBone.bl_idname, text="<-")
         s_props.attr_name = 'root'
+        s_props.sub_attr_name = ''
 
         layout.separator()
         row = layout.row()

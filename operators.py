@@ -604,11 +604,26 @@ class ExtractMetarig(bpy.types.Operator):
                 ConvertBoneNaming.rename_bones(context, src_skeleton, trg_skeleton, separator=":")
                 src_skeleton = bone_mapping.RigifySkeleton()
 
-                # fix eye bones lacking "DEF-" prefix on b3.2
                 for name_attr in ('left_eye', 'right_eye'):
                     bone_name = getattr(src_skeleton.face, name_attr)
+
                     if bone_name not in src_armature.bones and bone_name[4:] in src_armature.bones:
+                        # fix eye bones lacking "DEF-" prefix on b3.2
                         setattr(src_skeleton.face, name_attr, bone_name[4:])
+
+                    if src_skeleton.face.super_copy:
+                        # supercopy def bones start with DEF-
+                        bone_name = getattr(src_skeleton.face, name_attr)
+
+                        if not bone_name.startswith('DEF-'):
+                            new_name = f"DEF-{bone_name}"
+                            try:
+                                context.object.data.bones[bone_name].name = new_name
+                            except KeyError:
+                                pass
+                            else:
+                                setattr(src_skeleton.face, name_attr, new_name)
+
 
         # bones that have rigify attr will be copied when the metarig is in edit mode
         additional_bones = [(b.name, b.rigify_type) for b in src_object.pose.bones if b.rigify_type]
@@ -881,8 +896,12 @@ class ExtractMetarig(bpy.types.Operator):
 
             # FIXME: should use mapping to get parent bone name
             parent_name = src_armature.bones[src_name].parent.name.replace('DEF-', '')
-            met_armature.edit_bones[new_bone_name].parent = met_armature.edit_bones[parent_name]            
-            src_armature.bones[src_name].name = f'DEF-{src_armature.bones[src_name].name}'
+            try:
+                met_armature.edit_bones[new_bone_name].parent = met_armature.edit_bones[parent_name]            
+                src_armature.bones[src_name].name = f'DEF-{src_armature.bones[src_name].name}'
+            except KeyError:
+                self.report({'WARNING'}, "bones not found in target, perhaps wrong preset?")
+                return {'FINISHED'}
 
         bpy.ops.object.mode_set(mode='POSE')
         # now we can copy the stored rigify attrs
