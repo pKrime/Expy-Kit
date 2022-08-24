@@ -209,32 +209,6 @@ class ExecutePresetArmatureRetarget(Operator):
         options={'SKIP_SAVE'},
     )
 
-    @staticmethod
-    def validate(armature_data):
-        settings = armature_data.expykit_retarget
-        for group in ('spine', 'left_arm', 'left_arm_ik', 'right_arm', 'right_arm_ik',
-                      'right_leg', 'right_leg_ik', 'left_leg', 'left_leg_ik', 'face'):
-
-            trg_setting = getattr(settings, group)
-            for k, v in trg_setting.items():
-                try:
-                    if v not in armature_data.bones:
-                        setattr(trg_setting, k, "")
-                except TypeError:
-                    continue
-
-        finger_bones = 'a', 'b', 'c'
-        for trg_grp in settings.left_fingers, settings.right_fingers:
-            for k, trg_finger in trg_grp.items():
-                if k == 'name':  # skip Property Group name
-                    continue
-
-                for slot in finger_bones:
-                    bone_name = trg_finger.get(slot)
-                    if bone_name not in armature_data.bones:
-                        trg_finger[slot] = ""
-
-
     def execute(self, context):
         from os.path import basename, splitext
         filepath = self.filepath
@@ -267,7 +241,7 @@ class ExecutePresetArmatureRetarget(Operator):
         if hasattr(preset_class, "post_cb"):
             preset_class.post_cb(context)
 
-        self.validate(context.object.data)
+        preset_handler.validate_preset(context.object.data)
 
         # fix default names used by operators
         settings = context.object.data.expykit_retarget

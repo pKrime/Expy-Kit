@@ -54,6 +54,39 @@ def get_settings_skel(settings):
     return mapping
 
 
+def validate_preset(armature_data, separator=':'):
+    settings = armature_data.expykit_retarget
+    a_name = armature_data.bones[0].name
+
+    prefix = ""
+    if separator in a_name:
+        prefix = a_name.rsplit(separator, 1)[0]
+        prefix += separator
+
+    for group in ('spine', 'left_arm', 'left_arm_ik', 'right_arm', 'right_arm_ik',
+                    'right_leg', 'right_leg_ik', 'left_leg', 'left_leg_ik', 'face'):
+
+        trg_setting = getattr(settings, group)
+        for k, v in trg_setting.items():
+            try:
+                if v not in armature_data.bones:
+                    with_prefix = prefix + v
+                    setattr(trg_setting, k, with_prefix if with_prefix in armature_data.bones else "")
+            except TypeError:
+                continue
+
+    finger_bones = 'a', 'b', 'c'
+    for trg_grp in settings.left_fingers, settings.right_fingers:
+        for k, trg_finger in trg_grp.items():
+            if k == 'name':  # skip Property Group name
+                continue
+
+            for slot in finger_bones:
+                bone_name = trg_finger.get(slot)
+                if bone_name not in armature_data.bones:
+                    trg_finger[slot] = ""
+
+
 def set_preset_skel(preset):
     if not preset:
         return
@@ -67,6 +100,7 @@ def set_preset_skel(preset):
     spec = importlib.util.spec_from_file_location("sel_preset", preset_path)
     preset_mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(preset_mod)
+    validate_preset(bpy.context.active_object.data)
 
     mapping = get_settings_skel(preset_mod.skeleton)
     return mapping
@@ -91,6 +125,8 @@ def get_preset_skel(preset, settings=None):
     eval(compile(code, '', 'exec'))
 
     mapping = HumanSkeleton(preset=skeleton)
+    if settings:
+        validate_preset(settings.id_data)
     del skeleton
     return mapping
 

@@ -1226,7 +1226,6 @@ class ConstrainToArmature(bpy.types.Operator):
     root_cp_rot_y: BoolProperty(name="Root Copy Rot y", description="Copy Root Y Rotation", default=False)
     root_cp_rot_z: BoolProperty(name="Root Copy Rot Z", description="Copy Root Z Rotation", default=False)
 
-    check_prefix: BoolProperty(default=True, name="Check Prefix")
     no_finger_loc: BoolProperty(default=True, name="No Finger Location")
 
     _separator = ":"  # TODO: StringProperty
@@ -1417,11 +1416,6 @@ class ConstrainToArmature(bpy.types.Operator):
 
         cp_suffix = 'RET'
         prefix = ""
-        if self.check_prefix:
-            first_bone = trg_ob.data.bones[0]
-            if self._separator in first_bone.name:
-                prefix = first_bone.name.rsplit(self._separator, 1)[0]
-                prefix += self._separator
 
         for ob in context.selected_objects:
             if ob == trg_ob:

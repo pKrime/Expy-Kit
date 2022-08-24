@@ -7,6 +7,7 @@ version 0.53
 - Transfer Root Motion to armature object
 - Faster Transfer Root Motion
 - Extract Metarig copies bones that have a rigify_type set
+- Namespace prefix with columns (:) are accounted for when using a preset
 
 version 0.52
 
