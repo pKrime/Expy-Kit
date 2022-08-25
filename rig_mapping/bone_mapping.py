@@ -144,7 +144,7 @@ class HumanSkeleton:
 
     @property
     def left_arm_ik(self):
-        if self._left_arm_ik.has_settings():
+        if self._left_arm_ik and self._left_arm_ik.has_settings():
             return self._left_arm_ik
 
         if self._fk_as_ik:
@@ -154,7 +154,7 @@ class HumanSkeleton:
 
     @property
     def right_arm_ik(self):
-        if self._right_arm_ik.has_settings():
+        if self._right_arm_ik and self._right_arm_ik.has_settings():
             return self._right_arm_ik
 
         if self._fk_as_ik:
@@ -164,7 +164,7 @@ class HumanSkeleton:
 
     @property
     def left_leg_ik(self):
-        if self._left_leg_ik.has_settings():
+        if self._left_leg_ik and self._left_leg_ik.has_settings():
             return self._left_leg_ik
 
         if self._fk_as_ik:
@@ -174,7 +174,7 @@ class HumanSkeleton:
 
     @property
     def right_leg_ik(self):
-        if self._right_leg_ik.has_settings():
+        if self._right_leg_ik and self._right_leg_ik.has_settings():
             return self._right_leg_ik
 
         if self._fk_as_ik:
@@ -262,10 +262,12 @@ class HumanSkeleton:
         if self.root:
             bone_map[self.root] = target_skeleton.root
 
-        for limb_name, bone_name in self.face.items():
-            if limb_name == "super_copy":
-                continue
-            bone_mapping('face', limb_name, bone_name)
+        face_map = self.face
+        if face_map:
+            for limb_name, bone_name in face_map.items():
+                if limb_name == "super_copy":
+                    continue
+                bone_mapping('face', limb_name, bone_name)
 
         for limb_name, bone_name in self.spine.items():
             bone_mapping('spine', limb_name, bone_name)
