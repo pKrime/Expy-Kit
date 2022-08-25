@@ -84,10 +84,11 @@ def validate_preset(armature_data, separator=':'):
             for slot in finger_bones:
                 bone_name = trg_finger.get(slot)
                 if bone_name not in armature_data.bones:
-                    trg_finger[slot] = ""
+                    with_prefix = prefix + bone_name
+                    trg_finger[slot] = with_prefix if with_prefix in armature_data.bones else ""
 
 
-def set_preset_skel(preset):
+def set_preset_skel(preset, validate=True):
     if not preset:
         return
     if not preset.endswith(".py"):
@@ -100,7 +101,8 @@ def set_preset_skel(preset):
     spec = importlib.util.spec_from_file_location("sel_preset", preset_path)
     preset_mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(preset_mod)
-    validate_preset(bpy.context.active_object.data)
+    if validate:
+        validate_preset(bpy.context.active_object.data)
 
     mapping = get_settings_skel(preset_mod.skeleton)
     return mapping

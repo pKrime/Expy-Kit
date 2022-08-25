@@ -233,17 +233,18 @@ class ConvertBoneNaming(bpy.types.Operator):
         return src_skeleton, trg_skeleton
 
     @staticmethod
-    def convert_settings(current_settings, target_settings):
+    def convert_settings(current_settings, target_settings, validate=True):
         src_settings = preset_handler.PresetSkeleton()
         src_settings.copy(current_settings)
 
         src_skeleton = preset_handler.get_settings_skel(src_settings)
-        trg_skeleton = preset_handler.set_preset_skel(target_settings)
+        trg_skeleton = preset_handler.set_preset_skel(target_settings, validate)
 
         return src_skeleton, trg_skeleton
 
     @staticmethod
     def rename_bones(context, src_skeleton, trg_skeleton, separator=""):
+        # FIXME: separator should not be necessary anymore, as it is handled at preset validation
         bone_names_map = src_skeleton.conversion_map(trg_skeleton)
 
         if separator:
@@ -600,8 +601,9 @@ class ExtractMetarig(bpy.types.Operator):
             # check if doesn't contain rigify deform bones already
             bones_needed = met_skeleton.spine.hips, met_skeleton.spine.spine
             if not [b for b in bones_needed if b in src_armature.bones]:
-                src_skeleton, trg_skeleton = ConvertBoneNaming.convert_settings(current_settings, 'Rigify_Deform.py')
-                ConvertBoneNaming.rename_bones(context, src_skeleton, trg_skeleton, separator=":")
+                # Converted settings should not be validated yet, as bones have not been renamed
+                src_skeleton, trg_skeleton = ConvertBoneNaming.convert_settings(current_settings, 'Rigify_Deform.py', validate=False)
+                ConvertBoneNaming.rename_bones(context, src_skeleton, trg_skeleton)
                 src_skeleton = bone_mapping.RigifySkeleton()
 
                 for name_attr in ('left_eye', 'right_eye'):
