@@ -31,15 +31,8 @@ CONSTR_STATUS = (
 )
 
 
-CONSTR_TYPES = (
-    'ALL_TYPES', 'CAMERA_SOLVER', 'FOLLOW_TRACK', 'OBJECT_SOLVER',
-    'COPY_LOCATION', 'COPY_ROTATION', 'COPY_SCALE', 'COPY_TRANSFORMS',
-    'LIMIT_DISTANCE', 'LIMIT_LOCATION', 'LIMIT_ROTATION', 'LIMIT_SCALE',
-    'MAINTAIN_VOLUME', 'TRANSFORM', 'TRANSFORM_CACHE', 'CLAMP_TO',
-    'DAMPED_TRACK', 'IK', 'LOCKED_TRACK', 'SPLINE_IK', 'STRETCH_TO',
-    'TRACK_TO', 'ACTION', 'ARMATURE', 'CHILD_OF', 'FLOOR',
-    'FOLLOW_PATH', 'PIVOT', 'SHRINKWRAP'
-)
+CONSTR_TYPES = bpy.types.PoseBoneConstraints.bl_rna.functions['new'].parameters['type'].enum_items.keys()
+CONSTR_TYPES.append('ALL_TYPES')
 
 
 class ConstraintStatus(bpy.types.Operator):
