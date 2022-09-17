@@ -41,7 +41,8 @@ class BindingsMenu(bpy.types.Menu):
         row.operator(operators.ConstraintStatus.bl_idname)
 
         row = layout.row()
-        row.operator(operators.SelectConstrainedControls.bl_idname)
+        op = row.operator(operators.SelectConstrainedControls.bl_idname)
+        op.select_type = 'constr'
 
 
 class ConvertMenu(bpy.types.Menu):

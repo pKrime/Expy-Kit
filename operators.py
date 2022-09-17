@@ -946,8 +946,19 @@ class ActionRangeToScene(bpy.types.Operator):
         try:
             bpy.ops.action.view_all()
         except RuntimeError:
-            # we are not in the timeline context, we won't set the timeline view
-            pass
+            # we are not in a timeline context, let's look for one in the screen
+            for window in context.window_manager.windows:
+                screen = window.screen
+                for area in screen.areas:
+                    if area.type == 'DOPESHEET_EDITOR':
+                        for region in area.regions:
+                            if region.type == 'WINDOW':
+                                with context.temp_override(window=window,
+                                                           area=area,
+                                                           region=region):
+                                    bpy.ops.action.view_all()
+                                break
+                        break
         return {'FINISHED'}
 
 
