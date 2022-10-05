@@ -892,8 +892,11 @@ class ExtractMetarig(bpy.types.Operator):
             # FIXME: should use mapping to get parent bone name
             parent_name = src_armature.bones[src_name].parent.name.replace('DEF-', '')
             try:
-                met_armature.edit_bones[new_bone_name].parent = met_armature.edit_bones[parent_name]            
-                src_armature.bones[src_name].name = f'DEF-{src_armature.bones[src_name].name}'
+                met_armature.edit_bones[new_bone_name].parent = met_armature.edit_bones[parent_name]
+                if ".raw_" in src_attr:
+                    met_armature.edit_bones[new_bone_name].use_deform = src_armature.bones[src_name].use_deform
+                else:
+                    src_armature.bones[src_name].name = f'DEF-{src_armature.bones[src_name].name}'
             except KeyError:
                 self.report({'WARNING'}, "bones not found in target, perhaps wrong preset?")
                 return {'FINISHED'}
