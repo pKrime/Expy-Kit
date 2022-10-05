@@ -10,6 +10,7 @@ version 0.53
 - Namespace prefix with columns (:) are accounted for when using a preset
 - "Select Constrained controls" is not overrided by "Select Animated controls"
 - "Action Range to Scene" from the menu fits the Timeline view to the visualized frames
+- Match Bones supports mismatching rolls
 
 version 0.52
 
