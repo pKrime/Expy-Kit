@@ -61,7 +61,10 @@ def vec_roll_to_mat3_normalized(nor, roll):
 def ebone_roll_to_vector(bone, align_axis, axis_only=False):
     roll = 0.0
 
-    assert abs(align_axis.magnitude - 1.0) < 1.0e-5
+    if abs(align_axis.magnitude - 1.0) < 1.0e-5:
+        # don't do anything
+        return bone.roll
+
     nor = bone.tail - bone.head
     nor.normalize()
 

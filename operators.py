@@ -1502,20 +1502,18 @@ class ConstrainToArmature(bpy.types.Operator):
                         new_bone.transform(ob.matrix_world)
                         # counter target transform
                         new_bone.transform(trg_ob.matrix_world.inverted())
+                        
+                        # align target temporarily
+                        trg_roll = trg_ed_bone.roll
+                        trg_ed_bone.roll = bone_utils.ebone_roll_to_vector(trg_ed_bone, def_bone.z_axis)
+
                         # bring under trg_bone
                         new_bone.transform(trg_ed_bone.matrix)
 
-                        # orient to TARGET bone
-                        trg_bone = trg_ob.data.bones[trg_name]
-                        src_x_axis = Vector((0.0, 0.0, 1.0)) @ trg_bone.matrix_local.inverted().to_3x3()
+                        # restore target orient
+                        trg_ed_bone.roll = trg_roll
 
-                        # ctrl may have a different orient, in that case we roll them back
-                        src_bone = ob.data.edit_bones[src_name]
-                        ctrl_offset = src_bone.matrix @ def_bone.matrix.inverted()
-                        src_x_axis = ctrl_offset @ src_x_axis
-                        src_x_axis.normalize()
-
-                        new_bone.roll = bone_utils.ebone_roll_to_vector(new_bone, src_x_axis)
+                        new_bone.roll = bone_utils.ebone_roll_to_vector(trg_ed_bone, def_bone.z_axis)
                     else:
                         src_bone = ob.data.bones[src_name]
                         src_x_axis = Vector((0.0, 0.0, 1.0)) @ src_bone.matrix_local.inverted().to_3x3()
