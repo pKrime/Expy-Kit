@@ -1235,7 +1235,7 @@ class ConstrainToArmature(bpy.types.Operator):
     root_cp_rot_y: BoolProperty(name="Root Copy Rot y", description="Copy Root Y Rotation", default=False)
     root_cp_rot_z: BoolProperty(name="Root Copy Rot Z", description="Copy Root Z Rotation", default=False)
 
-    no_finger_loc: BoolProperty(default=True, name="No Finger Location")
+    no_finger_loc: BoolProperty(default=False, name="No Finger Location")
 
     _separator = ":"  # TODO: StringProperty
     _autovars_unset = True
@@ -1516,10 +1516,7 @@ class ConstrainToArmature(bpy.types.Operator):
                         new_bone.roll = bone_utils.ebone_roll_to_vector(trg_ed_bone, def_bone.z_axis)
                     else:
                         src_bone = ob.data.bones[src_name]
-                        src_x_axis = Vector((0.0, 0.0, 1.0)) @ src_bone.matrix_local.inverted().to_3x3()
-                        src_x_axis.normalize()
-
-                        new_bone.roll = bone_utils.ebone_roll_to_vector(new_bone, src_x_axis)
+                        new_bone.roll = bone_utils.ebone_roll_to_vector(new_bone, src_bone.z_axis)
 
                         if self.match_transform == 'Object':
                             new_bone.transform(ob.matrix_world)
