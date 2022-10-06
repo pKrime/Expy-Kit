@@ -59,25 +59,20 @@ def vec_roll_to_mat3_normalized(nor, roll):
 
 
 def ebone_roll_to_vector(bone, align_axis, axis_only=False):
-    roll = 0.0
-
-    if abs(align_axis.magnitude - 1.0) < 1.0e-5:
-        # don't do anything
-        return bone.roll
-
+    align_axis.normalize()
+    assert abs(align_axis.magnitude - 1.0) < 1.0e-5
     nor = bone.tail - bone.head
     nor.normalize()
 
     d = nor.dot(align_axis)
     if d == 1.0:
-        return roll
-
-    mat = vec_roll_to_mat3_normalized(nor, 0.0)
+        return 0.0
 
     # project the new_up_axis along the normal */
     vec = align_axis.project(nor)
     align_axis_proj = align_axis - vec
 
+    mat = vec_roll_to_mat3_normalized(nor, 0.0)
     if axis_only:
         try:
             if align_axis_proj.angle(mat[2]) > pi / 2:
