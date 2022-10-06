@@ -1516,7 +1516,10 @@ class ConstrainToArmature(bpy.types.Operator):
                         new_bone.roll = bone_utils.ebone_roll_to_vector(trg_ed_bone, def_bone.z_axis)
                     else:
                         src_bone = ob.data.bones[src_name]
-                        new_bone.roll = bone_utils.ebone_roll_to_vector(new_bone, src_bone.z_axis)
+                        src_z_axis_neg = Vector((0.0, 0.0, 1.0)) @ src_bone.matrix_local.inverted().to_3x3()
+                        src_z_axis_neg.normalize()
+
+                        new_bone.roll = bone_utils.ebone_roll_to_vector(new_bone, src_z_axis_neg)
 
                         if self.match_transform == 'Object':
                             new_bone.transform(ob.matrix_world)
