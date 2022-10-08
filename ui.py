@@ -571,13 +571,13 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
             col.prop_search(skeleton.face, "right_upLid", ob.data, "bones", text="")
 
             col = bsplit.column()
-            props = col.operator(SetToActiveBone.bl_idname, text="<-")
-            props.attr_name = 'face'
-            props.slot_name = 'right_eye'
+            eye_props = col.operator(SetToActiveBone.bl_idname, text="<-")
+            eye_props.attr_name = 'face'
+            eye_props.slot_name = 'right_eye'
 
-            props = col.operator(SetToActiveBone.bl_idname, text="<-")
-            props.attr_name = 'face'
-            props.slot_name = 'right_upLid'
+            eye_props = col.operator(SetToActiveBone.bl_idname, text="<-")
+            eye_props.attr_name = 'face'
+            eye_props.slot_name = 'right_upLid'
 
 
             col = split.column()
@@ -594,13 +594,13 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
             col.prop_search(skeleton.face, "left_upLid", ob.data, "bones", text="")
 
             col = bsplit.column()
-            props = col.operator(SetToActiveBone.bl_idname, text="<-")
-            props.attr_name = 'face'
-            props.slot_name = 'left_eye'
+            eye_props = col.operator(SetToActiveBone.bl_idname, text="<-")
+            eye_props.attr_name = 'face'
+            eye_props.slot_name = 'left_eye'
 
-            props = col.operator(SetToActiveBone.bl_idname, text="<-")
-            props.attr_name = 'face'
-            props.slot_name = 'left_upLid'
+            eye_props = col.operator(SetToActiveBone.bl_idname, text="<-")
+            eye_props.attr_name = 'face'
+            eye_props.slot_name = 'left_upLid'
 
             row = layout.row()
             row.prop(skeleton.face, "super_copy", text="As Rigify Super Copy")

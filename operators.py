@@ -899,7 +899,7 @@ class ExtractMetarig(bpy.types.Operator):
                     src_armature.bones[src_name].name = f'DEF-{src_armature.bones[src_name].name}'
             except KeyError:
                 self.report({'WARNING'}, "bones not found in target, perhaps wrong preset?")
-                return {'FINISHED'}
+                continue
 
         bpy.ops.object.mode_set(mode='POSE')
         # now we can copy the stored rigify attrs
@@ -1406,6 +1406,22 @@ class ConstrainToArmature(bpy.types.Operator):
                 return True
         return False
 
+    def _add_limit_constraintss(self, ob):
+        limit_rot = ob.constraints.new('LIMIT_ROTATION')
+        limit_rot.use_limit_x = True
+        limit_rot.use_limit_y = True
+        limit_rot.use_limit_z = True
+
+        limit_loc = ob.constraints.new('LIMIT_LOCATION')
+        limit_loc.use_min_x = True
+        limit_loc.use_min_y = True
+        limit_loc.use_min_z = True
+        limit_loc.use_max_x = True
+        limit_loc.use_max_y = True
+        limit_loc.use_max_z = True
+
+        return limit_rot, limit_loc
+
     def execute(self, context):
         trg_ob = context.active_object
 
@@ -1458,6 +1474,9 @@ class ConstrainToArmature(bpy.types.Operator):
             elif self.constrain_root == 'Bone':
                 bone_names_map[src_skeleton.root] = self.root_motion_bone
 
+            # hacky, but will do it: keep target armature in place during binding
+            limit_constraints = self._add_limit_constraintss(trg_ob)
+            
             if f'{next(iter(bone_names_map))}_{cp_suffix}' not in trg_ob.data.bones:
                 # create Retarget bones
                 bpy.ops.object.mode_set(mode='EDIT')
@@ -1558,6 +1577,9 @@ class ConstrainToArmature(bpy.types.Operator):
                                 if i == self.ret_bones_layer:
                                     continue
                                 look_bone.layers[i] = False
+
+            for constr in limit_constraints:
+                trg_ob.constraints.remove(constr)
 
             bpy.ops.object.mode_set(mode='POSE')
 
