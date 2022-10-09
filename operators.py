@@ -872,7 +872,9 @@ class ExtractMetarig(bpy.types.Operator):
             new_bone_name = bone_utils.copy_bone_to_arm(src_object, metarig, src_name, suffix="")
 
             if 'chain' in src_attr:
-                bone = src_armature.bones[src_name]
+                # working around weird bug: sometimes src_armature.bones causes KeyError even if the bone is there
+                bone = next((b for b in src_armature.bones if b.name == src_name), None)
+
                 new_parent_name = new_bone_name
                 while bone:
                     # optional: use connect
@@ -889,14 +891,18 @@ class ExtractMetarig(bpy.types.Operator):
                     bone.name = f"DEF-{bone.name}"
                     new_parent_name = child_bone_name
 
-            # FIXME: should use mapping to get parent bone name
-            parent_name = src_armature.bones[src_name].parent.name.replace('DEF-', '')
             try:
-                met_armature.edit_bones[new_bone_name].parent = met_armature.edit_bones[parent_name]
-                if ".raw_" in src_attr:
-                    met_armature.edit_bones[new_bone_name].use_deform = src_armature.bones[src_name].use_deform
-                else:
-                    src_armature.bones[src_name].name = f'DEF-{src_armature.bones[src_name].name}'
+                bone = next((b for b in src_armature.bones if b.name == src_name), None)
+                
+                if bone:
+                    if bone.parent:
+                        # FIXME: should use mapping to get parent bone name
+                        parent_name = bone.parent.name.replace('DEF-', '')
+                        met_armature.edit_bones[new_bone_name].parent = met_armature.edit_bones[parent_name]
+                    if ".raw_" in src_attr:
+                        met_armature.edit_bones[new_bone_name].use_deform = bone.use_deform
+                    else:
+                        bone.name = f'DEF-{bone.name}'
             except KeyError:
                 self.report({'WARNING'}, "bones not found in target, perhaps wrong preset?")
                 continue
