@@ -901,6 +901,9 @@ class ExtractMetarig(bpy.types.Operator):
                         met_armature.edit_bones[new_bone_name].parent = met_armature.edit_bones[parent_name]
                     if ".raw_" in src_attr:
                         met_armature.edit_bones[new_bone_name].use_deform = bone.use_deform
+                    elif bone.name.startswith('DEF-'):
+                        # already a DEF, need to strip that from metarig bone instead
+                        met_armature.edit_bones[new_bone_name].name = new_bone_name.replace("DEF-", '')
                     else:
                         bone.name = f'DEF-{bone.name}'
             except KeyError:
@@ -910,7 +913,8 @@ class ExtractMetarig(bpy.types.Operator):
         bpy.ops.object.mode_set(mode='POSE')
         # now we can copy the stored rigify attrs
         for src_name, src_attr in additional_bones:
-            metarig.pose.bones[src_name].rigify_type = src_attr
+            src_meta = src_name[4:] if src_name.startswith('DEF-') else src_name
+            metarig.pose.bones[src_meta].rigify_type = src_attr
             # TODO: should copy rigify options of specific types as well
 
         if self.assign_metarig:
