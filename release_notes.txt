@@ -1,16 +1,19 @@
 version 0.53
 
-- Set To Active button in Retargeting panel
-- Mirror names button in Retargeting panel
-- "Spine2" is now displayed as "Chest" in the Retargeting panel
-- Fix missing eyes in extracted metarig
+- Extract Metarig supports extra bones through rigify attributes
+- Set To Bone button for rapid Skeleton Mapping
+- Mirror mapped bones to the other side
+- Match Bones supports mismatching rolls
 - Transfer Root Motion to armature object
+- More accurate Root Motion extraction
+- "Spine2" is now displayed as "Chest" in the Retargeting panel
 - Faster Transfer Root Motion
-- Extract Metarig copies bones that have a rigify_type set
 - Namespace prefix with columns (:) are accounted for when using a preset
 - "Select Constrained controls" is not overrided by "Select Animated controls"
-- "Action Range to Scene" from the menu fits the Timeline view to the visualized frames
-- Match Bones supports mismatching rolls
+- "Action Range to Scene" always fits the Timeline view
+- Fix missing eyes in extracted metarig
+- Fix occasional glitch in baked animations
+
 
 version 0.52
 
