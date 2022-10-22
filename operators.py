@@ -2082,9 +2082,18 @@ class AddRootMotion(bpy.types.Operator):
         floating_bones = self._get_floating_bones(context)
 
         start, end = self._get_start_end(context)
-        context.scene.frame_set(start)
+
+        if self.offset_type == 'start':
+            context.scene.frame_set(start)
+        elif self.offset_type == 'end':
+            context.scene.frame_set(end)
+        else:
+            arm_ob.data.pose_position = 'REST'
+
+        start_mat_inverse = hip_bone.matrix.inverted()
         
-        start_mat_inverse = hip_bone.matrix.inverted()  # FIXME: should change according to "Match" setting?
+        context.scene.frame_set(start)
+        arm_ob.data.pose_position = 'POSE'
 
         for frame_num in range(start, end + 1):
             context.scene.frame_set(frame_num)
