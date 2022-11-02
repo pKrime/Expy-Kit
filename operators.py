@@ -265,6 +265,7 @@ class ConvertBoneNaming(bpy.types.Operator):
 
     def execute(self, context):
         if self.src_preset == "--Current--":
+            # TODO: not working
             current_settings = context.object.data.expykit_retarget
             trg_settings = preset_handler.PresetSkeleton()
             trg_settings.copy(current_settings)
@@ -871,7 +872,7 @@ class ExtractMetarig(bpy.types.Operator):
         for src_name, src_attr in additional_bones:
             new_bone_name = bone_utils.copy_bone_to_arm(src_object, metarig, src_name, suffix="")
 
-            if 'chain' in src_attr:
+            if 'chain' in src_attr:  # TODO: also fingers
                 # working around weird bug: sometimes src_armature.bones causes KeyError even if the bone is there
                 bone = next((b for b in src_armature.bones if b.name == src_name), None)
 
@@ -1186,6 +1187,10 @@ class ConstrainToArmature(bpy.types.Operator):
     math_look_at: BoolProperty(name="Chain Look At",
                                description="Correct chain direction based on mid limb (Useful for IK)",
                                default=False)
+    
+    copy_IK_roll: BoolProperty(name="Copy IK Roll",
+                            description="USe IK target roll from source armature (Useful for IK)",
+                            default=True)
 
     constrain_root: EnumProperty(items=[
         ('None', "No Root", "Don't constrain root bone"),
@@ -1316,6 +1321,7 @@ class ConstrainToArmature(bpy.types.Operator):
 
         col = row.column()     
         col.prop(self, 'math_look_at')
+        col.prop(self, 'copy_IK_roll')
         col.prop(self, 'no_finger_loc')
 
         row = column.split(factor=0.25, align=True)
@@ -1554,8 +1560,18 @@ class ConstrainToArmature(bpy.types.Operator):
                             new_bone.transform(ob.matrix_world)
                             new_bone.transform(trg_ob.matrix_world.inverted())
 
+                    if self.copy_IK_roll:
+                        if src_name in (src_skeleton.left_leg_ik.foot,
+                                        src_skeleton.right_leg_ik.foot,
+                                        src_skeleton.right_arm_ik.hand,
+                                        src_skeleton.left_arm_ik.hand):
+
+                            src_ik = ob.data.bones[src_name]
+                            new_bone.roll = bone_utils.ebone_roll_to_vector(new_bone, src_ik.z_axis)
+
                     new_bone.layers[self.ret_bones_layer] = True
                     for i, L in enumerate(new_bone.layers):
+                        # FIXME: should be util function
                         if i == self.ret_bones_layer:
                             continue
                         new_bone.layers[i] = False
@@ -1584,10 +1600,11 @@ class ConstrainToArmature(bpy.types.Operator):
 
                             look_bone.layers[self.ret_bones_layer] = True
                             for i, L in enumerate(look_bone.layers):
+                                # FIXME: should be util function
                                 if i == self.ret_bones_layer:
                                     continue
                                 look_bone.layers[i] = False
-
+                            
             for constr in limit_constraints:
                 trg_ob.constraints.remove(constr)
 
