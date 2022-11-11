@@ -265,11 +265,10 @@ class ConvertBoneNaming(bpy.types.Operator):
 
     def execute(self, context):
         if self.src_preset == "--Current--":
-            # TODO: not working
             current_settings = context.object.data.expykit_retarget
             trg_settings = preset_handler.PresetSkeleton()
             trg_settings.copy(current_settings)
-            src_skeleton, trg_skeleton = self.convert_settings(trg_settings, self.trg_preset)
+            src_skeleton, trg_skeleton = self.convert_settings(trg_settings, self.trg_preset, validate=False)
 
             set_preset = False
         else:
@@ -322,6 +321,8 @@ class ConvertBoneNaming(bpy.types.Operator):
 
             if set_preset:
                 preset_handler.set_preset_skel(self.trg_preset)
+            else:
+                preset_handler.validate_preset(bpy.context.active_object.data)
 
         if bpy.app.version[0] > 2:
             # blender 3.0 objects do not immediately update renamed vertex groups
