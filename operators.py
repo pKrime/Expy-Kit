@@ -1521,12 +1521,17 @@ class ConstrainToArmature(bpy.types.Operator):
                     new_bone = trg_ob.data.edit_bones[new_bone_name]
                     new_bone.parent = new_parent
 
-                    if self.match_transform == 'Bone' and deformation_map:
+                    if self.match_transform == 'Bone':
                         # counter deformation bone transform
-                        try:
-                            def_bone = ob.data.edit_bones[deformation_map[src_name]]
-                        except KeyError:
-                            continue
+
+                        if deformation_map:
+                            try:
+                                def_bone = ob.data.edit_bones[deformation_map[src_name]]
+                            except KeyError:
+                                continue
+                        else:
+                            def_bone = ob.data.edit_bones[src_name]
+
                         try:
                             trg_ed_bone = trg_ob.data.edit_bones[trg_name]
                         except KeyError:
