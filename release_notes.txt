@@ -4,6 +4,7 @@ version 0.53
 - Set To Bone button for rapid Skeleton Mapping
 - Mirror mapped bones to the other side
 - Match Bones supports mismatching rolls
+- Match Bones supports deform skeletons
 - Transfer Root Motion to armature object
 - More accurate Root Motion extraction
 - "Spine2" is now displayed as "Chest" in the Retargeting panel
@@ -13,6 +14,7 @@ version 0.53
 - "Action Range to Scene" always fits the Timeline view
 - Fix missing eyes in extracted metarig
 - Fix occasional glitch in baked animations
+- Fix renaming from Current Settings
 
 
 version 0.52
