@@ -1180,7 +1180,8 @@ class ConstrainToArmature(bpy.types.Operator):
     match_transform: EnumProperty(items=[
         ('None', "No Matching", "Don't match any transform"),
         ('Bone', "Match Bone Transform", "Match target bones at rest"),
-        ('Object', "Match Object Transform", "Match target object transform")
+        ('Object', "Match Object Transform", "Match target object transform"),
+        ('Pose', "Match Armature Pose", "Match source bones in their current poses"),
     ],
         name="Match Transform",
         default='Object')
@@ -1423,21 +1424,46 @@ class ConstrainToArmature(bpy.types.Operator):
                 return True
         return False
 
-    def _add_limit_constraintss(self, ob):
-        limit_rot = ob.constraints.new('LIMIT_ROTATION')
-        limit_rot.use_limit_x = True
-        limit_rot.use_limit_y = True
-        limit_rot.use_limit_z = True
+    def _add_limit_constraintss(self, ob, rot=True, loc=True, scale=False):
+        limit_constraints = []
+        if self.match_transform == 'Pose':
+            return limit_constraints
 
-        limit_loc = ob.constraints.new('LIMIT_LOCATION')
-        limit_loc.use_min_x = True
-        limit_loc.use_min_y = True
-        limit_loc.use_min_z = True
-        limit_loc.use_max_x = True
-        limit_loc.use_max_y = True
-        limit_loc.use_max_z = True
+        if rot:
+            limit_rot = ob.constraints.new('LIMIT_ROTATION')
+            limit_rot.use_limit_x = True
+            limit_rot.use_limit_y = True
+            limit_rot.use_limit_z = True
 
-        return limit_rot, limit_loc
+            limit_constraints.append(limit_rot)
+
+        def limit_all(constr):
+            constr.use_min_x = True
+            constr.use_min_y = True
+            constr.use_min_z = True
+            constr.use_max_x = True
+            constr.use_max_y = True
+            constr.use_max_z = True
+
+        if loc:
+            limit_loc = ob.constraints.new('LIMIT_LOCATION')
+            limit_all(limit_loc)
+            limit_constraints.append(limit_loc)
+
+        if scale:
+            limit_scale = ob.constraints.new('LIMIT_SCALE')
+            limit_scale.min_x = 1.0
+            limit_scale.min_y = 1.0
+            limit_scale.min_z = 1.0
+            
+            limit_scale.max_x = 1.0
+            limit_scale.max_y = 1.0
+            limit_scale.max_z = 1.0
+
+            limit_all(limit_scale)
+            limit_constraints.append(limit_scale)
+
+        return limit_constraints
 
     def execute(self, context):
         trg_ob = context.active_object
@@ -1555,6 +1581,9 @@ class ConstrainToArmature(bpy.types.Operator):
                         trg_ed_bone.roll = trg_roll
 
                         new_bone.roll = bone_utils.ebone_roll_to_vector(trg_ed_bone, def_bone.z_axis)
+                    elif self.match_transform == 'Pose':
+                        new_bone.matrix = ob.pose.bones[src_name].matrix
+                        new_bone.transform(trg_ob.matrix_world.inverted())
                     else:
                         src_bone = ob.data.bones[src_name]
                         src_z_axis_neg = Vector((0.0, 0.0, 1.0)) @ src_bone.matrix_local.inverted().to_3x3()
