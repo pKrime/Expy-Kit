@@ -602,3 +602,29 @@ def align_to_closer_axis(src_bone, trg_bone):
         offset *= -1
 
     trg_bone.tail = trg_bone.head + offset
+
+
+def closest_bone_axis(bone, mat, direction):
+    """Return bone axis which is closest to direction"""
+    xyz = bone.x_axis, bone.y_axis, bone.z_axis
+    xyz = [(mat @ x).normalized() for x in xyz]
+
+    dot_prods = [abs(direction.dot(x)) for x in xyz]
+
+    return xyz[dot_prods.index(max(dot_prods))]
+
+
+def relative_direction(start_bone, end_bone, mat):
+    direction = end_bone.matrix_local.translation.copy()
+    direction -= start_bone.matrix_local.translation
+
+    direction = mat @ direction
+    return direction.normalized()
+
+
+def relative_pose_direction(start_pose_bone, end_pose_bone, mat):
+    direction = end_pose_bone.matrix.translation.copy()
+    direction -= start_pose_bone.matrix.translation
+
+    direction = mat @ direction
+    return direction.normalized()
