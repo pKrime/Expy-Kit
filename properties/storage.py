@@ -9,7 +9,7 @@ from bpy.props import PointerProperty
 
 # from . import preset_handler
 
-class VecStorageBase(PropertyGroup):
+class LimbStorageBase(PropertyGroup):
     def has_settings(self):
         for k, v in self.items():
             if k == 'name':
@@ -19,41 +19,45 @@ class VecStorageBase(PropertyGroup):
         return False
 
 
-class StoreSpine(VecStorageBase):
-    head: FloatVectorProperty(name="head")
-    neck: FloatVectorProperty(name="neck")
-    spine2: FloatVectorProperty(name="spine2")
-    spine1: FloatVectorProperty(name="spine1")
-    spine: FloatVectorProperty(name="spine")
-    hips: FloatVectorProperty(name="hips")
+class VecStorage(PropertyGroup):
+    look_at: FloatVectorProperty(name="look_at")
 
 
-class StoreArm(VecStorageBase):
-    shoulder: FloatVectorProperty(name="shoulder")
-    arm: FloatVectorProperty(name="arm")
-    # arm_twist: FloatVectorProperty(name="arm_twist")
-    forearm: FloatVectorProperty(name="forearm")
-    # forearm_twist: FloatVectorProperty(name="forearm_twist")
-    hand: FloatVectorProperty(name="hand")
+class StoreSpine(LimbStorageBase):
+    head: PointerProperty(name="head", type=VecStorage)
+    neck: PointerProperty(name="neck", type=VecStorage)
+    spine2: PointerProperty(name="spine2", type=VecStorage)
+    spine1: PointerProperty(name="spine1", type=VecStorage)
+    spine: PointerProperty(name="spine", type=VecStorage)
+    hips: PointerProperty(name="hips", type=VecStorage)
+
+
+class StoreArm(LimbStorageBase):
+    shoulder: PointerProperty(name="shoulder", type=VecStorage)
+    arm: PointerProperty(name="arm", type=VecStorage)
+    # arm_twist: FloatVectorProperty(name="arm_twist", type=VecStorage)
+    forearm: PointerProperty(name="forearm", type=VecStorage)
+    # forearm_twist: FloatVectorProperty(name="forearm_twist", type=VecStorage)
+    hand: PointerProperty(name="hand", type=VecStorage)
 
     name: StringProperty(default='arm')
 
 
-class StoreLeg(VecStorageBase):
-    upleg: FloatVectorProperty(name="upleg")
-    upleg_twist: FloatVectorProperty(name="upleg_twist")
-    leg: FloatVectorProperty(name="leg")
-    leg_twist: FloatVectorProperty(name="leg_twist")
-    foot: FloatVectorProperty(name="foot")
-    toe: FloatVectorProperty(name="toe")
+class StoreLeg(LimbStorageBase):
+    upleg: PointerProperty(name="upleg", type=VecStorage)
+    upleg_twist: PointerProperty(name="upleg_twist", type=VecStorage)
+    leg: PointerProperty(name="leg", type=VecStorage)
+    leg_twist: PointerProperty(name="leg_twist", type=VecStorage)
+    foot: PointerProperty(name="foot", type=VecStorage)
+    toe: PointerProperty(name="toe", type=VecStorage)
 
     name: StringProperty(default='leg')
 
 
-class StoreFinger(VecStorageBase):
-    a: FloatVectorProperty(name="A")
-    b: FloatVectorProperty(name="B")
-    c: FloatVectorProperty(name="C")
+class StoreFinger(LimbStorageBase):
+    a: PointerProperty(name="A", type=VecStorage)
+    b: PointerProperty(name="B", type=VecStorage)
+    c: PointerProperty(name="C", type=VecStorage)
 
 
 class StoreFingers(PropertyGroup):
@@ -74,12 +78,12 @@ class StoreFingers(PropertyGroup):
 
 
 class StoreFaceSimple(PropertyGroup):
-    jaw: FloatVectorProperty(name="jaw")
-    left_eye: FloatVectorProperty(name="left_eye")
-    right_eye: FloatVectorProperty(name="right_eye")
+    jaw: PointerProperty(name="jaw", type=VecStorage)
+    left_eye: PointerProperty(name="left_eye", type=VecStorage)
+    right_eye: PointerProperty(name="right_eye", type=VecStorage)
 
-    left_upLid: FloatVectorProperty(name="left_upLid")
-    right_upLid: FloatVectorProperty(name="right_upLid")
+    left_upLid: PointerProperty(name="left_upLid", type=VecStorage)
+    right_upLid: PointerProperty(name="right_upLid", type=VecStorage)
 
     # super_copy: BoolProperty(default=True)
 
@@ -114,6 +118,7 @@ class StoreSettings(PropertyGroup):
 
 
 def register_classes():
+    bpy.utils.register_class(VecStorage)
     bpy.utils.register_class(StoreSpine)
     bpy.utils.register_class(StoreArm)
     bpy.utils.register_class(StoreLeg)
@@ -137,3 +142,4 @@ def unregister_classes():
 
     bpy.utils.unregister_class(StoreArm)
     bpy.utils.unregister_class(StoreLeg)
+    bpy.utils.unregister_class(VecStorage)
