@@ -344,7 +344,7 @@ class SetToActiveBone(Operator):
     attr_name: StringProperty(default="")
     sub_attr_name: StringProperty(default="")
     slot_name: StringProperty(default="")
-    attr_ptr = PointerProperty(type=properties.RetargetBase)
+    attr_ptr = PointerProperty(type=properties.retarget.RetargetBase)
 
     @classmethod
     def poll(cls, context):

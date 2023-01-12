@@ -5,7 +5,7 @@ from bpy.props import PointerProperty
 from bpy.props import BoolProperty
 from bpy.props import EnumProperty
 
-from . import preset_handler
+from .. import preset_handler
 
 
 class RetargetBase(PropertyGroup):
