@@ -2429,28 +2429,42 @@ class GizmosFromExpyKit(bpy.types.Operator):
     bl_idname = "armature.expykit_set_gizmos"
     bl_label = "Setup Gizmos from ExpyKit"
 
+    src_preset: EnumProperty(items=preset_handler.iterate_presets_with_current,
+                             name="From Config",
+                             options={'SKIP_SAVE'}
+                             )
+
+    bl_options = {'REGISTER', 'UNDO'}
+
     @classmethod
     def poll(cls, context):
         return context.object.type == 'ARMATURE'
 
     def execute(self, context):
         ob = context.object
-        expy_ret = ob.data.expykit_retarget
+
+        src_settings = ob.data.expykit_retarget
+        if self.src_preset == '--Current--' and ob.data.expykit_retarget.has_settings():    
+            if not src_settings.has_settings():
+                return {'FINISHED'}
+        else:
+            src_skeleton = preset_handler.get_preset_skel(self.src_preset, src_settings)
+            if not src_skeleton:
+                return {'FINISHED'}
+            
         expy_def = ob.data.expykit_retarget.deform_preset
         if expy_def:
             def_skel = preset_handler.get_preset_skel(expy_def)
-            if not def_skel:
-                return {'FINISHED'}
         else:
             def_skel = None
 
         for limb_name in 'spine', 'left_arm', 'right_arm', 'left_leg', 'right_leg':
-            grp = getattr(expy_ret, limb_name)
+            grp = getattr(src_settings, limb_name)
             if not grp.has_settings():
                 continue
 
             try:
-                ik_grp = getattr(expy_ret, limb_name + '_ik')
+                ik_grp = getattr(src_settings, limb_name + '_ik')
             except AttributeError:
                 ik_grp = None
 
