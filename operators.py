@@ -2537,6 +2537,39 @@ class GizmosFromExpyKit(bpy.types.Operator):
                     pose_bone.custom_shape_scale_xyz[1] = 0.0
                     pose_bone.custom_shape_scale_xyz[2] = 0.0
 
+            for side in 'left', 'right':
+                pose_fingers = ob.data.expykit_retarget[f'{side}_fingers']
+                def_fingers = getattr(def_skel, f'{side}_fingers')
+                for finger in 'thumb', 'index', 'middle', 'ring', 'pinky':
+                    for idx, attr in zip(range(3), ('a', 'b', 'c')):
+                        bone_name = pose_fingers[finger][attr]
+                        pose_bone = ob.pose.bones[bone_name]
+
+                        def_name = getattr(def_fingers, finger)[idx]
+                        def_bone = ob.pose.bones[def_name]
+
+                        for rob in rigged_obs:
+                            if rob.hide_viewport:
+                                continue
+                            if def_bone.name not in rob.vertex_groups:
+                                continue
+
+                            # TODO: Make this a function and share with previous block
+                            pose_bone.bone_gizmo.shape_object = rob
+                            break
+                        else:
+                            # no rigged mesh found for this bone
+                            continue
+
+                        pose_bone.enable_bone_gizmo = True
+                        pose_bone.bone_gizmo.shape_object = rob
+                        pose_bone.bone_gizmo.vertex_group_name = def_bone.name
+                        pose_bone.bone_gizmo.operator = 'transform.rotate'
+
+                        if self.hide_shape and pose_bone.custom_shape:
+                            pose_bone.custom_shape_scale_xyz[0] = 0.0
+                            pose_bone.custom_shape_scale_xyz[1] = 0.0
+                            pose_bone.custom_shape_scale_xyz[2] = 0.0
 
         bpy.ops.pose.restart_gizmos()
         return {'FINISHED'}
