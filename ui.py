@@ -92,6 +92,9 @@ class AnimMenu(bpy.types.Menu):
         op = row.operator(operators.SelectConstrainedControls.bl_idname, text="Select Animated Controls")
         op.select_type = 'anim'
 
+        row = layout.row()
+        row.operator(operators.GizmosFromExpyKit.bl_idname)
+
 
 def pose_context_options(self, context):
     layout = self.layout

@@ -31,14 +31,16 @@ from . import ui
 from . import preferences
 from . import preset_handler
 from . import properties
+from .thirdparty import bone_gizmos
 
 from . import __refresh__
 __refresh__.reload_modules()
 
 
 def register():
+    bone_gizmos.register()
     properties.register_classes()
-    preferences.register_classes()
+    # preferences.register_classes()
     operators.register_classes()
     ui.register_classes()
 
@@ -48,5 +50,6 @@ def register():
 def unregister():
     ui.unregister_classes()
     operators.unregister_classes()
-    preferences.unregister_classes()
+    # preferences.unregister_classes()
     properties.unregister_classes()
+    bone_gizmos.unregister()

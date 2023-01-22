@@ -1,6 +1,7 @@
 import os
 from importlib import reload
 from . import *
+from .thirdparty import bone_gizmos
 
 def _reload_modules():
     reload(operators)
@@ -8,6 +9,7 @@ def _reload_modules():
     reload(preferences)
     reload(preset_handler)
     reload(properties)
+    reload(bone_gizmos)
     reload(ui)
 
 _DEV_MODE = bool(os.environ.get('BLENDER_DEV_MODE', 0))

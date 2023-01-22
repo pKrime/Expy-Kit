@@ -7,7 +7,7 @@ skeleton.face.right_eye = 'eye_master.R' if 'eye_master.R' in bpy.context.object
 
 skeleton.spine.head = 'head'
 skeleton.spine.neck = 'neck'
-skeleton.spine.spine2 = 'spine_fk.003'
+skeleton.spine.spine2 = 'chest' if 'chest' in bpy.context.object.data.bones else 'spine_fk.003'
 skeleton.spine.spine1 = 'spine_fk.002'
 skeleton.spine.spine = 'spine_fk.001'
 skeleton.spine.hips = 'torso'

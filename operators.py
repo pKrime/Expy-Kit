@@ -2424,6 +2424,90 @@ class RenameActionsFromFbxFiles(bpy.types.Operator, ImportHelper):
         return {'FINISHED'}
 
 
+class GizmosFromExpyKit(bpy.types.Operator):
+    """Set up Bone Gizmos from ExpyKit data"""
+    bl_idname = "armature.expykit_set_gizmos"
+    bl_label = "Setup Gizmos from ExpyKit"
+
+    @classmethod
+    def poll(cls, context):
+        return context.object.type == 'ARMATURE'
+
+    def execute(self, context):
+        ob = context.object
+        expy_ret = ob.data.expykit_retarget
+        expy_def = ob.data.expykit_retarget.deform_preset
+        if expy_def:
+            def_skel = preset_handler.get_preset_skel(expy_def)
+            if not def_skel:
+                return {'FINISHED'}
+        else:
+            def_skel = None
+
+        for limb_name in 'spine', 'left_arm', 'right_arm', 'left_leg', 'right_leg':
+            grp = getattr(expy_ret, limb_name)
+            if not grp.has_settings():
+                continue
+
+            try:
+                ik_grp = getattr(expy_ret, limb_name + '_ik')
+            except AttributeError:
+                ik_grp = None
+
+            for k, v, in grp.items():
+                if k == 'name':
+                    continue
+
+                try:
+                    pose_bone = ob.pose.bones[v]
+                except KeyError:
+                    continue
+
+                if def_skel:
+                    def_grp = getattr(def_skel, limb_name)
+                    
+                    try:
+                        def_bone = ob.pose.bones[getattr(def_grp, k)]
+                    except KeyError:
+                        continue
+                else:
+                    def_bone = pose_bone
+
+                pose_bone.enable_bone_gizmo = True
+                pose_bone.bone_gizmo.vertex_group_name = def_bone.name
+                pose_bone.bone_gizmo.operator = 'transform.rotate'
+
+                if k in ('head', 'hips'):
+                    pose_bone.bone_gizmo.rotation_mode = 'TRACKBALL'
+
+                # FIXME: this gets the first rigged mesh found in the scene, at least look for the VG!
+                rigged_mesh = next(bone_utils.iterate_rigged_obs(ob), None)
+                if rigged_mesh:
+                    pose_bone.bone_gizmo.shape_object = rigged_mesh
+
+                if ik_grp:
+                    try:
+                        pose_ik = ob.pose.bones[ik_grp[k]]
+                    except KeyError:
+                        pass
+                    else:
+                        pose_ik.enable_bone_gizmo = True
+                        pose_ik.bone_gizmo.vertex_group_name = def_bone.name
+                        pose_ik.bone_gizmo.shape_object = rigged_mesh
+
+                        if k in ('hand', 'foot'):
+                            pose_ik.bone_gizmo.operator = 'transform.translate'
+                        else:
+                            pose_ik.bone_gizmo.operator = 'transform.rotate'
+
+                            if k in ('arm', 'up_leg'):
+                                pose_ik.bone_gizmo.rotation_mode = 'TRACKBALL'
+
+        bpy.context.space_data.overlay.show_bones = False
+        bpy.ops.pose.restart_gizmos()
+        return {'FINISHED'}
+
+
 def register_classes():
     bpy.utils.register_class(ActionRangeToScene)
     bpy.utils.register_class(ConstraintStatus)
@@ -2439,6 +2523,7 @@ def register_classes():
     bpy.utils.register_class(CreateTransformOffset)
     bpy.utils.register_class(AddRootMotion)
     bpy.utils.register_class(ActionNameCandidates)
+    bpy.utils.register_class(GizmosFromExpyKit)
 
     bpy.types.Action.expykit_name_candidates = bpy.props.CollectionProperty(type=ActionNameCandidates)
 
@@ -2446,6 +2531,7 @@ def register_classes():
 def unregister_classes():
     del bpy.types.Action.expykit_name_candidates
 
+    bpy.utils.unregister_class(GizmosFromExpyKit)
     bpy.utils.unregister_class(ActionRangeToScene)
     bpy.utils.unregister_class(ConstraintStatus)
     bpy.utils.unregister_class(SelectConstrainedControls)
