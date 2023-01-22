@@ -2434,6 +2434,7 @@ class GizmosFromExpyKit(bpy.types.Operator):
                              options={'SKIP_SAVE'}
                              )
 
+    hide_shape: BoolProperty(default=True, name="Hide Bone Shape")
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
@@ -2442,6 +2443,7 @@ class GizmosFromExpyKit(bpy.types.Operator):
 
     def execute(self, context):
         ob = context.object
+        rigged_obs = list(bone_utils.iterate_rigged_obs(ob))
 
         src_settings = ob.data.expykit_retarget
         if self.src_preset == '--Current--' and ob.data.expykit_retarget.has_settings():    
@@ -2487,17 +2489,25 @@ class GizmosFromExpyKit(bpy.types.Operator):
                 else:
                     def_bone = pose_bone
 
+                for rob in rigged_obs:
+                    if rob.hide_viewport:
+                        continue
+                    if def_bone.name not in rob.vertex_groups:
+                        continue
+
+                    # TODO: it would be better to look for the mesh with more weighted verts
+                    pose_bone.bone_gizmo.shape_object = rob
+                    break
+                else:
+                    # no rigged mesh found for this bone
+                    continue
+
                 pose_bone.enable_bone_gizmo = True
                 pose_bone.bone_gizmo.vertex_group_name = def_bone.name
                 pose_bone.bone_gizmo.operator = 'transform.rotate'
 
                 if k in ('head', 'hips'):
                     pose_bone.bone_gizmo.rotation_mode = 'TRACKBALL'
-
-                # FIXME: this gets the first rigged mesh found in the scene, at least look for the VG!
-                rigged_mesh = next(bone_utils.iterate_rigged_obs(ob), None)
-                if rigged_mesh:
-                    pose_bone.bone_gizmo.shape_object = rigged_mesh
 
                 if ik_grp:
                     try:
@@ -2507,7 +2517,12 @@ class GizmosFromExpyKit(bpy.types.Operator):
                     else:
                         pose_ik.enable_bone_gizmo = True
                         pose_ik.bone_gizmo.vertex_group_name = def_bone.name
-                        pose_ik.bone_gizmo.shape_object = rigged_mesh
+                        pose_ik.bone_gizmo.shape_object = rob
+
+                        if self.hide_shape and pose_bone.custom_shape:
+                            pose_ik.custom_shape_scale_xyz[0] = 0.0
+                            pose_ik.custom_shape_scale_xyz[1] = 0.0
+                            pose_ik.custom_shape_scale_xyz[2] = 0.0
 
                         if k in ('hand', 'foot'):
                             pose_ik.bone_gizmo.operator = 'transform.translate'
@@ -2517,7 +2532,66 @@ class GizmosFromExpyKit(bpy.types.Operator):
                             if k in ('arm', 'up_leg'):
                                 pose_ik.bone_gizmo.rotation_mode = 'TRACKBALL'
 
-        bpy.context.space_data.overlay.show_bones = False
+                if self.hide_shape and pose_bone.custom_shape:
+                    pose_bone.custom_shape_scale_xyz[0] = 0.0
+                    pose_bone.custom_shape_scale_xyz[1] = 0.0
+                    pose_bone.custom_shape_scale_xyz[2] = 0.0
+
+
+        bpy.ops.pose.restart_gizmos()
+        return {'FINISHED'}
+
+
+class GizmosFromSelected(bpy.types.Operator):
+    """Set up Bone Gizmos for selected controls. This is only a stub, prepending DEF- to the selected bone name"""
+    bl_idname = "armature.expykit_set_gizmos_selected"
+    bl_label = "Setup Gizmos from selected"
+
+    hide_shape: BoolProperty(default=True, name="Hide Bone Shape")
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        if context.object.type != 'ARMATURE':
+            return False
+        
+        return context.selected_pose_bones
+
+    def execute(self, context):
+        ob = context.object
+        rigged_obs = list(bone_utils.iterate_rigged_obs(ob))
+
+        for pose_bone in context.selected_pose_bones:
+            try:
+                def_bone = ob.pose.bones[f"DEF-{pose_bone.name}"]
+            except KeyError:
+                if pose_bone.use_deform:
+                    def_bone = pose_bone
+                else:
+                    continue
+
+            for rob in rigged_obs:
+                if rob.hide_viewport:
+                    continue
+                if def_bone.name not in rob.vertex_groups:
+                    continue
+
+                # TODO: it would be better to look for the mesh with more weighted verts
+                pose_bone.bone_gizmo.shape_object = rob
+                break
+            else:
+                # no rigged mesh found for this bone
+                continue
+
+            pose_bone.enable_bone_gizmo = True
+            pose_bone.bone_gizmo.vertex_group_name = def_bone.name
+            pose_bone.bone_gizmo.operator = 'transform.rotate'
+
+            if self.hide_shape and pose_bone.custom_shape:
+                pose_bone.custom_shape_scale_xyz[0] = 0.0
+                pose_bone.custom_shape_scale_xyz[1] = 0.0
+                pose_bone.custom_shape_scale_xyz[2] = 0.0
+
         bpy.ops.pose.restart_gizmos()
         return {'FINISHED'}
 
@@ -2538,6 +2612,7 @@ def register_classes():
     bpy.utils.register_class(AddRootMotion)
     bpy.utils.register_class(ActionNameCandidates)
     bpy.utils.register_class(GizmosFromExpyKit)
+    bpy.utils.register_class(GizmosFromSelected)
 
     bpy.types.Action.expykit_name_candidates = bpy.props.CollectionProperty(type=ActionNameCandidates)
 
@@ -2545,6 +2620,7 @@ def register_classes():
 def unregister_classes():
     del bpy.types.Action.expykit_name_candidates
 
+    bpy.utils.unregister_class(GizmosFromSelected)
     bpy.utils.unregister_class(GizmosFromExpyKit)
     bpy.utils.unregister_class(ActionRangeToScene)
     bpy.utils.unregister_class(ConstraintStatus)

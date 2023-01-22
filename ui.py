@@ -92,8 +92,19 @@ class AnimMenu(bpy.types.Menu):
         op = row.operator(operators.SelectConstrainedControls.bl_idname, text="Select Animated Controls")
         op.select_type = 'anim'
 
+
+class CtrlsMenu(bpy.types.Menu):
+    bl_label = "Controls"
+    bl_idname = "OBJECT_MT_expykit_ctrls_menu"
+
+    def draw(self, context):
+        layout = self.layout
+
         row = layout.row()
         row.operator(operators.GizmosFromExpyKit.bl_idname)
+
+        row = layout.row()
+        row.operator(operators.GizmosFromSelected.bl_idname)
 
 
 def pose_context_options(self, context):
@@ -104,6 +115,7 @@ def pose_context_options(self, context):
     layout.menu(BindingsMenu.bl_idname)
     layout.menu(ConvertMenu.bl_idname)
     layout.menu(AnimMenu.bl_idname)
+    layout.menu(CtrlsMenu.bl_idname)
 
     layout.separator()
 
@@ -695,6 +707,7 @@ def register_classes():
     bpy.utils.register_class(BindingsMenu)
     bpy.utils.register_class(ConvertMenu)
     bpy.utils.register_class(AnimMenu)
+    bpy.utils.register_class(CtrlsMenu)
     bpy.utils.register_class(ActionRenameSimple)
     bpy.utils.register_class(DATA_PT_expy_buttons)
     bpy.utils.register_class(DATA_PT_expy_retarget)
@@ -716,6 +729,7 @@ def unregister_classes():
 
     bpy.utils.unregister_class(BindingsMenu)
     bpy.utils.unregister_class(ConvertMenu)
+    bpy.utils.unregister_class(CtrlsMenu)
     bpy.utils.unregister_class(AnimMenu)
     bpy.utils.unregister_class(ActionRenameSimple)
     bpy.utils.unregister_class(DATA_PT_expy_buttons)
