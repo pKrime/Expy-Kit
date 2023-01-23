@@ -623,7 +623,7 @@ class ExtractMetarig(bpy.types.Operator):
 
 
         # bones that have rigify attr will be copied when the metarig is in edit mode
-        additional_bones = [(b.name, b.rigify_type) for b in src_object.pose.bones if b.rigify_type]
+        additional_bones = [(b.name, b.rigify_type) for b in src_object.pose.bones if b.rigify_type and not (b.name.startswith('DEF-ORG') or b.name.startswith('ORG-'))]
 
         try:
             metarig = next(ob for ob in bpy.data.objects if ob.type == 'ARMATURE' and ob.data.rigify_target_rig == src_object)
@@ -2529,7 +2529,7 @@ class GizmosFromExpyKit(bpy.types.Operator):
                         else:
                             pose_ik.bone_gizmo.operator = 'transform.rotate'
 
-                            if k in ('arm', 'up_leg'):
+                            if k in ('arm', 'upleg'):
                                 pose_ik.bone_gizmo.rotation_mode = 'TRACKBALL'
 
                 if self.hide_shape and pose_bone.custom_shape:

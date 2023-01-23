@@ -369,6 +369,30 @@ class MoveBoneGizmo(Gizmo):
 		return
 
 	def modal(self, context, event, tweak):
+		if event.alt:
+			pb = self.get_pose_bone(context)
+			if event.ctrl:
+				spin_name = self.bone_name.replace('_ik', '_spin_ik')
+				try:
+					spin = context.object.pose.bones[spin_name]
+				except KeyError:
+					pass
+				else:
+					mat = pb.matrix.copy()
+					eu = spin.rotation_quaternion.to_euler()
+					eu[2] += (event.mouse_x - event. mouse_prev_x)/10
+					spin.rotation_quaternion = eu.to_quaternion()
+					pb.matrix = mat
+			else:
+				heel_name = self.bone_name.replace('_ik', '_heel_ik')
+				try:
+					heel = context.object.pose.bones[heel_name]
+				except KeyError:
+					pass
+				else:
+					mat = pb.matrix.copy()
+					heel.rotation_euler[0] += (event.mouse_x - event. mouse_prev_x)/10
+					pb.matrix = mat
 		return {'RUNNING_MODAL'}
 
 classes = (
