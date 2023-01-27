@@ -2424,6 +2424,41 @@ class RenameActionsFromFbxFiles(bpy.types.Operator, ImportHelper):
         return {'FINISHED'}
 
 
+def get_more_verts_ob(rigged_obs, vg_name):
+    weighted_obs = {}
+
+    for rob in rigged_obs:
+        if rob.hide_viewport:
+            continue
+        if vg_name not in rob.vertex_groups:
+            continue
+
+        vg = rob.vertex_groups[vg_name]
+        num_verts = 0
+        for v in rob.data.vertices:
+            try:
+                w = vg.weight(v.index)
+            except RuntimeError:
+                continue
+            else:
+                if w > 0.1:
+                    num_verts += 1
+        
+        if not num_verts:
+            continue
+
+        weighted_obs[rob.name] = num_verts
+    
+    if not weighted_obs:
+        return
+
+    more_verts = max(weighted_obs.values())
+    rob_name = next(w for w in weighted_obs.keys() if weighted_obs[w] == more_verts)
+    rob = bpy.data.objects[rob_name]
+
+    return rob
+
+
 class GizmosFromExpyKit(bpy.types.Operator):
     """Set up Bone Gizmos from ExpyKit data"""
     bl_idname = "armature.expykit_set_gizmos"
@@ -2489,35 +2524,9 @@ class GizmosFromExpyKit(bpy.types.Operator):
                 else:
                     def_bone = pose_bone
 
-                weighted_obs = {}
-                for rob in rigged_obs:
-                    if rob.hide_viewport:
-                        continue
-                    if def_bone.name not in rob.vertex_groups:
-                        continue
-
-                    vg = rob.vertex_groups[def_bone.name]
-                    num_verts = 0
-                    for v in rob.data.vertices:
-                        try:
-                            w = vg.weight(v.index)
-                        except RuntimeError:
-                            continue
-                        else:
-                            if w > 0.1:
-                                num_verts += 1
-                    
-                    if not num_verts:
-                        continue
-
-                    weighted_obs[rob.name] = num_verts
-                
-                if not weighted_obs:
+                rob = get_more_verts_ob(rigged_obs, def_bone.name)
+                if not rob:
                     continue
-
-                more_verts = max(weighted_obs.values())
-                rob_name = next(w for w in weighted_obs.keys() if weighted_obs[w] == more_verts)
-                rob = bpy.data.objects[rob_name]
 
                 pose_bone.bone_gizmo.shape_object = rob
                 pose_bone.enable_bone_gizmo = True
@@ -2621,9 +2630,28 @@ class GizmosFromSelected(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     hide_shape: BoolProperty(default=True, name="Hide Bone Shape")
+    t_operator: EnumProperty(name="Transform Operator", items=[
+			('None', "None", "Only select the bone on click & drag, ignoring the dragging")
+			,('transform.translate', "Translate", "Translate the bone on click & drag")
+			,('transform.rotate', "Rotate", "Rotate the bone on click & drag")
+			,('transform.resize', "Scale", "Scale the bone on click & drag")
+		],
+        default='transform.rotate'
+    )
+    rotation_mode: EnumProperty(
+		name		 = "Rotation Mode"
+		,description = "How the bone should rotate on initial click & drag interaction"
+		,items		 = [
+			('VIEW', "View", "Viewing angle dependent rotation,  same as pressing R or using the outer white ring of the rotation gizmo")
+			,('TRACKBALL', "Trackball", "Trackball-type rotation, could be useful for eyes")
+			,('X', "X", "Rotate along local X axis")
+			,('Y', "Y", "Rotate along local Y axis")
+			,('Z', "Z", "Rotate along local Z axis")
+		]
+		,default	 = 'TRACKBALL'
+	)
 
     vg_prefix: StringProperty(name="prefix", default="DEF-")
-
     vertex_group_name: StringProperty(name="Vertex Group", description="Vertex Group to use as shape for this gizmo")
     shape_object: EnumProperty(name="Shape", items=iterate_mesh_obs)
 
@@ -2640,6 +2668,10 @@ class GizmosFromSelected(bpy.types.Operator):
     def invoke(self, context, event):
         if len(context.selected_pose_bones) == 1:
             def_name = self.vg_prefix + context.active_pose_bone.name
+            if def_name not in context.object.pose.bones:
+                self.vg_prefix = ''
+            def_name = context.active_pose_bone.name
+            self.vertex_group_name = def_name
         else:
             def_name = ""
 
@@ -2649,18 +2681,13 @@ class GizmosFromSelected(bpy.types.Operator):
             ob = None
 
         if ob:
-            self.shape_object = ob
+            self.shape_object = ob.name
         else:
-            for rob in bone_utils.iterate_rigged_obs(context.active_object):
-                if rob.hide_viewport:
-                    continue
-                if def_name and def_name not in rob.vertex_groups:
-                    continue
-
-                self.shape_object = rob.name
-                break
+            if def_name:
+                rob = get_more_verts_ob(bone_utils.iterate_rigged_obs(context.active_object), def_name)
+                self.shape_object = rob.name if rob else '--'
             else:
-                self.shape_object = rob.name
+                self.shape_object = '--'
         
         return self.execute(context)
 
@@ -2668,15 +2695,18 @@ class GizmosFromSelected(bpy.types.Operator):
         ob = context.object
 
         if len(context.selected_pose_bones) > 1:
-            rigged_obs = list(bone_utils.iterate_rigged_obs(ob))
             rob = None
             v_grp = ""
         else:
+            if not self.shape_object:
+                return {'FINISHED'}
+
             rob = bpy.data.objects[self.shape_object]
             v_grp = self.vertex_group_name
 
         for pose_bone in context.selected_pose_bones:
             if len(context.selected_pose_bones) > 1:
+                rob = None
                 v_grp = ""
                 try:
                     def_bone = ob.pose.bones[f"{self.vg_prefix}{pose_bone.name}"]
@@ -2687,27 +2717,22 @@ class GizmosFromSelected(bpy.types.Operator):
                         continue
                 else:
                     v_grp = def_bone.name
-
+            else:
+                v_grp = self.vertex_group_name
             if not rob:
                 if not v_grp:
                     continue
 
-                for rob in rigged_obs:
-                    if rob.hide_viewport:
-                        continue
-                    if v_grp not in rob.vertex_groups:
-                        continue
-
-                    # TODO: it would be better to look for the mesh with more weighted verts
-                    break
-                else:
-                    # no rigged mesh found for this bone
+                rob = get_more_verts_ob(bone_utils.iterate_rigged_obs(ob), v_grp)
+                if not rob:
                     continue
 
             pose_bone.bone_gizmo.shape_object = rob
             pose_bone.enable_bone_gizmo = True
             pose_bone.bone_gizmo.vertex_group_name = v_grp
-            pose_bone.bone_gizmo.operator = 'transform.rotate'
+
+            pose_bone.bone_gizmo.operator = self.t_operator
+            pose_bone.bone_gizmo.rotation_mode = self.rotation_mode
 
             if self.hide_shape and pose_bone.custom_shape:
                 pose_bone.custom_shape_scale_xyz[0] = 0.0
