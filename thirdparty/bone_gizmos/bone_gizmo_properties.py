@@ -6,6 +6,15 @@ from bpy.props import (
 	BoolVectorProperty
 )
 
+def mesh_contains_vg(ob, vg):
+	if ob.type != 'MESH':
+		return False
+	
+	if not vg:
+		return True
+	
+	return vg in ob.vertex_groups
+
 class BoneGizmoProperties(PropertyGroup):
 	operator: EnumProperty(
 		name		 = "Operator"
@@ -40,7 +49,7 @@ class BoneGizmoProperties(PropertyGroup):
 		name		 = "Shape"
 		,type		 = Object
 		,description = "Object to use as shape for this gizmo"
-		,poll		 = lambda self, object: object.type == 'MESH'
+		,poll		 = lambda self, object: mesh_contains_vg(object, self.vertex_group_name)
 	)
 	face_map_name: StringProperty(
 		name		 = "Face Map"
