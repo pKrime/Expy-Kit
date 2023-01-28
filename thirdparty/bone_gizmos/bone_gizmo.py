@@ -9,6 +9,8 @@ from .shapes import MeshShape3D
 # Let's fucking do it.
 is_interacting = False
 
+LOCK_MATRIX = None
+
 class MoveBoneGizmo(Gizmo):
 	"""In order to avoid re-implementing logic for transforming bones with 
 	mouse movements, this gizmo instead binds its offset value to the
@@ -24,6 +26,8 @@ class MoveBoneGizmo(Gizmo):
 	bl_target_properties = (
 		{"id": "offset", "type": 'FLOAT', "array_length": 3},
 	)
+
+	lock_active: bpy.props.BoolProperty(name="Lock Active", default=False)
 
 	__slots__ = (
 		# This __slots__ thing allows us to use arbitrary Python variable 
@@ -344,6 +348,12 @@ class MoveBoneGizmo(Gizmo):
 
 		pb.bone.select = True
 		armature.data.bones.active = pb.bone
+		
+		props = self.get_props(context)
+		if props.child_ctrl:
+			armature.data.bones[props.child_ctrl].select = True
+		global LOCK_MATRIX
+		LOCK_MATRIX = pb.matrix.copy()
 
 		# Allow executing an operator on bone interaction,
 		# based on data stored in the armatures 'gizmo_interaction' custom property.
@@ -369,6 +379,16 @@ class MoveBoneGizmo(Gizmo):
 		return
 
 	def modal(self, context, event, tweak):
+		pb = self.get_pose_bone(context)
+
+		global LOCK_MATRIX
+		if self.lock_active:
+			pb.matrix = LOCK_MATRIX
+
+		if event.type == 'TAB' and event.value == 'PRESS':
+			LOCK_MATRIX = pb.matrix.copy()
+			self.lock_active ^= True
+
 		if event.alt:
 			pb = self.get_pose_bone(context)
 			if event.ctrl:

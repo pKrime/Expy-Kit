@@ -15,6 +15,17 @@ def mesh_contains_vg(ob, vg):
 	
 	return vg in ob.vertex_groups
 
+
+def bone_items(self, context):
+	arma = context.object
+	if arma is None:
+		return
+	
+	items = [("", "", "")]
+	items.extend([(bone.name, bone.name, "") for bone in arma.data.bones if context.active_bone == bone.parent])
+	return items
+
+
 class BoneGizmoProperties(PropertyGroup):
 	operator: EnumProperty(
 		name		 = "Operator"
@@ -59,6 +70,7 @@ class BoneGizmoProperties(PropertyGroup):
 		name		 = "Vertex Group"
 		,description = "Vertex Group to use as shape for this gizmo"
 	)
+	child_ctrl: EnumProperty(items=bone_items)
 	use_face_map: BoolProperty(
 		name		 = "Mesh Mask Type"
 		,description = "Toggle between using Face Maps or Vertex Groups as the mesh masking data"	# Currently it seems face maps are just worse vertex groups, but maybe they are faster, or maybe it's good to have them separated.
