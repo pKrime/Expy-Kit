@@ -385,9 +385,14 @@ class MoveBoneGizmo(Gizmo):
 		if self.lock_active:
 			pb.matrix = LOCK_MATRIX
 
-		if event.type == 'TAB' and event.value == 'PRESS':
-			LOCK_MATRIX = pb.matrix.copy()
-			self.lock_active ^= True
+		if event.value == 'PRESS':
+			if event.type == 'TAB':
+				LOCK_MATRIX = pb.matrix.copy()
+				self.lock_active ^= True
+			
+			if event.type == 'M':
+				print("pressed M")
+				context.object.pose.use_mirror_x ^= True
 
 		if event.alt:
 			pb = self.get_pose_bone(context)
