@@ -356,20 +356,14 @@ class SetToActiveBone(Operator):
     bl_idname = "object.expy_kit_set_to_active_bone"
     bl_label = "Set Expy Kit value to active bone"
 
-    attr_name: StringProperty(default="")
-    sub_attr_name: StringProperty(default="")
-    slot_name: StringProperty(default="")
+    attr_name: StringProperty(default="", options={'SKIP_SAVE'})
+    sub_attr_name: StringProperty(default="", options={'SKIP_SAVE'})
+    slot_name: StringProperty(default="", options={'SKIP_SAVE'})
     attr_ptr = PointerProperty(type=properties.RetargetBase)
 
     @classmethod
     def poll(cls, context):
-        if not context.object:
-            return False
         if not context.active_pose_bone:
-            return False
-        if context.object.type != 'ARMATURE':
-            return False
-        if not context.object.data.expykit_retarget:
             return False
 
         return True
@@ -406,8 +400,8 @@ class MirrorSettings(Operator):
     bl_label = "Mirror Skeleton Mapping"
     bl_options = {'REGISTER', 'UNDO'}
 
-    src_setting: StringProperty(default="")
-    trg_setting: StringProperty(default="")
+    src_setting: StringProperty(default="", options={'SKIP_SAVE'})
+    trg_setting: StringProperty(default="", options={'SKIP_SAVE'})
 
     tolerance: FloatProperty(default=0.001)
 
@@ -424,18 +418,26 @@ class MirrorSettings(Operator):
 
         return True
 
-    def _is_mirrored(self, trg_head, src_head):
+    def _is_mirrored_vec(self, trg_head, src_head):
         epsilon = self.tolerance
         if abs(trg_head.x + src_head.x) > epsilon:
             return False
         if abs(trg_head.y - src_head.y) > epsilon:
             return False
         return abs(trg_head.z - src_head.z) < epsilon
+    
+    def _is_mirrored(self, src_bone, trg_bone):
+        if not self._is_mirrored_vec(src_bone.head_local, trg_bone.head_local):
+            return False
+        if not self._is_mirrored_vec(src_bone.tail_local, trg_bone.tail_local):
+            return False
+        
+        return True
 
     def find_mirrored(self, arm_data, bone):
         # TODO: should be in bone_utils
-        src_head = bone.head_local
-        return next((b for b in arm_data.bones if self._is_mirrored(b.head_local, src_head)), None)
+        # TODO: should select best among mirror candidates
+        return next((b for b in arm_data.bones if self._is_mirrored(bone, b)), None)
 
     def execute(self, context):
         if not self.src_setting:
@@ -461,8 +463,11 @@ class MirrorSettings(Operator):
         if 'fingers' in self.trg_setting:
             for finger_name in ('thumb', 'index', 'middle', 'ring', 'pinky'):
                 for attr_name in ('a', 'b', 'c'):
+                    bone_name = getattr(getattr(src_grp, finger_name), attr_name)
+                    if not bone_name:
+                        continue
                     m_bone = self.find_mirrored(arm_data,
-                                                arm_data.bones[getattr(getattr(src_grp, finger_name), attr_name)])
+                                                arm_data.bones[bone_name])
                     if not m_bone:
                         continue
 
