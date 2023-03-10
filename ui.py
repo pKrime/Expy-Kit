@@ -348,13 +348,7 @@ class SetToActiveBone(Operator):
 
     @classmethod
     def poll(cls, context):
-        if not context.object:
-            return False
         if not context.active_pose_bone:
-            return False
-        if context.object.type != 'ARMATURE':
-            return False
-        if not context.object.data.expykit_retarget:
             return False
 
         return True
@@ -409,18 +403,26 @@ class MirrorSettings(Operator):
 
         return True
 
-    def _is_mirrored(self, trg_head, src_head):
+    def _is_mirrored_vec(self, trg_head, src_head):
         epsilon = self.tolerance
         if abs(trg_head.x + src_head.x) > epsilon:
             return False
         if abs(trg_head.y - src_head.y) > epsilon:
             return False
         return abs(trg_head.z - src_head.z) < epsilon
+    
+    def _is_mirrored(self, src_bone, trg_bone):
+        if not self._is_mirrored_vec(src_bone.head_local, trg_bone.head_local):
+            return False
+        if not self._is_mirrored_vec(src_bone.tail_local, trg_bone.tail_local):
+            return False
+        
+        return True
 
     def find_mirrored(self, arm_data, bone):
         # TODO: should be in bone_utils
-        src_head = bone.head_local
-        return next((b for b in arm_data.bones if self._is_mirrored(b.head_local, src_head)), None)
+        # TODO: should select best among mirror candidates
+        return next((b for b in arm_data.bones if self._is_mirrored(bone, b)), None)
 
     def execute(self, context):
         if not self.src_setting:
