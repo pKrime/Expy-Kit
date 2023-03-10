@@ -341,9 +341,9 @@ class SetToActiveBone(Operator):
     bl_idname = "object.expy_kit_set_to_active_bone"
     bl_label = "Set Expy Kit value to active bone"
 
-    attr_name: StringProperty(default="")
-    sub_attr_name: StringProperty(default="")
-    slot_name: StringProperty(default="")
+    attr_name: StringProperty(default="", options={'SKIP_SAVE'})
+    sub_attr_name: StringProperty(default="", options={'SKIP_SAVE'})
+    slot_name: StringProperty(default="", options={'SKIP_SAVE'})
     attr_ptr = PointerProperty(type=properties.RetargetBase)
 
     @classmethod
@@ -391,8 +391,8 @@ class MirrorSettings(Operator):
     bl_label = "Mirror Skeleton Mapping"
     bl_options = {'REGISTER', 'UNDO'}
 
-    src_setting: StringProperty(default="")
-    trg_setting: StringProperty(default="")
+    src_setting: StringProperty(default="", options={'SKIP_SAVE'})
+    trg_setting: StringProperty(default="", options={'SKIP_SAVE'})
 
     tolerance: FloatProperty(default=0.001)
 
@@ -446,8 +446,11 @@ class MirrorSettings(Operator):
         if 'fingers' in self.trg_setting:
             for finger_name in ('thumb', 'index', 'middle', 'ring', 'pinky'):
                 for attr_name in ('a', 'b', 'c'):
+                    bone_name = getattr(getattr(src_grp, finger_name), attr_name)
+                    if not bone_name:
+                        continue
                     m_bone = self.find_mirrored(arm_data,
-                                                arm_data.bones[getattr(getattr(src_grp, finger_name), attr_name)])
+                                                arm_data.bones[bone_name])
                     if not m_bone:
                         continue
 
