@@ -2478,7 +2478,6 @@ class GizmosFromExpyKit(bpy.types.Operator):
 
     def execute(self, context):
         ob = context.object
-        rigged_obs = list(bone_utils.iterate_rigged_obs(ob))
 
         src_settings = ob.data.expykit_retarget
         if self.src_preset == '--Current--' and ob.data.expykit_retarget.has_settings():    
@@ -2494,6 +2493,25 @@ class GizmosFromExpyKit(bpy.types.Operator):
             def_skel = preset_handler.get_preset_skel(expy_def)
         else:
             def_skel = None
+
+        rigged_orig = list(bone_utils.iterate_rigged_obs(ob))
+
+        rigged_obs = list([o.copy() for o in rigged_orig])
+        collection = bpy.data.collections.new(f"GISMO_{ob.name}")
+
+        for o in rigged_obs:
+            for mod in reversed(o.modifiers):
+                if mod.type == 'ARMATURE':
+                    break
+                o.modifiers.remove(mod)
+            collection.objects.link(o)
+
+        context.scene.collection.children.link(collection)
+
+        collection.hide_render = True
+        for layer in context.view_layer.layer_collection.children:
+            if layer.name == collection.name:
+                layer.hide_viewport = True
 
         for limb_name in 'spine', 'left_arm', 'right_arm', 'left_leg', 'right_leg':
             grp = getattr(src_settings, limb_name)
