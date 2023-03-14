@@ -84,10 +84,10 @@ class RetargetFaceSimple(PropertyGroup):
 
 
 class RetargetSettings(PropertyGroup):
-    twist_on: BoolProperty(default=False)
-    ik_on: BoolProperty(default=False)
-    fingers_on: BoolProperty(default=False)
-    face_on: BoolProperty(default=False)
+    arm_twist_on: BoolProperty(default=False)
+    arm_ik_on: BoolProperty(default=False)
+    leg_twist_on: BoolProperty(default=False)
+    leg_ik_on: BoolProperty(default=False)
 
     face: PointerProperty(type=RetargetFaceSimple)
     spine: PointerProperty(type=RetargetSpine)
