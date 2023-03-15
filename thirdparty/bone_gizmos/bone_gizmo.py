@@ -352,6 +352,8 @@ class MoveBoneGizmo(Gizmo):
 		props = self.get_props(context)
 		if props.child_ctrl:
 			armature.data.bones[props.child_ctrl].select = True
+			context.scene.tool_settings.transform_pivot_point = 'INDIVIDUAL_ORIGINS'
+
 		global LOCK_MATRIX
 		LOCK_MATRIX = pb.matrix.copy()
 
@@ -388,7 +390,7 @@ class MoveBoneGizmo(Gizmo):
 		if event.value == 'PRESS':
 			if event.type == 'TAB':
 				LOCK_MATRIX = pb.matrix.copy()
-				self.lock_active ^= True
+				self.lock_active ^= True		
 			
 			if event.type == 'M':
 				print("pressed M")

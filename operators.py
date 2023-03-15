@@ -2553,6 +2553,10 @@ class GizmosFromExpyKit(bpy.types.Operator):
 
                 if k in ('head', 'hips'):
                     pose_bone.bone_gizmo.rotation_mode = 'TRACKBALL'
+                
+                    if pose_bone.name == "torso":
+                        ob.data.bones.active = ob.data.bones[pose_bone.name]
+                        pose_bone.bone_gizmo.child_ctrl = 'hips'
 
                 if ik_grp:
                     try:

@@ -84,6 +84,7 @@ class POSE_OT_Edit_Gizmo_Mask(bpy.types.Operator):
             if self.create_new:
                 fm = shape_object.vertex_groups.new(name="FM_"+pb.name)
                 bg.vertex_group_name = fm.name
+                bg.child_ctrl = pb.bone_gizmo.child_ctrl
             else:
                 shape_object.vertex_groups.active_index = shape_object.vertex_groups.find(bg.vertex_group_name)
             bpy.ops.object.vertex_group_select()
