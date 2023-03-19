@@ -22,7 +22,7 @@ def bone_items(self, context):
 		return
 	
 	items = [("", "", "")]
-	items.extend([(bone.name, bone.name, "") for bone in arma.data.bones if context.active_bone == bone.parent])
+	items.extend([(bone.name, bone.name, "") for bone in context.active_bone.children])
 	return items
 
 
@@ -70,11 +70,21 @@ class BoneGizmoProperties(PropertyGroup):
 		name		 = "Vertex Group"
 		,description = "Vertex Group to use as shape for this gizmo"
 	)
-	child_ctrl: EnumProperty(items=bone_items)
 	use_face_map: BoolProperty(
 		name		 = "Mesh Mask Type"
 		,description = "Toggle between using Face Maps or Vertex Groups as the mesh masking data"	# Currently it seems face maps are just worse vertex groups, but maybe they are faster, or maybe it's good to have them separated.
 	)
+	action_2: EnumProperty(
+		name="Secondary Action",
+		description="Secondary action associated to this Gizmo",
+		items = [
+			('SWITCH_TO_CHILD', 'Switch to child', 'Switch to child bone'),
+			('--', 'None', "No secondary action")
+		],
+		default='--'
+	)
+
+	child_ctrl: EnumProperty(items=bone_items)
 
 	gizmo_color_source: EnumProperty(
 		name		 = "Color Source"

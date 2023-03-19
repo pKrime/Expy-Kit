@@ -1,6 +1,7 @@
 import os
 from importlib import reload
 from . import *
+from . import bone_utils
 from .thirdparty import bone_gizmos
 
 def _reload_modules():

@@ -60,7 +60,10 @@ class BONEGIZMO_PT_bone_gizmo_settings(Panel):
 
 		layout.separator()
 
-		layout.prop(props, 'child_ctrl')
+		layout.prop(props, 'action_2')
+		if props.action_2 == 'SWITCH_TO_CHILD':
+			layout.prop(props, 'child_ctrl')
+
 		layout.prop(props, 'shape_object')
 		if props.shape_object:
 			row = layout.row(align=True)

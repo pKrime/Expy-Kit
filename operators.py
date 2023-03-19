@@ -2469,7 +2469,8 @@ class GizmosFromExpyKit(bpy.types.Operator):
                              options={'SKIP_SAVE'}
                              )
 
-    hide_shape: BoolProperty(default=True, name="Hide Bone Shape")
+    hide_shape: BoolProperty(default=True, name="Hide Bone Shapes")
+    skip_tweak: BoolProperty(default=True, name="Skip Tweak Bones")
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
@@ -2497,14 +2498,14 @@ class GizmosFromExpyKit(bpy.types.Operator):
         rigged_orig = list(bone_utils.iterate_rigged_obs(ob))
 
         rigged_obs = list([o.copy() for o in rigged_orig])
-        collection = bpy.data.collections.new(f"GISMO_{ob.name}")
+        collection = bpy.data.collections.new(f"GIZMO_{ob.name}")
 
-        for o in rigged_obs:
-            for mod in reversed(o.modifiers):
+        for ro in rigged_obs:
+            for mod in reversed(ro.modifiers):
                 if mod.type == 'ARMATURE':
                     break
-                o.modifiers.remove(mod)
-            collection.objects.link(o)
+                ro.modifiers.remove(mod)
+            collection.objects.link(ro)
 
         context.scene.collection.children.link(collection)
 
@@ -2526,7 +2527,8 @@ class GizmosFromExpyKit(bpy.types.Operator):
             for k, v, in grp.items():
                 if k == 'name':
                     continue
-
+                if k.endswith('_twist'):
+                    continue
                 try:
                     pose_bone = ob.pose.bones[v]
                 except KeyError:
@@ -2554,9 +2556,16 @@ class GizmosFromExpyKit(bpy.types.Operator):
                 if k in ('head', 'hips'):
                     pose_bone.bone_gizmo.rotation_mode = 'TRACKBALL'
                 
-                    if pose_bone.name == "torso":
-                        ob.data.bones.active = ob.data.bones[pose_bone.name]
-                        pose_bone.bone_gizmo.child_ctrl = 'hips'
+                    if k == 'hips':
+                        try:
+                            hip_bone = ob.pose.bones['hips']
+                        except KeyError:
+                            pass
+                        else:
+                            pose_bone.bone_gizmo.action_2 = 'SWITCH_TO_CHILD'
+                            # child_ctrl enum options depend on active bone
+                            ob.data.bones.active = ob.data.bones[pose_bone.name]
+                            pose_bone.bone_gizmo.child_ctrl = 'hips'
 
                 if ik_grp:
                     try:

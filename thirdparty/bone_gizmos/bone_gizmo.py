@@ -7,8 +7,10 @@ import gpu
 from .shapes import MeshShape3D
 
 # Let's fucking do it.
+#     Okay!
 is_interacting = False
 
+# Used for locking active bone during secondary interaction
 LOCK_MATRIX = None
 
 class MoveBoneGizmo(Gizmo):
@@ -350,9 +352,9 @@ class MoveBoneGizmo(Gizmo):
 		armature.data.bones.active = pb.bone
 		
 		props = self.get_props(context)
-		if props.child_ctrl:
+		if props.child_ctrl and props.action_2 == 'SWITCH_TO_CHILD':
 			armature.data.bones[props.child_ctrl].select = True
-			context.scene.tool_settings.transform_pivot_point = 'INDIVIDUAL_ORIGINS'
+			# TODO: warning if context.scene.tool_settings.transform_pivot_point != 'INDIVIDUAL_ORIGINS'
 
 		global LOCK_MATRIX
 		LOCK_MATRIX = pb.matrix.copy()
@@ -389,8 +391,9 @@ class MoveBoneGizmo(Gizmo):
 
 		if event.value == 'PRESS':
 			if event.type == 'TAB':
-				LOCK_MATRIX = pb.matrix.copy()
-				self.lock_active ^= True		
+				if pb.bone_gizmo.action_2 == "SWITCH_TO_CHILD":
+					LOCK_MATRIX = pb.matrix.copy()
+					self.lock_active ^= True		
 			
 			if event.type == 'M':
 				print("pressed M")
