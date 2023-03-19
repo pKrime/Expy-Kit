@@ -677,6 +677,18 @@ class DATA_PT_expy_retarget_fingers(RetargetBasePanel, bpy.types.Panel):
         m_props[1].src_setting = "right_fingers"
 
 
+class DATA_PT_expy_retarget_arms_IK(RetargetBasePanel, bpy.types.Panel):
+    bl_label = "Arms IK"
+
+    def draw(self, context):
+        ob = context.object
+        layout = self.layout
+
+        skeleton = ob.data.expykit_retarget
+        arm_bones = ('shoulder', 'arm', 'forearm', 'hand')
+
+        self.sided_rows(ob, (skeleton.right_arm_ik, skeleton.left_arm_ik), arm_bones, suffix=" IK")
+
 
 class DATA_PT_expy_retarget_arms(RetargetBasePanel, bpy.types.Panel):
     bl_label = "Arms"
@@ -687,17 +699,14 @@ class DATA_PT_expy_retarget_arms(RetargetBasePanel, bpy.types.Panel):
 
         skeleton = ob.data.expykit_retarget
 
-        row = layout.row(align=True)
+        row = layout.row()
+        row.prop(ob.data, "expykit_twist_on", text="Display Twist Bones")
         
-        row.prop(skeleton, "arm_twist_on", text="Twist", toggle=True)
-        row.prop(skeleton, "arm_ik_on", text="IK", toggle=True)
-
-        if skeleton.arm_twist_on:
+        if ob.data.expykit_twist_on:
             arm_bones = ('shoulder', 'arm', 'arm_twist', 'forearm', 'forearm_twist', 'hand')
         else:
             arm_bones = ('shoulder', 'arm', 'forearm', 'hand')
-        if skeleton.arm_ik_on:
-            self.sided_rows(ob, (skeleton.right_arm_ik, skeleton.left_arm_ik), arm_bones, suffix=" IK")
+
         self.sided_rows(ob, (skeleton.right_arm, skeleton.left_arm), arm_bones)
 
 
@@ -718,6 +727,18 @@ class DATA_PT_expy_retarget_spine(RetargetBasePanel, bpy.types.Panel):
             props.slot_name = slot
 
 
+class DATA_PT_expy_retarget_leg_IK(RetargetBasePanel, bpy.types.Panel):
+    bl_label = "Legs IK"
+
+    def draw(self, context):
+        ob = context.object
+
+        skeleton = ob.data.expykit_retarget
+        
+        leg_bones = ('upleg', 'leg', 'foot', 'toe')
+        self.sided_rows(ob, (skeleton.right_leg_ik, skeleton.left_leg_ik), leg_bones, suffix=" IK")
+
+
 class DATA_PT_expy_retarget_leg(RetargetBasePanel, bpy.types.Panel):
     bl_label = "Legs"
 
@@ -727,15 +748,13 @@ class DATA_PT_expy_retarget_leg(RetargetBasePanel, bpy.types.Panel):
         skeleton = ob.data.expykit_retarget
 
         row = self.layout.row(align=True)
-        row.prop(skeleton, "leg_twist_on", text="Twist", toggle=True)
-        row.prop(skeleton, "leg_ik_on", text="IK", toggle=True)
+        row.prop(ob.data, "expykit_twist_on", text="Display Twist Bones")
 
-        if skeleton.leg_twist_on:
+        if ob.data.expykit_twist_on:
             leg_bones = ('upleg', 'upleg_twist', 'leg', 'leg_twist', 'foot', 'toe')
         else:
             leg_bones = ('upleg', 'leg', 'foot', 'toe')
-        if skeleton.leg_ik_on:
-            self.sided_rows(ob, (skeleton.right_leg_ik, skeleton.left_leg_ik), leg_bones, suffix=" IK")
+
         self.sided_rows(ob, (skeleton.right_leg, skeleton.left_leg), leg_bones)
 
 
@@ -780,8 +799,10 @@ def register_classes():
     bpy.utils.register_class(DATA_PT_expy_retarget)
     bpy.utils.register_class(DATA_PT_expy_retarget_face)
     bpy.utils.register_class(DATA_PT_expy_retarget_fingers)
+    bpy.utils.register_class(DATA_PT_expy_retarget_arms_IK)
     bpy.utils.register_class(DATA_PT_expy_retarget_arms)
     bpy.utils.register_class(DATA_PT_expy_retarget_spine)
+    bpy.utils.register_class(DATA_PT_expy_retarget_leg_IK)
     bpy.utils.register_class(DATA_PT_expy_retarget_leg)
     bpy.utils.register_class(DATA_PT_expy_retarget_root)
 
@@ -808,8 +829,10 @@ def unregister_classes():
     bpy.utils.unregister_class(DATA_PT_expy_buttons)
     bpy.utils.unregister_class(DATA_PT_expy_retarget)
     bpy.utils.unregister_class(DATA_PT_expy_retarget_root)
+    bpy.utils.unregister_class(DATA_PT_expy_retarget_leg_IK)
     bpy.utils.unregister_class(DATA_PT_expy_retarget_leg)
     bpy.utils.unregister_class(DATA_PT_expy_retarget_spine)
+    bpy.utils.unregister_class(DATA_PT_expy_retarget_arms_IK)
     bpy.utils.unregister_class(DATA_PT_expy_retarget_arms)
     bpy.utils.unregister_class(DATA_PT_expy_retarget_fingers)
     bpy.utils.unregister_class(DATA_PT_expy_retarget_face)
