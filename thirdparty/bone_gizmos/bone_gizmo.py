@@ -13,6 +13,9 @@ is_interacting = False
 # Used for locking active bone during secondary interaction
 LOCK_MATRIX = None
 
+ASSOCIATED_BONES = []
+
+
 class MoveBoneGizmo(Gizmo):
 	"""In order to avoid re-implementing logic for transforming bones with 
 	mouse movements, this gizmo instead binds its offset value to the
@@ -30,6 +33,7 @@ class MoveBoneGizmo(Gizmo):
 	)
 
 	lock_active: bpy.props.BoolProperty(name="Lock Active", default=False)
+	current_associate: bpy.props.IntProperty(name="Current Associate", default=-1, min=-1)
 
 	__slots__ = (
 		# This __slots__ thing allows us to use arbitrary Python variable 
@@ -351,11 +355,17 @@ class MoveBoneGizmo(Gizmo):
 		pb.bone.select = True
 		armature.data.bones.active = pb.bone
 		
+		global ASSOCIATED_BONES
+		ASSOCIATED_BONES = []
+		self.current_associate = -1
+		self.lock_active = False
 		for a_pb in armature.pose.bones:
 			if a_pb.bone_gizmo.associate_with == pb.name:
-				if a_pb.bone_gizmo.associate_action == 'SELECT_ALONG':
-					armature.data.bones[a_pb.name].select = True
+				armature.data.bones[a_pb.name].select = True
+				#if a_pb.bone_gizmo.associate_action == 'SELECT_ALONG':
 					# TODO: warning if context.scene.tool_settings.transform_pivot_point != 'INDIVIDUAL_ORIGINS'
+				if a_pb.bone_gizmo.associate_action != '--':
+					ASSOCIATED_BONES.append(a_pb)
 
 		global LOCK_MATRIX
 		LOCK_MATRIX = pb.matrix.copy()
@@ -394,10 +404,30 @@ class MoveBoneGizmo(Gizmo):
 			context.object.pose.use_mirror_x ^= True
 
 		if event.value == pb.bone_gizmo.modifier_type and event.type == pb.bone_gizmo.modifier_key:
-				if pb.bone_gizmo.modifier_action == "TOGGLE_LOCK":
-					LOCK_MATRIX = pb.matrix.copy()
-					self.lock_active ^= True		
+			self.current_associate += 1
+			if self.current_associate < len(ASSOCIATED_BONES):
+				LOCK_MATRIX = pb.matrix.copy()
+				self.lock_active = True
+			else:
+				self.current_associate = -1
+				self.lock_active = False	
 
+		if self.lock_active:
+			delta = event.mouse_x - event. mouse_prev_x
+			delta /= 10
+
+			a_pb = ASSOCIATED_BONES[self.current_associate]
+			if a_pb.bone_gizmo.associate_transform == 'ROTATE':
+				if a_pb.rotation_mode == 'QUATERNION':
+					eu_rot = a_pb.rotation_quaternion.to_euler()
+					eu_rot[int(a_pb.bone_gizmo.associate_axis)] += delta
+					a_pb.rotation_quaternion = eu_rot.to_quaternion()
+				elif a_pb.rotation_mode == 'AXIS_ANGLE':
+					# TODO:
+					pass
+				else:
+					a_pb.rotation_euler[int(a_pb.bone_gizmo.associate_axis)] += delta
+				
 		# if event.alt:
 		# 	pb = self.get_pose_bone(context)
 		# 	if event.ctrl:

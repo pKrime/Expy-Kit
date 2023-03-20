@@ -109,12 +109,12 @@ class BoneGizmoProperties(PropertyGroup):
 	associate_axis: EnumProperty(
 		name="Associate axis",
 		items=[
-			('X', "X", "X axis"),
-			('Y', "Y", "Y axis"),
-			('Z', "Z", "Z axis"),
-			('W', "W", "W axis (only quat, angle/axis rotation)"),
+			('0', "X", "X axis"),
+			('1', "Y", "Y axis"),
+			('2', "Z", "Z axis"),
+			#('W', "W", "W axis (only quat, angle/axis rotation)"),
 		],
-		default='X'
+		default='0'
 	)
 	modifier_action: EnumProperty(
 		name="Modifier Action",
