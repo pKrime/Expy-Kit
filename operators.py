@@ -2424,7 +2424,7 @@ class RenameActionsFromFbxFiles(bpy.types.Operator, ImportHelper):
         return {'FINISHED'}
 
 
-def get_more_verts_ob(rigged_obs, vg_name):
+def get_more_verts_ob(rigged_obs, vg_name, secondary_vg=''):
     weighted_obs = {}
 
     for rob in rigged_obs:
@@ -2451,6 +2451,14 @@ def get_more_verts_ob(rigged_obs, vg_name):
     
     if not weighted_obs:
         return
+
+    if len(weighted_obs) > 1 and secondary_vg:
+        print("Also looking for", secondary_vg, "when checking for", vg_name)
+        refined_obs = {wob:weighted_obs[wob] for wob in weighted_obs if secondary_vg in bpy.data.objects[wob].vertex_groups}
+        if refined_obs:
+            weighted_obs = refined_obs
+
+    # TODO: get bbox instead
 
     more_verts = max(weighted_obs.values())
     rob_name = next(w for w in weighted_obs.keys() if weighted_obs[w] == more_verts)
@@ -2544,7 +2552,13 @@ class GizmosFromExpyKit(bpy.types.Operator):
                 else:
                     def_bone = pose_bone
 
-                rob = get_more_verts_ob(rigged_obs, def_bone.name)
+                if k == 'head':
+                    if def_skel:
+                        rob = get_more_verts_ob(rigged_obs, def_bone.name, secondary_vg=def_grp['neck'])
+                    else:
+                        rob = get_more_verts_ob(rigged_obs, def_bone.name, secondary_vg=grp['neck'])
+                else:
+                    rob = get_more_verts_ob(rigged_obs, def_bone.name)
                 if not rob:
                     continue
 
@@ -2562,7 +2576,7 @@ class GizmosFromExpyKit(bpy.types.Operator):
                         except KeyError:
                             pass
                         else:
-                            pose_bone.bone_gizmo.action_2 = 'SWITCH_TO_CHILD'
+                            pose_bone.bone_gizmo.secondary = 'SWITCH_TO_CHILD'
                             # child_ctrl enum options depend on active bone
                             ob.data.bones.active = ob.data.bones[pose_bone.name]
                             pose_bone.bone_gizmo.child_ctrl = 'hips'

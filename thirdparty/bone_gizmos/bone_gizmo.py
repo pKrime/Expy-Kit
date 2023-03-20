@@ -352,7 +352,7 @@ class MoveBoneGizmo(Gizmo):
 		armature.data.bones.active = pb.bone
 		
 		props = self.get_props(context)
-		if props.child_ctrl and props.action_2 == 'SWITCH_TO_CHILD':
+		if props.child_ctrl and props.secondary_switch == 'SWITCH_TO_CHILD':
 			armature.data.bones[props.child_ctrl].select = True
 			# TODO: warning if context.scene.tool_settings.transform_pivot_point != 'INDIVIDUAL_ORIGINS'
 

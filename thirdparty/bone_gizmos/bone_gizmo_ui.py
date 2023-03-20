@@ -60,8 +60,8 @@ class BONEGIZMO_PT_bone_gizmo_settings(Panel):
 
 		layout.separator()
 
-		layout.prop(props, 'action_2')
-		if props.action_2 == 'SWITCH_TO_CHILD':
+		layout.prop(props, 'secondary_switch')
+		if props.secondary_switch	 == 'SWITCH_TO_CHILD':
 			layout.prop(props, 'child_ctrl')
 
 		layout.prop(props, 'shape_object')

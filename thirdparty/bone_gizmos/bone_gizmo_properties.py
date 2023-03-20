@@ -74,8 +74,8 @@ class BoneGizmoProperties(PropertyGroup):
 		name		 = "Mesh Mask Type"
 		,description = "Toggle between using Face Maps or Vertex Groups as the mesh masking data"	# Currently it seems face maps are just worse vertex groups, but maybe they are faster, or maybe it's good to have them separated.
 	)
-	action_2: EnumProperty(
-		name="Secondary Action",
+	secondary_switch: EnumProperty(
+		name="Secondary Trigger Action",
 		description="Secondary action associated to this Gizmo",
 		items = [
 			('SWITCH_TO_CHILD', 'Switch to child', 'Switch to child bone'),
