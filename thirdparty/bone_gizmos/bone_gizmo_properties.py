@@ -130,8 +130,10 @@ class BoneGizmoProperties(PropertyGroup):
 		description="Key for triggering action",
 		items=[
 			("TAB", "Tab", ""),
-			("CTRL", "Ctrl", ""),
-			("ALT", "alt", ""),
+			("LEFT_CTRL", "Left Ctrl", ""),
+			("LEFT_ALT", "Left Alt", ""),
+			("RIGHT_CTRL", "Right Ctrl", ""),
+			("RIGHT_ALT", "Right Alt", ""),
 			("--", "None", "")
 		],
 		default='--'
