@@ -24,8 +24,24 @@ class BONEGIZMO_PT_bone_gizmo_settings(Panel):
 		pb = context.active_pose_bone
 		props = pb.bone_gizmo
 		layout = self.layout
+		
 		layout.use_property_split = True
 		layout.use_property_decorate = False
+
+		col = layout.column(align=True)
+		col.prop(props, 'associate_with', text="Associate with:")
+		if props.associate_with != "--":
+			col.prop(props, 'associate_action')
+		if props.associate_action == 'SELECT_DRAG':
+			col.prop(props, 'associate_transform')
+			col.prop(props, 'associate_axis')
+		
+		col.label(text="Function Key")
+		row = col.row()
+		row.prop(props, 'modifier_type', text="")
+		row.prop(props, 'modifier_key', text="")
+		row.prop(props, 'modifier_action', text="")
+
 		layout = layout.column(align=True)
 
 		if not overlay_enabled:
@@ -59,10 +75,6 @@ class BONEGIZMO_PT_bone_gizmo_settings(Panel):
 			row.prop(props, 'transform_axes', index=2, toggle=True, text="Z")
 
 		layout.separator()
-
-		layout.prop(props, 'secondary_switch')
-		if props.secondary_switch	 == 'SWITCH_TO_CHILD':
-			layout.prop(props, 'child_ctrl')
 
 		layout.prop(props, 'shape_object')
 		if props.shape_object:

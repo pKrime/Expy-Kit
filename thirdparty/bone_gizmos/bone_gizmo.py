@@ -351,10 +351,11 @@ class MoveBoneGizmo(Gizmo):
 		pb.bone.select = True
 		armature.data.bones.active = pb.bone
 		
-		props = self.get_props(context)
-		if props.child_ctrl and props.secondary_switch == 'SWITCH_TO_CHILD':
-			armature.data.bones[props.child_ctrl].select = True
-			# TODO: warning if context.scene.tool_settings.transform_pivot_point != 'INDIVIDUAL_ORIGINS'
+		for a_pb in armature.pose.bones:
+			if a_pb.bone_gizmo.associate_with == pb.name:
+				if a_pb.bone_gizmo.associate_action == 'SELECT_ALONG':
+					armature.data.bones[a_pb.name].select = True
+					# TODO: warning if context.scene.tool_settings.transform_pivot_point != 'INDIVIDUAL_ORIGINS'
 
 		global LOCK_MATRIX
 		LOCK_MATRIX = pb.matrix.copy()
@@ -389,40 +390,38 @@ class MoveBoneGizmo(Gizmo):
 		if self.lock_active:
 			pb.matrix = LOCK_MATRIX
 
-		if event.value == 'PRESS':
-			if event.type == 'TAB':
-				if pb.bone_gizmo.action_2 == "SWITCH_TO_CHILD":
+		if event.value == 'PRESS' and event.type == 'M':
+			context.object.pose.use_mirror_x ^= True
+
+		if event.value == pb.bone_gizmo.modifier_type and event.type == pb.bone_gizmo.modifier_key:
+				if pb.bone_gizmo.modifier_action == "TOGGLE_LOCK":
 					LOCK_MATRIX = pb.matrix.copy()
 					self.lock_active ^= True		
-			
-			if event.type == 'M':
-				print("pressed M")
-				context.object.pose.use_mirror_x ^= True
 
-		if event.alt:
-			pb = self.get_pose_bone(context)
-			if event.ctrl:
-				spin_name = self.bone_name.replace('_ik', '_spin_ik')
-				try:
-					spin = context.object.pose.bones[spin_name]
-				except KeyError:
-					pass
-				else:
-					mat = pb.matrix.copy()
-					eu = spin.rotation_quaternion.to_euler()
-					eu[2] += (event.mouse_x - event. mouse_prev_x)/10
-					spin.rotation_quaternion = eu.to_quaternion()
-					pb.matrix = mat
-			else:
-				heel_name = self.bone_name.replace('_ik', '_heel_ik')
-				try:
-					heel = context.object.pose.bones[heel_name]
-				except KeyError:
-					pass
-				else:
-					mat = pb.matrix.copy()
-					heel.rotation_euler[0] += (event.mouse_x - event. mouse_prev_x)/10
-					pb.matrix = mat
+		# if event.alt:
+		# 	pb = self.get_pose_bone(context)
+		# 	if event.ctrl:
+		# 		spin_name = self.bone_name.replace('_ik', '_spin_ik')
+		# 		try:
+		# 			spin = context.object.pose.bones[spin_name]
+		# 		except KeyError:
+		# 			pass
+		# 		else:
+		# 			mat = pb.matrix.copy()
+		# 			eu = spin.rotation_quaternion.to_euler()
+		# 			eu[2] += (event.mouse_x - event. mouse_prev_x)/10
+		# 			spin.rotation_quaternion = eu.to_quaternion()
+		# 			pb.matrix = mat
+		# 	else:
+		# 		heel_name = self.bone_name.replace('_ik', '_heel_ik')
+		# 		try:
+		# 			heel = context.object.pose.bones[heel_name]
+		# 		except KeyError:
+		# 			pass
+		# 		else:
+		# 			mat = pb.matrix.copy()
+		# 			heel.rotation_euler[0] += (event.mouse_x - event. mouse_prev_x)/10
+		# 			pb.matrix = mat
 		return {'RUNNING_MODAL'}
 
 classes = (

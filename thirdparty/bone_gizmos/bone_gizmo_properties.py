@@ -26,6 +26,16 @@ def bone_items(self, context):
 	return items
 
 
+def gizmo_items(self, context):
+	arma = context.object
+	if arma is None:
+		return
+	
+	items = [("--", "None", "")]
+	items.extend([(pb.name, pb.name, "") for pb in context.object.pose.bones if pb.enable_bone_gizmo])
+	return items
+
+
 class BoneGizmoProperties(PropertyGroup):
 	operator: EnumProperty(
 		name		 = "Operator"
@@ -74,17 +84,70 @@ class BoneGizmoProperties(PropertyGroup):
 		name		 = "Mesh Mask Type"
 		,description = "Toggle between using Face Maps or Vertex Groups as the mesh masking data"	# Currently it seems face maps are just worse vertex groups, but maybe they are faster, or maybe it's good to have them separated.
 	)
-	secondary_switch: EnumProperty(
-		name="Secondary Trigger Action",
-		description="Secondary action associated to this Gizmo",
+
+	associate_action: EnumProperty(
+		name="Associated action",
+		description="React to Action of associated widget",
 		items = [
-			('SWITCH_TO_CHILD', 'Switch to child', 'Switch to child bone'),
-			('--', 'None', "No secondary action")
+			('SELECT_ALONG', 'Select', 'Select along associated widget bone'),
+			('SELECT_DRAG', 'Drag to Transform', 'Affect Transform with Mouse Drag'),
+			('--', 'None', "No associated action")
 		],
 		default='--'
 	)
+	associate_transform: EnumProperty(
+		name="Associated transform",
+		description="Transform from associated widget",
+		items = [
+			('SCALE', 'Scale', 'Convert Drag to Scale'),
+			('ROTATE', 'Rotate', 'Convert Drag to Rotation'),
+			('TRANSLATE', 'Translate', 'Convert Drag to Translation'),
+			('--', 'None', "No associated transform")
+		],
+		default='--'
+	)
+	associate_axis: EnumProperty(
+		name="Associate axis",
+		items=[
+			('X', "X", "X axis"),
+			('Y', "Y", "Y axis"),
+			('Z', "Z", "Z axis"),
+			('W', "W", "W axis (only quat, angle/axis rotation)"),
+		],
+		default='X'
+	)
+	modifier_action: EnumProperty(
+		name="Modifier Action",
+		description="Trigger event with keyboard",
+		items=[
+			('TOGGLE_LOCK', "Lock/Unlock", "Stop/Reprise moving this bone"),
+			('--', 'None', '')
+		],
+		default='--'
+	)
+	modifier_key: EnumProperty(
+		name="Modifier Key",
+		description="Key for triggering action",
+		items=[
+			("TAB", "Tab", ""),
+			("CTRL", "Ctrl", ""),
+			("ALT", "alt", ""),
+			("--", "None", "")
+		],
+		default='--'
+	)
+	modifier_type: EnumProperty(
+		name="Modifier Trigger Type",
+		description="Modifier Event Type",
+		items=[
+			("PRESS", "Press", ""),
+			("RELEASE", "Release", ""),
+			("ANY", "Any", ""),
+		],
+		default='ANY'
+	)
 
-	child_ctrl: EnumProperty(items=bone_items)
+	associate_with: EnumProperty(items=gizmo_items)
 
 	gizmo_color_source: EnumProperty(
 		name		 = "Color Source"

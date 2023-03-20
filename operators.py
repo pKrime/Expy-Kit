@@ -2576,11 +2576,12 @@ class GizmosFromExpyKit(bpy.types.Operator):
                         except KeyError:
                             pass
                         else:
-                            pose_bone.bone_gizmo.secondary = 'SWITCH_TO_CHILD'
-                            # child_ctrl enum options depend on active bone
-                            ob.data.bones.active = ob.data.bones[pose_bone.name]
-                            pose_bone.bone_gizmo.child_ctrl = 'hips'
-
+                            hip_bone.bone_gizmo.associate_with = grp['hips']
+                            hip_bone.bone_gizmo.associate_action = 'SELECT_ALONG'
+                            
+                            pose_bone.bone_gizmo.modifier_action = 'TOGGLE_LOCK'
+                            pose_bone.bone_gizmo.modifier_key = 'TAB'
+                            pose_bone.bone_gizmo.modifier_type = 'PRESS'
                 if ik_grp:
                     try:
                         pose_ik = ob.pose.bones[ik_grp[k]]
