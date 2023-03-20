@@ -16,6 +16,7 @@ version 0.53
 - Fix missing eyes in extracted metarig
 - Fix occasional glitch in baked animations
 - Fix renaming from Current Settings
+- Faster Expy Panel
 
 
 version 0.52
