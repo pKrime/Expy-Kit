@@ -125,10 +125,10 @@ def register_classes():
     bpy.utils.register_class(RetargetSettings)
     bpy.types.Armature.expykit_retarget = PointerProperty(type=RetargetSettings)
     bpy.types.Armature.expykit_twist_on = BoolProperty(default=False)
+    bpy.types.Armature.expykit_creating_gizmos = BoolProperty(default=False)
 
 
 def unregister_classes():
-    del bpy.types.Armature.expykit_retarget
     bpy.utils.unregister_class(RetargetSettings)
 
     bpy.utils.unregister_class(RetargetFaceSimple)
@@ -138,3 +138,10 @@ def unregister_classes():
 
     bpy.utils.unregister_class(RetargetArm)
     bpy.utils.unregister_class(RetargetLeg)
+
+    del bpy.types.Armature.expykit_retarget
+    del bpy.types.Armature.expykit_twist_on
+    del bpy.types.Armature.expykit_creating_gizmos
+
+
+

@@ -2453,7 +2453,6 @@ def get_more_verts_ob(rigged_obs, vg_name, secondary_vg=''):
         return
 
     if len(weighted_obs) > 1 and secondary_vg:
-        print("Also looking for", secondary_vg, "when checking for", vg_name)
         refined_obs = {wob:weighted_obs[wob] for wob in weighted_obs if secondary_vg in bpy.data.objects[wob].vertex_groups}
         if refined_obs:
             weighted_obs = refined_obs
@@ -2567,7 +2566,7 @@ class GizmosFromExpyKit(bpy.types.Operator):
                 pose_bone.bone_gizmo.vertex_group_name = def_bone.name
                 pose_bone.bone_gizmo.operator = 'transform.rotate'
 
-                if k in ('head', 'hips'):
+                if k in ('head', 'hips', 'spine2'):
                     pose_bone.bone_gizmo.rotation_mode = 'TRACKBALL'
                 
                     if k == 'hips':
@@ -2577,7 +2576,7 @@ class GizmosFromExpyKit(bpy.types.Operator):
                             pass
                         else:
                             hip_bone.bone_gizmo.associate_with = grp['hips']
-                            hip_bone.bone_gizmo.associate_action = 'SELECT_ALONG'
+                            hip_bone.bone_gizmo.associate_action = 'SELECT_ALONG'  # FIX double transforms with 'G' key
                             
                             pose_bone.bone_gizmo.modifier_action = 'TOGGLE_LOCK'
                             pose_bone.bone_gizmo.modifier_key = 'TAB'
@@ -2597,8 +2596,31 @@ class GizmosFromExpyKit(bpy.types.Operator):
                             pose_ik.custom_shape_scale_xyz[1] = 0.0
                             pose_ik.custom_shape_scale_xyz[2] = 0.0
 
-                        if k in ('hand', 'foot'):
+                        if k == 'hand':
                             pose_ik.bone_gizmo.operator = 'transform.translate'
+                        elif k == 'foot':
+                            pose_ik.bone_gizmo.operator = 'transform.translate'
+                            pose_ik.bone_gizmo.modifier_key = 'TAB'
+                            pose_ik.bone_gizmo.modifier_type = 'PRESS'
+                            try:
+                                foot_spin = ob.pose.bones[pose_ik.name.replace('_ik', '_spin_ik')]
+                            except KeyError:
+                                pass
+                            else:
+                                foot_spin.bone_gizmo.associate_with = pose_ik.name
+                                foot_spin.bone_gizmo.associate_action = 'SELECT_DRAG'
+                                foot_spin.bone_gizmo.associate_transform = 'ROTATE'
+                                foot_spin.bone_gizmo.associate_axis = '2'
+                            try:
+                                foot_heel = ob.pose.bones[pose_ik.name.replace('_ik', '_heel_ik')]
+                            except KeyError:
+                                pass
+                            else:
+                                foot_heel.bone_gizmo.associate_with = pose_ik.name
+                                foot_heel.bone_gizmo.associate_action = 'SELECT_DRAG'
+                                foot_heel.bone_gizmo.associate_transform = 'ROTATE'
+                                foot_heel.bone_gizmo.associate_axis = '0'
+
                         else:
                             pose_ik.bone_gizmo.operator = 'transform.rotate'
 
@@ -2648,6 +2670,8 @@ class GizmosFromExpyKit(bpy.types.Operator):
                             pose_bone.custom_shape_scale_xyz[1] = 0.0
                             pose_bone.custom_shape_scale_xyz[2] = 0.0
 
+
+        ob.data.expykit_creating_gizmos = False
         bpy.ops.pose.restart_gizmos()
         return {'FINISHED'}
 

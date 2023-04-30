@@ -361,10 +361,11 @@ class MoveBoneGizmo(Gizmo):
 		self.lock_active = False
 		for a_pb in armature.pose.bones:
 			if a_pb.bone_gizmo.associate_with == pb.name:
-				armature.data.bones[a_pb.name].select = True
-				#if a_pb.bone_gizmo.associate_action == 'SELECT_ALONG':
+				# armature.data.bones[a_pb.name].select = True
+				if a_pb.bone_gizmo.associate_action == 'SELECT_ALONG':
+					armature.data.bones[a_pb.name].select = True
 					# TODO: warning if context.scene.tool_settings.transform_pivot_point != 'INDIVIDUAL_ORIGINS'
-				if a_pb.bone_gizmo.associate_action != '--':
+				elif a_pb.bone_gizmo.associate_action != '--':
 					ASSOCIATED_BONES.append(a_pb)
 
 		global LOCK_MATRIX
@@ -404,15 +405,30 @@ class MoveBoneGizmo(Gizmo):
 			context.object.pose.use_mirror_x ^= True
 
 		if event.value == pb.bone_gizmo.modifier_type and event.type == pb.bone_gizmo.modifier_key:
-			self.current_associate += 1
-			if self.current_associate < len(ASSOCIATED_BONES):
+			if pb.bone_gizmo.modifier_action == 'PIE_MENU':
+				bpy.ops.wm.call_menu_pie(name=pb.bone_gizmo.modifier_menu)
+			
+			if pb.bone_gizmo.modifier_action == 'TOGGLE_LOCK':
 				LOCK_MATRIX = pb.matrix.copy()
-				self.lock_active = True
-			else:
-				self.current_associate = -1
-				self.lock_active = False	
+				self.lock_active ^= True
 
-		if self.lock_active:
+			elif ASSOCIATED_BONES:
+				self.current_associate += 1
+				for bone in ASSOCIATED_BONES:
+					context.object.data.bones[bone.name].select = False
+				if self.current_associate < len(ASSOCIATED_BONES):
+					LOCK_MATRIX = pb.matrix.copy()
+					self.lock_active = True
+
+					current = ASSOCIATED_BONES[self.current_associate]
+					context.object.data.bones[current.name].select = True
+					context.object.data.bones[pb.name].select = False					
+				else:
+					self.current_associate = -1
+					self.lock_active = False
+					context.object.data.bones[pb.name].select = True
+		
+		if self.current_associate > -1:
 			delta = event.mouse_x - event. mouse_prev_x
 			delta /= 10
 
@@ -427,31 +443,7 @@ class MoveBoneGizmo(Gizmo):
 					pass
 				else:
 					a_pb.rotation_euler[int(a_pb.bone_gizmo.associate_axis)] += delta
-				
-		# if event.alt:
-		# 	pb = self.get_pose_bone(context)
-		# 	if event.ctrl:
-		# 		spin_name = self.bone_name.replace('_ik', '_spin_ik')
-		# 		try:
-		# 			spin = context.object.pose.bones[spin_name]
-		# 		except KeyError:
-		# 			pass
-		# 		else:
-		# 			mat = pb.matrix.copy()
-		# 			eu = spin.rotation_quaternion.to_euler()
-		# 			eu[2] += (event.mouse_x - event. mouse_prev_x)/10
-		# 			spin.rotation_quaternion = eu.to_quaternion()
-		# 			pb.matrix = mat
-		# 	else:
-		# 		heel_name = self.bone_name.replace('_ik', '_heel_ik')
-		# 		try:
-		# 			heel = context.object.pose.bones[heel_name]
-		# 		except KeyError:
-		# 			pass
-		# 		else:
-		# 			mat = pb.matrix.copy()
-		# 			heel.rotation_euler[0] += (event.mouse_x - event. mouse_prev_x)/10
-		# 			pb.matrix = mat
+
 		return {'RUNNING_MODAL'}
 
 classes = (

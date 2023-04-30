@@ -42,6 +42,10 @@ class BONEGIZMO_PT_bone_gizmo_settings(Panel):
 		row.prop(props, 'modifier_key', text="")
 		row.prop(props, 'modifier_action', text="")
 
+		if props.modifier_action == 'PIE_MENU':
+			row = col.row()
+			row.prop(props, 'modifier_menu', text="Menu:")
+
 		layout = layout.column(align=True)
 
 		if not overlay_enabled:
