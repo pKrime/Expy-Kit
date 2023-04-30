@@ -1,7 +1,10 @@
+import inspect
+
 import bpy
+import bpy.types
 from bpy.types import Object, Scene, PropertyGroup
 from bpy.props import (
-	IntProperty, PointerProperty, BoolProperty,
+	PointerProperty, BoolProperty,
 	FloatVectorProperty, StringProperty, EnumProperty,
 	BoolVectorProperty
 )
@@ -21,8 +24,18 @@ def bone_items(self, context):
 	if arma is None:
 		return
 	
-	items = [("", "", "")]
+	items = [("--", "None", "")]
 	items.extend([(bone.name, bone.name, "") for bone in context.active_bone.children])
+	return items
+
+
+def menu_items(self, context):
+	items = [("--", "None", "")]
+
+	types = [m[0] for m in inspect.getmembers(bpy.types, inspect.isclass) if m[1].__module__ == 'bpy.types']
+
+	items.extend([(menu.__name__, menu.bl_label, "") for menu in types if hasattr(menu, "path_menu")])
+	
 	return items
 
 
@@ -32,7 +45,7 @@ def gizmo_items(self, context):
 		return
 	
 	items = [("--", "None", "")]
-	items.extend([(pb.name, pb.name, "") for pb in context.object.pose.bones if pb.enable_bone_gizmo])
+	items.extend([(pb.name, pb.name, "") for pb in context.object.pose.bones])# if pb.enable_bone_gizmo])
 	return items
 
 
@@ -121,10 +134,15 @@ class BoneGizmoProperties(PropertyGroup):
 		description="Trigger event with keyboard",
 		items=[
 			('TOGGLE_LOCK', "Lock/Unlock", "Stop/Reprise moving this bone"),
+			('PIE_MENU', "Pie Menu", "Invoke Pie Menu"),
 			('--', 'None', '')
 		],
 		default='--'
 	)
+	modifier_menu: StringProperty(
+		name="Modifier Menu",
+		description="Menu to show at event",
+		)
 	modifier_key: EnumProperty(
 		name="Modifier Key",
 		description="Key for triggering action",

@@ -2486,6 +2486,7 @@ class GizmosFromExpyKit(bpy.types.Operator):
 
     def execute(self, context):
         ob = context.object
+        ob.data.expykit_creating_gizmos = True
 
         src_settings = ob.data.expykit_retarget
         if self.src_preset == '--Current--' and ob.data.expykit_retarget.has_settings():    
