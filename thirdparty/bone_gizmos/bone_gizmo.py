@@ -348,6 +348,13 @@ class MoveBoneGizmo(Gizmo):
 			pb.bone.select = True
 			armature.data.bones.active = pb.bone
 			return {'FINISHED'}
+		
+		if pb.bone_gizmo.modifier_type == 'PRESS_ON_SELECT':
+			mod_key = pb.bone_gizmo.modifier_key
+			mod_key = mod_key.rsplit("_")[-1]
+			if (getattr(event, mod_key)):
+				if pb.bone_gizmo.modifier_action == 'PIE_MENU':
+					bpy.ops.wm.call_menu_pie(name=pb.bone_gizmo.modifier_menu)
 
 		global is_interacting
 		is_interacting = True

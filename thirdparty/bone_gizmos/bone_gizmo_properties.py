@@ -160,6 +160,7 @@ class BoneGizmoProperties(PropertyGroup):
 		name="Modifier Trigger Type",
 		description="Modifier Event Type",
 		items=[
+			("PRESS_ON_SELECT", "Press on Select", ""),
 			("PRESS", "Press", ""),
 			("RELEASE", "Release", ""),
 			("ANY", "Any", ""),
