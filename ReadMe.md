@@ -41,4 +41,3 @@ Once enabled, the script will add the following entries to the pose menu (mouse 
     * Rename Actions from .fbx data
     * Hips to Root Motion
     * Select Animated Controls
-
