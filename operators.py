@@ -204,8 +204,17 @@ class ConvertBoneNaming(bpy.types.Operator):
         default=True
     )
 
-    # TODO: separator as a string property
-    _separator = ":"
+    replace_existing: BoolProperty(
+        name="Take Over Existing Names",
+        description='Bones already named after Target Preset will get ".001" suffix',
+        default=True
+    )
+
+    prefix_separator: StringProperty(
+        name="Prefix Separator",
+        description="Separator between prefix and name, i.e: MyCharacter:head",
+        default=":"
+    )
 
     @classmethod
     def poll(cls, context):
@@ -236,7 +245,7 @@ class ConvertBoneNaming(bpy.types.Operator):
         return src_skeleton, trg_skeleton
 
     @staticmethod
-    def rename_bones(context, src_skeleton, trg_skeleton, separator=""):
+    def rename_bones(context, src_skeleton, trg_skeleton, separator="", replace_existing=False):
         # FIXME: separator should not be necessary anymore, as it is handled at preset validation
         bone_names_map = src_skeleton.conversion_map(trg_skeleton)
 
@@ -247,6 +256,7 @@ class ConvertBoneNaming(bpy.types.Operator):
 
                 bone.name = bone.name.rsplit(separator, 1)[1]
 
+        additional_bones = {}
         for src_name, trg_name in bone_names_map.items():
             if not trg_name:
                 continue
@@ -256,11 +266,20 @@ class ConvertBoneNaming(bpy.types.Operator):
                 src_bone = context.object.data.bones.get(src_name, None)
             except SystemError:
                 continue
+
             if not src_bone:
                 continue
 
+            if replace_existing:
+                pre_existing_bone = context.object.data.bones.get(trg_name, None)
+                if pre_existing_bone:
+                    pre_existing_name = pre_existing_bone.name
+                    pre_existing_bone.name = f"{trg_name}.001"
+                    additional_bones[pre_existing_name] = pre_existing_bone.name
+                                          
             src_bone.name = trg_name
 
+        bone_names_map.update(additional_bones)
         return bone_names_map
 
     def execute(self, context):
@@ -282,7 +301,9 @@ class ConvertBoneNaming(bpy.types.Operator):
             else:
                 actions = []
 
-            bone_names_map = self.rename_bones(context, src_skeleton, trg_skeleton, self._separator if self.strip_prefix else "")
+            bone_names_map = self.rename_bones(context, src_skeleton, trg_skeleton,
+                                               self.prefix_separator if self.strip_prefix else "",
+                                               self.replace_existing)
 
             if context.object.animation_data and context.object.data.animation_data:
                 for driver in chain(context.object.animation_data.drivers, context.object.data.animation_data.drivers):
@@ -306,8 +327,8 @@ class ConvertBoneNaming(bpy.types.Operator):
                     except IndexError:
                         continue
 
-                    if self.strip_prefix and self._separator in track_bone:
-                        stripped_bone = track_bone.rsplit(self._separator, 1)[1]
+                    if self.strip_prefix and self.prefix_separator in track_bone:
+                        stripped_bone = track_bone.rsplit(self.prefix_separator, 1)[1]
                     else:
                         stripped_bone = track_bone
 
@@ -322,7 +343,7 @@ class ConvertBoneNaming(bpy.types.Operator):
             if set_preset:
                 preset_handler.set_preset_skel(self.trg_preset)
             else:
-                preset_handler.validate_preset(bpy.context.active_object.data)
+                preset_handler.validate_preset(bpy.context.active_object.data, separator=self.prefix_separator)
 
         if bpy.app.version[0] > 2:
             # blender 3.0 objects do not immediately update renamed vertex groups
@@ -1254,7 +1275,12 @@ class ConstrainToArmature(bpy.types.Operator):
 
     no_finger_loc: BoolProperty(default=False, name="No Finger Location")
 
-    _separator = ":"  # TODO: StringProperty
+    prefix_separator: StringProperty(
+        name="Prefix Separator",
+        description="Separator between prefix and name, i.e: MyCharacter:head",
+        default=":"
+    )
+
     _autovars_unset = True
     _constrained_root = None
     

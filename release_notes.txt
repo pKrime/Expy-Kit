@@ -11,6 +11,8 @@ version 0.53
 - "Spine2" is now displayed as "Chest" in the Retargeting panel
 - Faster Transfer Root Motion
 - Namespace prefix with columns (:) are accounted for when using a preset
+- Alternative prefix separator allowed when renaming bones
+- "Convert Bone Names" renames conflicting existing names ti duplicate
 - "Select Constrained controls" is not overrided by "Select Animated controls"
 - "Action Range to Scene" always fits the Timeline view
 - Fix missing eyes in extracted metarig
