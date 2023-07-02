@@ -341,9 +341,9 @@ class SetToActiveBone(Operator):
     bl_idname = "object.expy_kit_set_to_active_bone"
     bl_label = "Set Expy Kit value to active bone"
 
-    attr_name: StringProperty(default="")
-    sub_attr_name: StringProperty(default="")
-    slot_name: StringProperty(default="")
+    attr_name: StringProperty(default="", options={'SKIP_SAVE'})
+    sub_attr_name: StringProperty(default="", options={'SKIP_SAVE'})
+    slot_name: StringProperty(default="", options={'SKIP_SAVE'})
     attr_ptr = PointerProperty(type=properties.retarget.RetargetBase)
 
     @classmethod
@@ -391,8 +391,8 @@ class MirrorSettings(Operator):
     bl_label = "Mirror Skeleton Mapping"
     bl_options = {'REGISTER', 'UNDO'}
 
-    src_setting: StringProperty(default="")
-    trg_setting: StringProperty(default="")
+    src_setting: StringProperty(default="", options={'SKIP_SAVE'})
+    trg_setting: StringProperty(default="", options={'SKIP_SAVE'})
 
     tolerance: FloatProperty(default=0.001)
 
@@ -409,18 +409,26 @@ class MirrorSettings(Operator):
 
         return True
 
-    def _is_mirrored(self, trg_head, src_head):
+    def _is_mirrored_vec(self, trg_head, src_head):
         epsilon = self.tolerance
         if abs(trg_head.x + src_head.x) > epsilon:
             return False
         if abs(trg_head.y - src_head.y) > epsilon:
             return False
         return abs(trg_head.z - src_head.z) < epsilon
+    
+    def _is_mirrored(self, src_bone, trg_bone):
+        if not self._is_mirrored_vec(src_bone.head_local, trg_bone.head_local):
+            return False
+        if not self._is_mirrored_vec(src_bone.tail_local, trg_bone.tail_local):
+            return False
+        
+        return True
 
     def find_mirrored(self, arm_data, bone):
         # TODO: should be in bone_utils
-        src_head = bone.head_local
-        return next((b for b in arm_data.bones if self._is_mirrored(b.head_local, src_head)), None)
+        # TODO: should select best among mirror candidates
+        return next((b for b in arm_data.bones if self._is_mirrored(bone, b)), None)
 
     def execute(self, context):
         if not self.src_setting:
@@ -446,8 +454,11 @@ class MirrorSettings(Operator):
         if 'fingers' in self.trg_setting:
             for finger_name in ('thumb', 'index', 'middle', 'ring', 'pinky'):
                 for attr_name in ('a', 'b', 'c'):
+                    bone_name = getattr(getattr(src_grp, finger_name), attr_name)
+                    if not bone_name:
+                        continue
                     m_bone = self.find_mirrored(arm_data,
-                                                arm_data.bones[getattr(getattr(src_grp, finger_name), attr_name)])
+                                                arm_data.bones[bone_name])
                     if not m_bone:
                         continue
 
@@ -478,11 +489,10 @@ class DATA_MT_retarget_presets(Menu):
     draw = Menu.draw_preset
 
 
-class DATA_PT_expy_retarget(bpy.types.Panel):
-    bl_label = "Expy Retargeting"
+class RetargetBasePanel:
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = 'Expy'
+    bl_category = "Expy"
 
     @classmethod
     def poll(cls, context):
@@ -536,8 +546,20 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
             row = labels.row()
             row.label(text=(k + suffix).title())
 
+
+class DATA_PT_expy_retarget(RetargetBasePanel, bpy.types.Panel):
+    bl_label = "Expy Retargeting"
+
+    @classmethod
+    def poll(cls, context):
+        if not context.object:
+            return False
+        if context.object.type != 'ARMATURE':
+            return False
+
+        return True
+
     def draw(self, context):
-        ob = context.object
         layout = self.layout
 
         split = layout.split(factor=0.75)
@@ -546,108 +568,148 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
         row.operator(AddPresetArmatureRetarget.bl_idname, text="+")
         row.operator(AddPresetArmatureRetarget.bl_idname, text="-").remove_active = True
 
+
+class DATA_PT_expy_retarget_face(RetargetBasePanel, bpy.types.Panel):
+    bl_label = "Face"
+
+    def draw(self, context):
+        ob = context.object
+        layout = self.layout
+
         skeleton = ob.data.expykit_retarget
 
-        row = layout.row(align=True)
-        row.prop(skeleton, "face_on", text="Face", toggle=True)
-        row.prop(skeleton, "twist_on", text="Twist", toggle=True)
-        row.prop(skeleton, "fingers_on", text="Fingers", toggle=True)
-        row.prop(skeleton, "ik_on", text="IK", toggle=True)
+        bsplit = layout.split(factor=0.85)
+        bsplit.prop_search(skeleton.face, "jaw", ob.data, "bones", text="Jaw")
+        props = bsplit.operator(SetToActiveBone.bl_idname, text="<-")
+        props.attr_name = 'face'
+        props.slot_name = 'jaw'
 
-        if skeleton.face_on:
-            bsplit = layout.split(factor=0.85)
-            bsplit.prop_search(skeleton.face, "jaw", ob.data, "bones", text="Jaw")
-            props = bsplit.operator(SetToActiveBone.bl_idname, text="<-")
-            props.attr_name = 'face'
-            props.slot_name = 'jaw'
+        split = layout.split()
+        col = split.column()
+        col.label(text="Right")
 
-            split = layout.split()
+        bsplit = col.split(factor=0.85)
+        col = bsplit.column()
+        col.prop_search(skeleton.face, "right_eye", ob.data, "bones", text="")
+        col.prop_search(skeleton.face, "right_upLid", ob.data, "bones", text="")
+
+        col = bsplit.column()
+        eye_props = col.operator(SetToActiveBone.bl_idname, text="<-")
+        eye_props.attr_name = 'face'
+        eye_props.slot_name = 'right_eye'
+
+        eye_props = col.operator(SetToActiveBone.bl_idname, text="<-")
+        eye_props.attr_name = 'face'
+        eye_props.slot_name = 'right_upLid'
+
+        col = split.column()
+        col.label(text="")
+        col.label(text="Eye")
+        col.label(text="Up Lid")
+
+        col = split.column()
+        col.label(text="Left")
+
+        bsplit = col.split(factor=0.85)
+        col = bsplit.column()
+        col.prop_search(skeleton.face, "left_eye", ob.data, "bones", text="")
+        col.prop_search(skeleton.face, "left_upLid", ob.data, "bones", text="")
+
+        col = bsplit.column()
+        eye_props = col.operator(SetToActiveBone.bl_idname, text="<-")
+        eye_props.attr_name = 'face'
+        eye_props.slot_name = 'left_eye'
+
+        eye_props = col.operator(SetToActiveBone.bl_idname, text="<-")
+        eye_props.attr_name = 'face'
+        eye_props.slot_name = 'left_upLid'
+
+        row = layout.row()
+        row.prop(skeleton.face, "super_copy", text="As Rigify Super Copy")
+
+
+class DATA_PT_expy_retarget_fingers(RetargetBasePanel, bpy.types.Panel):
+    bl_label = "Fingers"
+
+    def draw(self, context):
+        ob = context.object
+        layout = self.layout
+
+        skeleton = ob.data.expykit_retarget
+        
+        sides = "right", "left"
+        split = layout.split()
+        finger_bones = ('a', 'b', 'c')
+        fingers = ('thumb', 'index', 'middle', 'ring', 'pinky')
+        m_props = []
+        for side, group in zip(sides, [skeleton.right_fingers, skeleton.left_fingers]):
             col = split.column()
-            col.label(text="Right")
+            m_props.append(col.operator(MirrorSettings.bl_idname, text="<--" if side == 'right' else "-->"))
 
-            bsplit = col.split(factor=0.85)
-            col = bsplit.column()
-            col.prop_search(skeleton.face, "right_eye", ob.data, "bones", text="")
-            col.prop_search(skeleton.face, "right_upLid", ob.data, "bones", text="")
+            for k in fingers:
+                if k == 'name':  # skip Property Group name
+                    continue
+                row = col.row()
+                row.label(text=" ".join((side, k)).title())
+                finger = getattr(group, k)
+                for slot in finger_bones:
+                    bsplit = col.split(factor=0.85)
+                    bsplit.prop_search(finger, slot, ob.data, "bones", text="")
+                    
+                    f_props = bsplit.operator(SetToActiveBone.bl_idname, text="<-")
+                    f_props.attr_name = '_'.join([side, group.name])
+                    f_props.sub_attr_name = k
+                    f_props.slot_name = slot
 
-            col = bsplit.column()
-            eye_props = col.operator(SetToActiveBone.bl_idname, text="<-")
-            eye_props.attr_name = 'face'
-            eye_props.slot_name = 'right_eye'
+        m_props[0].trg_setting = "right_fingers"
+        m_props[0].src_setting = "left_fingers"
 
-            eye_props = col.operator(SetToActiveBone.bl_idname, text="<-")
-            eye_props.attr_name = 'face'
-            eye_props.slot_name = 'right_upLid'
+        m_props[1].trg_setting = "left_fingers"
+        m_props[1].src_setting = "right_fingers"
 
 
-            col = split.column()
-            col.label(text="")
-            col.label(text="Eye")
-            col.label(text="Up Lid")
+class DATA_PT_expy_retarget_arms_IK(RetargetBasePanel, bpy.types.Panel):
+    bl_label = "Arms IK"
 
-            col = split.column()
-            col.label(text="Left")
+    def draw(self, context):
+        ob = context.object
+        layout = self.layout
 
-            bsplit = col.split(factor=0.85)
-            col = bsplit.column()
-            col.prop_search(skeleton.face, "left_eye", ob.data, "bones", text="")
-            col.prop_search(skeleton.face, "left_upLid", ob.data, "bones", text="")
+        skeleton = ob.data.expykit_retarget
+        arm_bones = ('shoulder', 'arm', 'forearm', 'hand')
 
-            col = bsplit.column()
-            eye_props = col.operator(SetToActiveBone.bl_idname, text="<-")
-            eye_props.attr_name = 'face'
-            eye_props.slot_name = 'left_eye'
+        self.sided_rows(ob, (skeleton.right_arm_ik, skeleton.left_arm_ik), arm_bones, suffix=" IK")
 
-            eye_props = col.operator(SetToActiveBone.bl_idname, text="<-")
-            eye_props.attr_name = 'face'
-            eye_props.slot_name = 'left_upLid'
 
-            row = layout.row()
-            row.prop(skeleton.face, "super_copy", text="As Rigify Super Copy")
-            layout.separator()
+class DATA_PT_expy_retarget_arms(RetargetBasePanel, bpy.types.Panel):
+    bl_label = "Arms"
 
-        if skeleton.fingers_on:
-            sides = "right", "left"
-            split = layout.split()
-            finger_bones = ('a', 'b', 'c')
-            fingers = ('thumb', 'index', 'middle', 'ring', 'pinky')
-            m_props = []
-            for side, group in zip(sides, [skeleton.right_fingers, skeleton.left_fingers]):
-                col = split.column()
-                m_props.append(col.operator(MirrorSettings.bl_idname, text="<--" if side == 'right' else "-->"))
+    def draw(self, context):
+        ob = context.object
+        layout = self.layout
 
-                for k in fingers:
-                    if k == 'name':  # skip Property Group name
-                        continue
-                    row = col.row()
-                    row.label(text=" ".join((side, k)).title())
-                    finger = getattr(group, k)
-                    for slot in finger_bones:
-                        bsplit = col.split(factor=0.85)
-                        bsplit.prop_search(finger, slot, ob.data, "bones", text="")
-                        
-                        f_props = bsplit.operator(SetToActiveBone.bl_idname, text="<-")
-                        f_props.attr_name = '_'.join([side, group.name])
-                        f_props.sub_attr_name = k
-                        f_props.slot_name = slot
+        skeleton = ob.data.expykit_retarget
 
-            m_props[0].trg_setting = "right_fingers"
-            m_props[0].src_setting = "left_fingers"
-
-            m_props[1].trg_setting = "left_fingers"
-            m_props[1].src_setting = "right_fingers"
-
-            layout.separator()
-
-        if skeleton.twist_on:
+        row = layout.row()
+        row.prop(ob.data, "expykit_twist_on", text="Display Twist Bones")
+        
+        if ob.data.expykit_twist_on:
             arm_bones = ('shoulder', 'arm', 'arm_twist', 'forearm', 'forearm_twist', 'hand')
         else:
             arm_bones = ('shoulder', 'arm', 'forearm', 'hand')
-        if skeleton.ik_on:
-            self.sided_rows(ob, (skeleton.right_arm_ik, skeleton.left_arm_ik), arm_bones, suffix=" IK")
+
         self.sided_rows(ob, (skeleton.right_arm, skeleton.left_arm), arm_bones)
 
-        layout.separator()
+
+class DATA_PT_expy_retarget_spine(RetargetBasePanel, bpy.types.Panel):
+    bl_label = "Spine"
+
+    def draw(self, context):
+        ob = context.object
+        layout = self.layout
+
+        skeleton = ob.data.expykit_retarget
+
         for slot in ('head', 'neck', 'spine2', 'spine1', 'spine', 'hips'):
             split = layout.split(factor=0.85)
             split.prop_search(skeleton.spine, slot, ob.data, "bones", text="Chest" if slot == 'spine2' else slot.title())
@@ -655,16 +717,46 @@ class DATA_PT_expy_retarget(bpy.types.Panel):
             props.attr_name = 'spine'
             props.slot_name = slot
 
-        layout.separator()
-        if skeleton.twist_on:
+
+class DATA_PT_expy_retarget_leg_IK(RetargetBasePanel, bpy.types.Panel):
+    bl_label = "Legs IK"
+
+    def draw(self, context):
+        ob = context.object
+
+        skeleton = ob.data.expykit_retarget
+        
+        leg_bones = ('upleg', 'leg', 'foot', 'toe')
+        self.sided_rows(ob, (skeleton.right_leg_ik, skeleton.left_leg_ik), leg_bones, suffix=" IK")
+
+
+class DATA_PT_expy_retarget_leg(RetargetBasePanel, bpy.types.Panel):
+    bl_label = "Legs"
+
+    def draw(self, context):
+        ob = context.object
+
+        skeleton = ob.data.expykit_retarget
+
+        row = self.layout.row(align=True)
+        row.prop(ob.data, "expykit_twist_on", text="Display Twist Bones")
+
+        if ob.data.expykit_twist_on:
             leg_bones = ('upleg', 'upleg_twist', 'leg', 'leg_twist', 'foot', 'toe')
         else:
             leg_bones = ('upleg', 'leg', 'foot', 'toe')
-        if skeleton.ik_on:
-            self.sided_rows(ob, (skeleton.right_leg_ik, skeleton.left_leg_ik), leg_bones, suffix=" IK")
+
         self.sided_rows(ob, (skeleton.right_leg, skeleton.left_leg), leg_bones)
 
-        layout.separator()
+
+class DATA_PT_expy_retarget_root(RetargetBasePanel, bpy.types.Panel):
+    bl_label = "Root"
+
+    def draw(self, context):
+        ob = context.object
+        layout = self.layout
+
+        skeleton = ob.data.expykit_retarget
 
         split = layout.split(factor=0.85)
         split.prop_search(skeleton, 'root', ob.data, "bones", text="Root")
@@ -695,6 +787,14 @@ def register_classes():
     bpy.utils.register_class(ActionRenameSimple)
     bpy.utils.register_class(DATA_PT_expy_buttons)
     bpy.utils.register_class(DATA_PT_expy_retarget)
+    bpy.utils.register_class(DATA_PT_expy_retarget_face)
+    bpy.utils.register_class(DATA_PT_expy_retarget_fingers)
+    bpy.utils.register_class(DATA_PT_expy_retarget_arms_IK)
+    bpy.utils.register_class(DATA_PT_expy_retarget_arms)
+    bpy.utils.register_class(DATA_PT_expy_retarget_spine)
+    bpy.utils.register_class(DATA_PT_expy_retarget_leg_IK)
+    bpy.utils.register_class(DATA_PT_expy_retarget_leg)
+    bpy.utils.register_class(DATA_PT_expy_retarget_root)
 
     bpy.types.VIEW3D_MT_pose_context_menu.append(pose_context_options)
     bpy.types.VIEW3D_MT_armature_context_menu.append(armature_context_options)
@@ -717,6 +817,14 @@ def unregister_classes():
     bpy.utils.unregister_class(ActionRenameSimple)
     bpy.utils.unregister_class(DATA_PT_expy_buttons)
     bpy.utils.unregister_class(DATA_PT_expy_retarget)
+    bpy.utils.unregister_class(DATA_PT_expy_retarget_root)
+    bpy.utils.unregister_class(DATA_PT_expy_retarget_leg_IK)
+    bpy.utils.unregister_class(DATA_PT_expy_retarget_leg)
+    bpy.utils.unregister_class(DATA_PT_expy_retarget_spine)
+    bpy.utils.unregister_class(DATA_PT_expy_retarget_arms_IK)
+    bpy.utils.unregister_class(DATA_PT_expy_retarget_arms)
+    bpy.utils.unregister_class(DATA_PT_expy_retarget_fingers)
+    bpy.utils.unregister_class(DATA_PT_expy_retarget_face)
 
     bpy.utils.unregister_class(SetToActiveBone)
     bpy.utils.unregister_class(MirrorSettings)

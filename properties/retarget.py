@@ -84,11 +84,6 @@ class RetargetFaceSimple(PropertyGroup):
 
 
 class RetargetSettings(PropertyGroup):
-    twist_on: BoolProperty(default=False)
-    ik_on: BoolProperty(default=False)
-    fingers_on: BoolProperty(default=False)
-    face_on: BoolProperty(default=False)
-
     face: PointerProperty(type=RetargetFaceSimple)
     spine: PointerProperty(type=RetargetSpine)
 
@@ -128,7 +123,8 @@ def register_classes():
     bpy.utils.register_class(RetargetFaceSimple)
 
     bpy.utils.register_class(RetargetSettings)
-    bpy.types.Armature.expykit_retarget = bpy.props.PointerProperty(type=RetargetSettings)
+    bpy.types.Armature.expykit_retarget = PointerProperty(type=RetargetSettings)
+    bpy.types.Armature.expykit_twist_on = BoolProperty(default=False)
 
 
 def unregister_classes():
