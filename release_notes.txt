@@ -19,6 +19,7 @@ version 0.53
 - Fix occasional glitch in baked animations
 - Fix renaming from Current Settings
 - Faster Expy Panel
+- Copy presets dir to clipboard in the preferences
 
 
 version 0.52
