@@ -2643,7 +2643,10 @@ class GizmosFromExpyKit(bpy.types.Operator):
                 for finger in 'thumb', 'index', 'middle', 'ring', 'pinky':
                     for idx, attr in zip(range(3), ('a', 'b', 'c')):
                         bone_name = pose_fingers[finger][attr]
-                        pose_bone = ob.pose.bones[bone_name]
+                        try:
+                            pose_bone = ob.pose.bones[bone_name]
+                        except KeyError:
+                            continue
 
                         def_name = getattr(def_fingers, finger)[idx]
                         def_bone = ob.pose.bones[def_name]

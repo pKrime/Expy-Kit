@@ -352,7 +352,7 @@ class MoveBoneGizmo(Gizmo):
 		if pb.bone_gizmo.modifier_type == 'PRESS_ON_SELECT':
 			mod_key = pb.bone_gizmo.modifier_key
 			mod_key = mod_key.rsplit("_")[-1]
-			if (getattr(event, mod_key)):
+			if getattr(event, mod_key, False):
 				if pb.bone_gizmo.modifier_action == 'PIE_MENU':
 					bpy.ops.wm.call_menu_pie(name=pb.bone_gizmo.modifier_menu)
 
