@@ -48,6 +48,7 @@ class MoveBoneGizmo(Gizmo):
 		,"color_unselected"
 		,"alpha_selected"
 		,"alpha_unselected"
+		,"matrix_prev"
 		# The 3rd one is "highlighted". 
 		# color_highlight and alpha_highlight are already provided by the API.
 		# We currently don't visually distinguish between selected and active gizmos.
@@ -57,6 +58,7 @@ class MoveBoneGizmo(Gizmo):
 		"""Called by Blender when the Gizmo is created."""
 		self.meshshape = None
 		self.custom_shape = None
+		self.matrix_prev = None
 
 	def init_shape(self, context):
 		"""Should be called by the GizmoGroup, after it assigns the neccessary 
@@ -112,8 +114,6 @@ class MoveBoneGizmo(Gizmo):
 		"""Whether any gizmo logic should be executed or not. This function is not
 		from the API! Call this manually for early exists.
 		"""
-
-		global is_interacting
 		if is_interacting:
 			return False
 
@@ -229,7 +229,16 @@ class MoveBoneGizmo(Gizmo):
 		if self.get_opacity(context) == 0:
 			return
 
-		pb = self.get_pose_bone(context)
+		pb = self.get_pose_bone(context)		
+		matrix_w = pb.matrix
+		do_draw = self.matrix_prev and self.matrix_prev == matrix_w
+		self.matrix_prev = matrix_w.copy()
+		
+		if not do_draw:
+			global is_interacting
+			is_interacting = False
+			return
+
 		if pb.bone.select:
 			self.color = self.color_selected
 			self.alpha = min(0.999, self.alpha_selected)	# An alpha value of 1.0 or greater results in glitched drawing.
@@ -246,6 +255,7 @@ class MoveBoneGizmo(Gizmo):
 		"""
 		if not self.poll(context):
 			return
+		
 		self.draw_shared(context, select_id)
 
 	def is_using_vgroup(self, context):
@@ -399,7 +409,6 @@ class MoveBoneGizmo(Gizmo):
 	def exit(self, context, cancel):
 		global is_interacting
 		is_interacting = False
-		return
 
 	def modal(self, context, event, tweak):
 		pb = self.get_pose_bone(context)
@@ -413,6 +422,8 @@ class MoveBoneGizmo(Gizmo):
 
 		if event.value == pb.bone_gizmo.modifier_type and event.type == pb.bone_gizmo.modifier_key:
 			if pb.bone_gizmo.modifier_action == 'PIE_MENU':
+				LOCK_MATRIX = pb.matrix.copy()
+				self.lock_active ^= True
 				bpy.ops.wm.call_menu_pie(name=pb.bone_gizmo.modifier_menu)
 			
 			if pb.bone_gizmo.modifier_action == 'TOGGLE_LOCK':
