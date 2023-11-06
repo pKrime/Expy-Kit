@@ -2593,9 +2593,9 @@ class GizmosFromExpyKit(bpy.types.Operator):
                         pose_ik.bone_gizmo.shape_object = rob
 
                         if self.hide_shape and pose_bone.custom_shape:
-                            pose_ik.custom_shape_scale_xyz[0] = 0.0
-                            pose_ik.custom_shape_scale_xyz[1] = 0.0
-                            pose_ik.custom_shape_scale_xyz[2] = 0.0
+                            pose_ik.custom_shape_scale_xyz[0] = 0.1
+                            pose_ik.custom_shape_scale_xyz[1] = 0.1
+                            pose_ik.custom_shape_scale_xyz[2] = 0.1
 
                         if k == 'hand':
                             pose_ik.bone_gizmo.operator = 'transform.translate'
