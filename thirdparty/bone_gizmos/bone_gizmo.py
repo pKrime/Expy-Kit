@@ -96,13 +96,11 @@ class MoveBoneGizmo(Gizmo):
 				b_grp = pb.bone_group
 			except AttributeError:
 				if pb.color.is_custom:
-					print("using custom col")
 					self.color_selected = pb.color.custom.select[:]
 					self.color_unselected = pb.color.custom.normal[:]
 					self.color_highlight = pb.color.custom.active[:]
 				else:
 					#TODO
-					print ("using props for now")
 					self.color_unselected = props.color[:]
 					self.color_selected = props.color_highlight[:]
 					self.color_highlight = props.color_highlight[:]
@@ -465,6 +463,7 @@ class MoveBoneGizmo(Gizmo):
 			
 			if pb.bone_gizmo.modifier_action == 'TOGGLE_LOCK':
 				LOCK_MATRIX = pb.matrix.copy()
+				context.scene.tool_settings.transform_pivot_point = 'INDIVIDUAL_ORIGINS'
 				self.lock_active ^= True
 
 			elif ASSOCIATED_BONES:
