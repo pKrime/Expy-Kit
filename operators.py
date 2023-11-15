@@ -1682,12 +1682,17 @@ class ConstrainToArmature(bpy.types.Operator):
 
                             look_ats[src_name] = look_bone.name
 
-                            look_bone.layers[self.ret_bones_layer] = True
-                            for i, L in enumerate(look_bone.layers):
-                                # FIXME: should be util function
-                                if i == self.ret_bones_layer:
-                                    continue
-                                look_bone.layers[i] = False
+                            if self.use_legacy_index:
+                                look_bone.layers[self.ret_bones_layer] = True
+                                for i, L in enumerate(look_bone.layers):
+                                    # FIXME: should be util function
+                                    if i == self.ret_bones_layer:
+                                        continue
+                                    look_bone.layers[i] = False
+                            else:
+                                for coll in look_bone.collections:
+                                    coll.unissign(look_bone)
+                                ret_collection.assign(look_bone)
                             
             for constr in limit_constraints:
                 trg_ob.constraints.remove(constr)

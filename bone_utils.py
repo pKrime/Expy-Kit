@@ -164,10 +164,15 @@ def copy_bone(ob, bone_name, assign_name='', constraints=False, deform_bone='SAM
     edit_bone_2.bbone_custom_handle_end = edit_bone_1.bbone_custom_handle_end
 
     # ITD- bones go to MCH layer
-    edit_bone_2.layers[30] = True
-    edit_bone_2.layers[31] = False
-    for i in range(30):
-        edit_bone_2.layers[i] = False
+    try:
+        edit_bone_2.layers[30] = True
+    except AttributeError:
+        # TODO: use collections
+        pass
+    else:
+        edit_bone_2.layers[31] = False
+        for i in range(30):
+            edit_bone_2.layers[i] = False
 
     ob.update_from_editmode()
 
@@ -322,7 +327,12 @@ def copy_chain(ob, first, last_excluded=None, flip_bones=False):
 
         # ITD- bones go to MCH layer
         for new_bone in (itd_bone, cp_bone):
-            new_bone.layers[30] = True
+            try:
+                new_bone.layers[30] = True
+            except AttributeError:
+                #TODO: use collections
+                break
+
             new_bone.layers[31] = False
             for i in range(30):
                 new_bone.layers[i] = False
