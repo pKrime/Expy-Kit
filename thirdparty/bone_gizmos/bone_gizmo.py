@@ -89,13 +89,27 @@ class MoveBoneGizmo(Gizmo):
 		prefs = context.preferences.addons[__package__.split('.', 1)[0]].preferences
 
 		self.line_width = prefs.line_width
-
 		props = self.get_props(context)
 		if self.is_using_bone_group_colors(context):
 			pb = self.get_pose_bone(context)
-			self.color_unselected = pb.bone_group.colors.normal[:]
-			self.color_selected = pb.bone_group.colors.select[:]
-			self.color_highlight = pb.bone_group.colors.select[:]
+			try:
+				b_grp = pb.bone_group
+			except AttributeError:
+				if pb.color.is_custom:
+					print("using custom col")
+					self.color_selected = pb.color.custom.select[:]
+					self.color_unselected = pb.color.custom.normal[:]
+					self.color_highlight = pb.color.custom.active[:]
+				else:
+					#TODO
+					print ("using props for now")
+					self.color_unselected = props.color[:]
+					self.color_selected = props.color_highlight[:]
+					self.color_highlight = props.color_highlight[:]
+			else:
+				self.color_unselected = b_grp.colors.normal[:]
+				self.color_selected = b_grp.colors.select[:]
+				self.color_highlight = b_grp.colors.select[:]
 		else:
 			self.color_unselected = props.color[:]
 			self.color_selected = props.color_highlight[:]
@@ -119,8 +133,15 @@ class MoveBoneGizmo(Gizmo):
 
 		pb = self.get_pose_bone(context)
 		if not pb or pb.bone.hide: return False
-		any_visible_layer = any(bl and al for bl, al in zip(pb.bone.layers[:], pb.id_data.data.layers[:]))
-		bone_visible = not pb.bone.hide and any_visible_layer
+		if bpy.app.version[0] < 4:
+			any_visible_layer = any(bl and al for bl, al in zip(pb.bone.layers[:], pb.id_data.data.layers[:]))
+			bone_visible = not pb.bone.hide and any_visible_layer
+		else:
+			try:
+				next(coll for coll in pb.bone.collections if coll.is_visible)
+			except StopIteration:
+				return False
+			return not pb.bone.hide
 
 		ret = self.get_shape_object(context) and bone_visible and pb.enable_bone_gizmo
 		return ret
@@ -177,7 +198,11 @@ class MoveBoneGizmo(Gizmo):
 		ob = self.get_shape_object(context)
 		props = self.get_props(context)
 
-		face_map = ob.face_maps.get(props.face_map_name)
+		try:
+			face_map = ob.face_maps.get(props.face_map_name)
+		except AttributeError:
+			face_map = None
+
 		if face_map and props.use_face_map:
 			self.draw_preset_facemap(ob, face_map.index, select_id=select_id or 0)
 		elif self.custom_shape:
@@ -269,13 +294,25 @@ class MoveBoneGizmo(Gizmo):
 	def is_using_facemap(self, context):
 		props = self.get_props(context)
 		ob = self.get_shape_object(context)
+		
 		if not ob: return False
+
+		if bpy.app.version[0] > 3:
+			return False
+
 		return props.use_face_map and props.face_map_name in ob.face_maps
 
 	def is_using_bone_group_colors(self, context):
 		pb = self.get_pose_bone(context)
 		props = self.get_props(context)
-		return pb and pb.bone_group and pb.bone_group.color_set != 'DEFAULT' and props.gizmo_color_source == 'GROUP'
+		
+		try:
+			custom_col = pb.color.is_custom
+		except AttributeError:
+			# blender 3.x
+			return pb and pb.bone_group and pb.bone_group.color_set != 'DEFAULT' and props.gizmo_color_source == 'GROUP'
+
+		return custom_col and props.gizmo_color_source == 'GROUP'
 
 	def get_pose_bone(self, context):
 		arm_ob = context.object

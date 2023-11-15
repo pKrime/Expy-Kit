@@ -54,15 +54,25 @@ class BONEGIZMO_PT_bone_gizmo_settings(Panel):
 			return
 		layout.enabled = pb.enable_bone_gizmo and overlay_enabled
 
-		bg = pb.bone_group
-		usable_bg_col = bg and bg.color_set != 'DEFAULT'
-		if usable_bg_col:
+		use_custom_col = False
+		try:
+			bg = pb.bone_group
+		except AttributeError:
+			usable_bg_col = False
+			use_custom_col = pb.color.is_custom
+		else:
+			usable_bg_col = bg and bg.color_set != 'DEFAULT'
+
+		if usable_bg_col or use_custom_col:
 			layout.row().prop(props, 'gizmo_color_source', icon='GROUP_BONE', expand=True)
 		color_col = layout.column()
 		# sub_row = color_col.row(align=True)
 		if usable_bg_col and props.gizmo_color_source == 'GROUP':
 			color_col.row().prop(bg.colors, 'normal', text="Group Color")
 			color_col.row().prop(bg.colors, 'select', text="Group Highlight Color")
+		elif use_custom_col:
+			color_col.row().prop(pb.color.custom, 'normal', text="Group Color")
+			color_col.row().prop(pb.color.custom, 'select', text="Group Highlight Color")
 		else:
 			color_col.row().prop(props, 'color', text="Gizmo Color")
 			color_col.row().prop(props, 'color_highlight', text="Gizmo Highlight Color")
