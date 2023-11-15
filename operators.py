@@ -1194,9 +1194,16 @@ class ConstrainToArmature(bpy.types.Operator):
                              options={'SKIP_SAVE'}
                              )
 
-    ret_bones_layer: IntProperty(name="Binding-Bones layer",
-                                 min=0, max=29, default=24,
-                                 description="Armature Layer to use for connection bones")
+    if bpy.app.version[0] < 4:
+        ret_bones_layer: IntProperty(name="Binding-Bones layer",
+                                    min=0, max=29, default=24,
+                                    description="Armature Layer to use for connection bones")
+        use_legacy_index = True
+    else:
+        ret_bones_collection: StringProperty(name="Binding Layer",
+                                             default="Retarget Bones",
+                                             description="Armature collection to use for connection bones")
+        use_legacy_index = False
 
     match_transform: EnumProperty(items=[
         ('None', "No Matching", "Don't match any transform"),
@@ -1330,9 +1337,13 @@ class ConstrainToArmature(bpy.types.Operator):
         row = column.row()
         row.prop(self, 'trg_preset', text="Bind Target")
 
-        row = column.split(factor=0.25, align=True)
-        row.separator()
-        row.prop(self, 'ret_bones_layer')
+        if self.use_legacy_index:
+            row = column.split(factor=0.25, align=True)
+            row.separator()
+            row.prop(self, 'ret_bones_layer')
+        else:
+            row = column.row()
+            row.prop(self, 'ret_bones_collection')
         
         column.separator()
         row = column.row()
@@ -1547,6 +1558,13 @@ class ConstrainToArmature(bpy.types.Operator):
             limit_constraints = self._add_limit_constraintss(trg_ob)
             
             if f'{next(iter(bone_names_map))}_{cp_suffix}' not in trg_ob.data.bones:
+                if not self.use_legacy_index:
+                    try:
+                        ret_collection = trg_ob.data.collections[self.ret_bones_collection]
+                    except KeyError:
+                        ret_collection = trg_ob.data.collections.new(self.ret_bones_collection)
+                        ret_collection.is_visible = False
+
                 # create Retarget bones
                 bpy.ops.object.mode_set(mode='EDIT')
                 for src_name, trg_name in bone_names_map.items():
@@ -1630,12 +1648,17 @@ class ConstrainToArmature(bpy.types.Operator):
                             src_ik = ob.data.bones[src_name]
                             new_bone.roll = bone_utils.ebone_roll_to_vector(new_bone, src_ik.z_axis)
 
-                    new_bone.layers[self.ret_bones_layer] = True
-                    for i, L in enumerate(new_bone.layers):
-                        # FIXME: should be util function
-                        if i == self.ret_bones_layer:
-                            continue
-                        new_bone.layers[i] = False
+                    if self.use_legacy_index:
+                        new_bone.layers[self.ret_bones_layer] = True
+                        for i, L in enumerate(new_bone.layers):
+                            # FIXME: should be util function
+                            if i == self.ret_bones_layer:
+                                continue
+                            new_bone.layers[i] = False
+                    else:
+                        for coll in new_bone.collections:
+                            coll.unassign(new_bone)
+                        ret_collection.assign(new_bone)
 
                     if self.math_look_at:
                         if src_name == src_skeleton.right_arm_ik.arm:
