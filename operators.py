@@ -2482,7 +2482,7 @@ class GizmosFromExpyKit(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.object.type == 'ARMATURE'
+        return context.object.mode == 'POSE'
 
     def execute(self, context):
         ob = context.object
