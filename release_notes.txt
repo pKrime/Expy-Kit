@@ -20,6 +20,8 @@ version 0.53
 - Fix renaming from Current Settings
 - Faster Expy Panel
 - Copy presets dir to clipboard in the preferences
+- Support blender 4.0 bone collections
+- Add World Space matching
 
 
 version 0.52

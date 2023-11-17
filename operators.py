@@ -1184,7 +1184,7 @@ class ConstrainToArmature(bpy.types.Operator):
     bl_description = "Constrain bones of selected armatures to active armature"
     bl_options = {'REGISTER', 'UNDO'}
 
-    src_preset: EnumProperty(items=preset_handler.iterate_presets_with_current,
+    src_preset: EnumProperty(items=preset_handler.iterate_presets_with_same,
                              name="To Bind",
                              options={'SKIP_SAVE'}
                              )
@@ -1210,6 +1210,7 @@ class ConstrainToArmature(bpy.types.Operator):
         ('Bone', "Match Bone Transform", "Match target bones at rest"),
         ('Object', "Match Object Transform", "Match target object transform"),
         ('Pose', "Match Armature Pose", "Match source bones in their current poses"),
+        ('World', "Match World Transform", "Match source bones with no conversion"),
     ],
         name="Match Transform",
         default='Object')
@@ -1218,9 +1219,13 @@ class ConstrainToArmature(bpy.types.Operator):
                                description="Correct chain direction based on mid limb (Useful for IK)",
                                default=False)
     
-    copy_IK_roll: BoolProperty(name="Copy IK Roll",
+    copy_IK_roll_hands: BoolProperty(name="Hands IK Roll",
                             description="USe IK target roll from source armature (Useful for IK)",
-                            default=True)
+                            default=False)
+    
+    copy_IK_roll_feet: BoolProperty(name="Feet IK Roll",
+                            description="USe IK target roll from source armature (Useful for IK)",
+                            default=False)
 
     constrain_root: EnumProperty(items=[
         ('None', "No Root", "Don't constrain root bone"),
@@ -1288,6 +1293,8 @@ class ConstrainToArmature(bpy.types.Operator):
         default=":"
     )
 
+    current_frame: IntProperty()
+    
     _autovars_unset = True
     _constrained_root = None
     
@@ -1334,8 +1341,9 @@ class ConstrainToArmature(bpy.types.Operator):
         row = column.row()
         row.prop(self, 'src_preset', text="To Bind")
     
-        row = column.row()
-        row.prop(self, 'trg_preset', text="Bind Target")
+        if self.src_preset != "--Same--":
+            row = column.row()
+            row.prop(self, 'trg_preset', text="Bind Target")
 
         if self.use_legacy_index:
             row = column.split(factor=0.25, align=True)
@@ -1360,8 +1368,9 @@ class ConstrainToArmature(bpy.types.Operator):
 
         col = row.column()     
         col.prop(self, 'math_look_at')
-        col.prop(self, 'copy_IK_roll')
         col.prop(self, 'no_finger_loc')
+        col.prop(self, 'copy_IK_roll_hands')
+        col.prop(self, 'copy_IK_roll_feet')
 
         row = column.split(factor=0.25, align=True)
         row.label(text="    Policy")
@@ -1628,6 +1637,10 @@ class ConstrainToArmature(bpy.types.Operator):
                     elif self.match_transform == 'Pose':
                         new_bone.matrix = ob.pose.bones[src_name].matrix
                         new_bone.transform(trg_ob.matrix_world.inverted())
+                    elif self.match_transform == 'World':
+                        new_bone.head = new_bone.parent.head
+                        new_bone.tail = new_bone.parent.tail
+                        new_bone.roll = new_bone.parent.roll
                     else:
                         src_bone = ob.data.bones[src_name]
                         src_z_axis_neg = Vector((0.0, 0.0, 1.0)) @ src_bone.matrix_local.inverted().to_3x3()
@@ -1639,11 +1652,15 @@ class ConstrainToArmature(bpy.types.Operator):
                             new_bone.transform(ob.matrix_world)
                             new_bone.transform(trg_ob.matrix_world.inverted())
 
-                    if self.copy_IK_roll:
-                        if src_name in (src_skeleton.left_leg_ik.foot,
-                                        src_skeleton.right_leg_ik.foot,
-                                        src_skeleton.right_arm_ik.hand,
+                    if self.copy_IK_roll_hands:
+                        if src_name in (src_skeleton.right_arm_ik.hand,
                                         src_skeleton.left_arm_ik.hand):
+
+                            src_ik = ob.data.bones[src_name]
+                            new_bone.roll = bone_utils.ebone_roll_to_vector(new_bone, src_ik.z_axis)
+                    if self.copy_IK_roll_feet:
+                        if src_name in (src_skeleton.left_leg_ik.foot,
+                                        src_skeleton.right_leg_ik.foot):
 
                             src_ik = ob.data.bones[src_name]
                             new_bone.roll = bone_utils.ebone_roll_to_vector(new_bone, src_ik.z_axis)
