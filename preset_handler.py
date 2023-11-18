@@ -26,19 +26,6 @@ def install_presets():
         shutil.copy2(os.path.join(bundled_dir, f), retarget_dir)
 
 
-def iterate_presets_with_same(scene, context):
-    """CallBack for Enum Property. Must take scene, context arguments"""
-
-    yield '--', "--", "None"  # first menu entry, doesn't do anything
-    yield "--Current--", "-- Current Settings --", "Use Bones set in Expy Retarget Panel"
-    yield "--Same--", "-- Same  --", "Look for bones with the same name"
-
-    for f in os.listdir(get_retarget_dir()):
-        if not f.endswith('.py'):
-            continue
-        yield f, os.path.splitext(f)[0].title(), ""
-
-
 def iterate_presets_with_current(scene, context):
     """CallBack for Enum Property. Must take scene, context arguments"""
 

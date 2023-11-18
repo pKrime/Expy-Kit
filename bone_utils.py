@@ -5,6 +5,18 @@ from mathutils import Quaternion
 from math import pi
 
 
+def is_pose_bone_all_locked(pose_bone) -> bool:
+    """Return True if all pose_bone's transform channels are locked"""
+    if not all(pose_bone.lock_location):
+        return False
+    if not all(pose_bone.lock_scale):
+        return False
+    if not all(pose_bone.lock_rotation):
+        return False
+    
+    return True
+
+
 def vec_roll_to_mat3_normalized(nor, roll):
     THETA_SAFE = 1.0e-5  # theta above this value are always safe to use
     THETA_CRITICAL = 1.0e-9  # above this is safe under certain conditions

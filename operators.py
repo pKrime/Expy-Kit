@@ -1184,7 +1184,7 @@ class ConstrainToArmature(bpy.types.Operator):
     bl_description = "Constrain bones of selected armatures to active armature"
     bl_options = {'REGISTER', 'UNDO'}
 
-    src_preset: EnumProperty(items=preset_handler.iterate_presets_with_same,
+    src_preset: EnumProperty(items=preset_handler.iterate_presets_with_current,
                              name="To Bind",
                              options={'SKIP_SAVE'}
                              )
@@ -1193,14 +1193,17 @@ class ConstrainToArmature(bpy.types.Operator):
                              name="Bind Target",
                              options={'SKIP_SAVE'}
                              )
+    
+    bind_by_name: BoolProperty(name="Bind bones by name", default=True)
+    replace_in_name: StringProperty(name="Replace in bone names", default="")
 
     if bpy.app.version[0] < 4:
-        ret_bones_layer: IntProperty(name="Binding-Bones layer",
+        ret_bones_layer: IntProperty(name="Layer",
                                     min=0, max=29, default=24,
                                     description="Armature Layer to use for connection bones")
         use_legacy_index = True
     else:
-        ret_bones_collection: StringProperty(name="Binding Layer",
+        ret_bones_collection: StringProperty(name="Layer",
                                              default="Retarget Bones",
                                              description="Armature collection to use for connection bones")
         use_legacy_index = False
@@ -1341,9 +1344,8 @@ class ConstrainToArmature(bpy.types.Operator):
         row = column.row()
         row.prop(self, 'src_preset', text="To Bind")
     
-        if self.src_preset != "--Same--":
-            row = column.row()
-            row.prop(self, 'trg_preset', text="Bind Target")
+        row = column.row()
+        row.prop(self, 'trg_preset', text="Bind Target")
 
         if self.use_legacy_index:
             row = column.split(factor=0.25, align=True)
@@ -1352,6 +1354,14 @@ class ConstrainToArmature(bpy.types.Operator):
         else:
             row = column.row()
             row.prop(self, 'ret_bones_collection')
+        
+        row = column.row()
+        
+        row = column.row()
+        row = column.split(factor=0.25, align=True)
+        row.separator()
+        row.prop(self, 'bind_by_name', text="Also by Name")
+        # row.prop(self, 'replace_in_name', text="Replace")
         
         column.separator()
         row = column.row()
@@ -1552,6 +1562,17 @@ class ConstrainToArmature(bpy.types.Operator):
             else:
                 deformation_map = None
 
+            if self.bind_by_name:
+                # Look for bones present in both
+                for bone in ob.pose.bones:
+                    bone_name = bone.name
+                    if bone_name in bone_names_map:
+                        continue
+                    if bone_utils.is_pose_bone_all_locked(bone):
+                        continue
+                    if bone.name in trg_ob.pose.bones:
+                        bone_names_map[bone_name] = bone_name
+
             look_ats = {}
 
             if self.constrain_root == 'None':
@@ -1607,7 +1628,7 @@ class ConstrainToArmature(bpy.types.Operator):
                             try:
                                 def_bone = ob.data.edit_bones[deformation_map[src_name]]
                             except KeyError:
-                                continue
+                                def_bone = ob.data.edit_bones[src_name]
                         else:
                             def_bone = ob.data.edit_bones[src_name]
 
