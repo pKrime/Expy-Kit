@@ -1194,8 +1194,13 @@ class ConstrainToArmature(bpy.types.Operator):
                              options={'SKIP_SAVE'}
                              )
     
+    only_selected: BoolProperty(name="Only Selected", default=False, description="Bind only selected bones")
+    
     bind_by_name: BoolProperty(name="Bind bones by name", default=True)
-    replace_in_name: StringProperty(name="Replace in bone names", default="")
+    name_prefix: StringProperty(name="Add prefix to name", default="")
+    name_replace: StringProperty(name="Replace in name", default="")
+    name_replace_with: StringProperty(name="Replace in name with", default="")
+    name_suffix: StringProperty(name="Add suffix to name", default="")
 
     if bpy.app.version[0] < 4:
         ret_bones_layer: IntProperty(name="Layer",
@@ -1360,8 +1365,26 @@ class ConstrainToArmature(bpy.types.Operator):
         row = column.row()
         row = column.split(factor=0.25, align=True)
         row.separator()
+        col = row.column()
+        col.prop(self, 'only_selected')
         row.prop(self, 'bind_by_name', text="Also by Name")
-        # row.prop(self, 'replace_in_name', text="Replace")
+        if self.bind_by_name:
+            row = column.row()
+            col = row.column()
+            col.label(text="Prefix")
+            col.prop(self, 'name_prefix', text="")
+
+            col = row.column()
+            col.label(text="Replace:")
+            col.prop(self, 'name_replace', text="")
+
+            col = row.column()
+            col.label(text="With:")
+            col.prop(self, 'name_replace_with', text="")
+
+            col = row.column()
+            col.label(text="Suffix:")
+            col.prop(self, 'name_suffix', text="")
         
         column.separator()
         row = column.row()
@@ -1482,6 +1505,7 @@ class ConstrainToArmature(bpy.types.Operator):
         for constr in bone.constraints:
             if constr.type in self._bind_constraints:
                 return True
+
         return False
 
     def _add_limit_constraintss(self, ob, rot=True, loc=True, scale=False):
@@ -1570,12 +1594,13 @@ class ConstrainToArmature(bpy.types.Operator):
                 # Look for bones present in both
                 for bone in ob.pose.bones:
                     bone_name = bone.name
-                    if bone_name in bone_names_map:
+                    bone_look_up = self.name_prefix + bone_name.replace(self.name_replace, self.name_replace_with) + self.name_suffix
+                    if bone_look_up in bone_names_map:
                         continue
                     if bone_utils.is_pose_bone_all_locked(bone):
                         continue
-                    if bone.name in trg_ob.pose.bones:
-                        bone_names_map[bone_name] = bone_name
+                    if bone_look_up in trg_ob.pose.bones:
+                        bone_names_map[bone_name] = bone_look_up
 
             look_ats = {}
 
@@ -1587,154 +1612,167 @@ class ConstrainToArmature(bpy.types.Operator):
                 self._constrained_root = None
             elif self.constrain_root == 'Bone':
                 bone_names_map[src_skeleton.root] = self.root_motion_bone
+            
+            if self.only_selected:
+                b_names = list(bone_names_map.keys())
+                for b_name in b_names:
+                    if not b_name:
+                        continue
+                    try:
+                        bone = ob.data.bones[b_name]
+                    except KeyError:
+                        continue
+
+                    if not bone.select:
+                        del bone_names_map[b_name]
 
             # hacky, but will do it: keep target armature in place during binding
             limit_constraints = self._add_limit_constraintss(trg_ob)
             
-            if f'{next(iter(bone_names_map))}_{cp_suffix}' not in trg_ob.data.bones:
-                if not self.use_legacy_index:
-                    try:
-                        ret_collection = trg_ob.data.collections[self.ret_bones_collection]
-                    except KeyError:
-                        ret_collection = trg_ob.data.collections.new(self.ret_bones_collection)
-                        ret_collection.is_visible = False
+            if not self.use_legacy_index:
+                try:
+                    ret_collection = trg_ob.data.collections[self.ret_bones_collection]
+                except KeyError:
+                    ret_collection = trg_ob.data.collections.new(self.ret_bones_collection)
+                    ret_collection.is_visible = False
 
-                # create Retarget bones
-                bpy.ops.object.mode_set(mode='EDIT')
-                for src_name, trg_name in bone_names_map.items():
-                    if not src_name:
+            # create Retarget bones
+            bpy.ops.object.mode_set(mode='EDIT')
+            for src_name, trg_name in bone_names_map.items():
+                if not src_name:
+                    continue
+
+                is_object_root = src_name == src_skeleton.root and self.constrain_root == 'Object'
+                if not trg_name and not is_object_root:
+                    continue
+
+                trg_name = str(prefix) + str(trg_name)
+
+                new_bone_name = bone_utils.copy_bone_to_arm(ob, trg_ob, src_name, suffix=cp_suffix)
+                if not new_bone_name:
+                    continue
+                try:
+                    new_parent = trg_ob.data.edit_bones[trg_name]
+                except KeyError:
+                    if is_object_root:
+                        new_parent = None
+                    else:
+                        self.report({'WARNING'}, f"{trg_name} not found in target")
                         continue
 
-                    is_object_root = src_name == src_skeleton.root and self.constrain_root == 'Object'
-                    if not trg_name and not is_object_root:
-                        continue
+                new_bone = trg_ob.data.edit_bones[new_bone_name]
+                new_bone.parent = new_parent
 
-                    trg_name = str(prefix) + str(trg_name)
-                    new_bone_name = bone_utils.copy_bone_to_arm(ob, trg_ob, src_name, suffix=cp_suffix)
-                    if not new_bone_name:
-                        continue
-                    try:
-                        new_parent = trg_ob.data.edit_bones[trg_name]
-                    except KeyError:
-                        if is_object_root:
-                            new_parent = None
-                        else:
-                            self.report({'WARNING'}, f"{trg_name} not found in target")
-                            continue
+                if self.match_transform == 'Bone':
+                    # counter deformation bone transform
 
-                    new_bone = trg_ob.data.edit_bones[new_bone_name]
-                    new_bone.parent = new_parent
-
-                    if self.match_transform == 'Bone':
-                        # counter deformation bone transform
-
-                        if deformation_map:
-                            try:
-                                def_bone = ob.data.edit_bones[deformation_map[src_name]]
-                            except KeyError:
-                                def_bone = ob.data.edit_bones[src_name]
-                        else:
-                            def_bone = ob.data.edit_bones[src_name]
-
+                    if deformation_map:
                         try:
-                            trg_ed_bone = trg_ob.data.edit_bones[trg_name]
+                            def_bone = ob.data.edit_bones[deformation_map[src_name]]
                         except KeyError:
-                            continue
+                            def_bone = ob.data.edit_bones[src_name]
+                    else:
+                        def_bone = ob.data.edit_bones[src_name]
 
-                        new_bone.transform(def_bone.matrix.inverted())
+                    try:
+                        trg_ed_bone = trg_ob.data.edit_bones[trg_name]
+                    except KeyError:
+                        continue
 
-                        # even transform
+                    new_bone.transform(def_bone.matrix.inverted())
+
+                    # even transform
+                    new_bone.transform(ob.matrix_world)
+                    # counter target transform
+                    new_bone.transform(trg_ob.matrix_world.inverted())
+                    
+                    # align target temporarily
+                    trg_roll = trg_ed_bone.roll
+                    trg_ed_bone.roll = bone_utils.ebone_roll_to_vector(trg_ed_bone, def_bone.z_axis)
+
+                    # bring under trg_bone
+                    new_bone.transform(trg_ed_bone.matrix)
+
+                    # restore target orient
+                    trg_ed_bone.roll = trg_roll
+
+                    new_bone.roll = bone_utils.ebone_roll_to_vector(trg_ed_bone, def_bone.z_axis)
+                elif self.match_transform == 'Pose':
+                    new_bone.matrix = ob.pose.bones[src_name].matrix
+                    new_bone.transform(trg_ob.matrix_world.inverted())
+                elif self.match_transform == 'World':
+                    new_bone.head = new_bone.parent.head
+                    new_bone.tail = new_bone.parent.tail
+                    new_bone.roll = new_bone.parent.roll
+                else:
+                    src_bone = ob.data.bones[src_name]
+                    src_z_axis_neg = Vector((0.0, 0.0, 1.0)) @ src_bone.matrix_local.inverted().to_3x3()
+                    src_z_axis_neg.normalize()
+
+                    new_bone.roll = bone_utils.ebone_roll_to_vector(new_bone, src_z_axis_neg)
+
+                    if self.match_transform == 'Object':
                         new_bone.transform(ob.matrix_world)
-                        # counter target transform
                         new_bone.transform(trg_ob.matrix_world.inverted())
-                        
-                        # align target temporarily
-                        trg_roll = trg_ed_bone.roll
-                        trg_ed_bone.roll = bone_utils.ebone_roll_to_vector(trg_ed_bone, def_bone.z_axis)
 
-                        # bring under trg_bone
-                        new_bone.transform(trg_ed_bone.matrix)
+                if self.copy_IK_roll_hands:
+                    if src_name in (src_skeleton.right_arm_ik.hand,
+                                    src_skeleton.left_arm_ik.hand):
 
-                        # restore target orient
-                        trg_ed_bone.roll = trg_roll
+                        src_ik = ob.data.bones[src_name]
+                        new_bone.roll = bone_utils.ebone_roll_to_vector(new_bone, src_ik.z_axis)
+                if self.copy_IK_roll_feet:
+                    if src_name in (src_skeleton.left_leg_ik.foot,
+                                    src_skeleton.right_leg_ik.foot):
 
-                        new_bone.roll = bone_utils.ebone_roll_to_vector(trg_ed_bone, def_bone.z_axis)
-                    elif self.match_transform == 'Pose':
-                        new_bone.matrix = ob.pose.bones[src_name].matrix
-                        new_bone.transform(trg_ob.matrix_world.inverted())
-                    elif self.match_transform == 'World':
-                        new_bone.head = new_bone.parent.head
-                        new_bone.tail = new_bone.parent.tail
-                        new_bone.roll = new_bone.parent.roll
+                        src_ik = ob.data.bones[src_name]
+                        new_bone.roll = bone_utils.ebone_roll_to_vector(new_bone, src_ik.z_axis)
+
+                if self.use_legacy_index:
+                    new_bone.layers[self.ret_bones_layer] = True
+                    for i, L in enumerate(new_bone.layers):
+                        # FIXME: should be util function
+                        if i == self.ret_bones_layer:
+                            continue
+                        new_bone.layers[i] = False
+                else:
+                    for coll in new_bone.collections:
+                        coll.unassign(new_bone)
+                    ret_collection.assign(new_bone)
+
+                if self.math_look_at:
+                    if src_name == src_skeleton.right_arm_ik.arm:
+                        start_bone_name = trg_skeleton.right_arm_ik.forearm
+                    elif src_name == src_skeleton.left_arm_ik.arm:
+                        start_bone_name = trg_skeleton.left_arm_ik.forearm
+                    elif src_name == src_skeleton.right_leg_ik.upleg:
+                        start_bone_name = trg_skeleton.right_leg_ik.leg
+                    elif src_name == src_skeleton.left_leg_ik.upleg:
+                        start_bone_name = trg_skeleton.left_leg_ik.leg
                     else:
-                        src_bone = ob.data.bones[src_name]
-                        src_z_axis_neg = Vector((0.0, 0.0, 1.0)) @ src_bone.matrix_local.inverted().to_3x3()
-                        src_z_axis_neg.normalize()
+                        start_bone_name = ""
 
-                        new_bone.roll = bone_utils.ebone_roll_to_vector(new_bone, src_z_axis_neg)
+                    if start_bone_name:
+                        start_bone = trg_ob.data.edit_bones[prefix + start_bone_name]
 
-                        if self.match_transform == 'Object':
-                            new_bone.transform(ob.matrix_world)
-                            new_bone.transform(trg_ob.matrix_world.inverted())
+                        look_bone = trg_ob.data.edit_bones.new(start_bone_name + '_LOOK')
+                        look_bone.head = start_bone.head
+                        look_bone.tail = 2 * start_bone.head - start_bone.tail
+                        look_bone.parent = start_bone
 
-                    if self.copy_IK_roll_hands:
-                        if src_name in (src_skeleton.right_arm_ik.hand,
-                                        src_skeleton.left_arm_ik.hand):
+                        look_ats[src_name] = look_bone.name
 
-                            src_ik = ob.data.bones[src_name]
-                            new_bone.roll = bone_utils.ebone_roll_to_vector(new_bone, src_ik.z_axis)
-                    if self.copy_IK_roll_feet:
-                        if src_name in (src_skeleton.left_leg_ik.foot,
-                                        src_skeleton.right_leg_ik.foot):
-
-                            src_ik = ob.data.bones[src_name]
-                            new_bone.roll = bone_utils.ebone_roll_to_vector(new_bone, src_ik.z_axis)
-
-                    if self.use_legacy_index:
-                        new_bone.layers[self.ret_bones_layer] = True
-                        for i, L in enumerate(new_bone.layers):
-                            # FIXME: should be util function
-                            if i == self.ret_bones_layer:
-                                continue
-                            new_bone.layers[i] = False
-                    else:
-                        for coll in new_bone.collections:
-                            coll.unassign(new_bone)
-                        ret_collection.assign(new_bone)
-
-                    if self.math_look_at:
-                        if src_name == src_skeleton.right_arm_ik.arm:
-                            start_bone_name = trg_skeleton.right_arm_ik.forearm
-                        elif src_name == src_skeleton.left_arm_ik.arm:
-                            start_bone_name = trg_skeleton.left_arm_ik.forearm
-                        elif src_name == src_skeleton.right_leg_ik.upleg:
-                            start_bone_name = trg_skeleton.right_leg_ik.leg
-                        elif src_name == src_skeleton.left_leg_ik.upleg:
-                            start_bone_name = trg_skeleton.left_leg_ik.leg
+                        if self.use_legacy_index:
+                            look_bone.layers[self.ret_bones_layer] = True
+                            for i, L in enumerate(look_bone.layers):
+                                # FIXME: should be util function
+                                if i == self.ret_bones_layer:
+                                    continue
+                                look_bone.layers[i] = False
                         else:
-                            start_bone_name = ""
-
-                        if start_bone_name:
-                            start_bone = trg_ob.data.edit_bones[prefix + start_bone_name]
-
-                            look_bone = trg_ob.data.edit_bones.new(start_bone_name + '_LOOK')
-                            look_bone.head = start_bone.head
-                            look_bone.tail = 2 * start_bone.head - start_bone.tail
-                            look_bone.parent = start_bone
-
-                            look_ats[src_name] = look_bone.name
-
-                            if self.use_legacy_index:
-                                look_bone.layers[self.ret_bones_layer] = True
-                                for i, L in enumerate(look_bone.layers):
-                                    # FIXME: should be util function
-                                    if i == self.ret_bones_layer:
-                                        continue
-                                    look_bone.layers[i] = False
-                            else:
-                                for coll in look_bone.collections:
-                                    coll.unissign(look_bone)
-                                ret_collection.assign(look_bone)
+                            for coll in look_bone.collections:
+                                coll.unissign(look_bone)
+                            ret_collection.assign(look_bone)
                             
             for constr in limit_constraints:
                 trg_ob.constraints.remove(constr)

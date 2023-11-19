@@ -128,7 +128,12 @@ def copy_bone_to_arm(src_ob, trg_ob, bone_name, suffix='CP'):
         return
 
     new_name = '_'.join((bone_name, suffix)) if suffix else bone_name
-    new_bone = trg_ob.data.edit_bones.new(new_name)
+    
+    try:
+        new_bone = trg_ob.data.edit_bones[new_name]
+    except KeyError:
+        new_bone = trg_ob.data.edit_bones.new(new_name)
+
     new_bone.head = src_bone.head_local
     new_bone.tail = src_bone.tail_local
 
@@ -157,14 +162,21 @@ def copy_bone(ob, bone_name, assign_name='', constraints=False, deform_bone='SAM
     edit_bone_2.use_connect = edit_bone_1.use_connect
 
     # Copy edit bone attributes
-    edit_bone_2.layers = list(edit_bone_1.layers)
+    try:
+        edit_bone_2.layers = list(edit_bone_1.layers)
+    except AttributeError:
+        for collection in edit_bone_1.collections:
+            collection.assign(edit_bone_2)
 
     edit_bone_2.head = Vector(edit_bone_1.head)
     edit_bone_2.tail = Vector(edit_bone_1.tail)
     edit_bone_2.roll = edit_bone_1.roll
 
     edit_bone_2.use_inherit_rotation = edit_bone_1.use_inherit_rotation
-    edit_bone_2.use_inherit_scale = edit_bone_1.use_inherit_scale
+    try:
+        edit_bone_2.use_inherit_scale = edit_bone_1.use_inherit_scale
+    except AttributeError:
+        edit_bone_2.inherit_scale = edit_bone_1.inherit_scale
     edit_bone_2.use_local_location = edit_bone_1.use_local_location
 
     if deform_bone == 'SAME':
@@ -555,9 +567,13 @@ def gamefriendly_hierarchy(ob, fix_tail=True, limit_scale=False):
 
     if fix_tail:
         # FIXME: these bones will not be added to num_reparents
-        new_root_name = fix_tail_direction(ob)
-        if new_root_name:
-            def_root_name = new_root_name
+        try:
+            new_root_name = fix_tail_direction(ob)
+        except IndexError:
+            fix_tail = False
+        else:
+            if new_root_name:
+                def_root_name = new_root_name
 
     if limit_scale:
         limit_spine_scale(ob)
