@@ -686,7 +686,7 @@ class ExtractMetarig(bpy.types.Operator):
                 return
 
             if not src_bone:
-                print(bone_attr, src_bone_name, "not found in", src_armature)
+                self.report({'WARNING'}, f"{bone_attr}, {src_bone_name} not found in {src_armature}")
                 return
 
             met_bone.head = src_bone.head_local
@@ -697,7 +697,7 @@ class ExtractMetarig(bpy.types.Operator):
                 parent_dir = met_bone.parent.vector.normalized()
 
                 if bone_dir.dot(parent_dir) < -0.6:
-                    print(met_bone.name, "non aligned")
+                    self.report({'WARNING'}, f"{met_bone.name} is not aligned with its parent")
                     # TODO
 
             if axis:
@@ -1379,8 +1379,12 @@ class ConstrainToArmature(bpy.types.Operator):
         col = row.column()     
         col.prop(self, 'math_look_at')
         col.prop(self, 'no_finger_loc')
-        col.prop(self, 'copy_IK_roll_hands')
-        col.prop(self, 'copy_IK_roll_feet')
+
+        row = column.row()
+        row = column.split(factor=0.25, align=True)
+        row.separator()
+        row.prop(self, 'copy_IK_roll_hands')
+        row.prop(self, 'copy_IK_roll_feet')
 
         row = column.split(factor=0.25, align=True)
         row.label(text="    Policy")
