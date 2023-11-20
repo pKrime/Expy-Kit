@@ -23,6 +23,9 @@ version 0.53
 - Copy presets dir to clipboard in the preferences
 - Support blender 4.0 bone collections
 - Add World Space matching
+- Bind name-matching bones
+- Optionally bind only selected bones
+- Can re-bind binded rigs
 
 
 version 0.52

@@ -1363,7 +1363,7 @@ class ConstrainToArmature(bpy.types.Operator):
         row = column.row()
         
         row = column.row()
-        row = column.split(factor=0.25, align=True)
+        row = column.split(factor=0.1, align=True)
         row.separator()
         col = row.column()
         col.prop(self, 'only_selected')
@@ -1641,6 +1641,15 @@ class ConstrainToArmature(bpy.types.Operator):
             for src_name, trg_name in bone_names_map.items():
                 if not src_name:
                     continue
+
+                if self.constraint_policy == 'skip':
+                    try:
+                        pb = ob.pose.bones[src_name]
+                    except KeyError:
+                        pass
+                    else:
+                        if self._bone_bound_already(pb):
+                            continue
 
                 is_object_root = src_name == src_skeleton.root and self.constrain_root == 'Object'
                 if not trg_name and not is_object_root:
