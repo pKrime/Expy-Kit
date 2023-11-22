@@ -1708,6 +1708,7 @@ class ConstrainToArmature(bpy.types.Operator):
                     new_bone.roll = bone_utils.ebone_roll_to_vector(trg_ed_bone, def_bone.z_axis)
                 elif self.match_transform == 'Pose':
                     new_bone.matrix = ob.pose.bones[src_name].matrix
+                    new_bone.transform(ob.matrix_world)
                     new_bone.transform(trg_ob.matrix_world.inverted())
                 elif self.match_transform == 'World':
                     new_bone.head = new_bone.parent.head
