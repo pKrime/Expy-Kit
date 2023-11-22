@@ -26,6 +26,7 @@ version 0.53
 - Bind name-matching bones
 - Optionally bind only selected bones
 - Can re-bind binded rigs
+- Object transform is now a checkbox
 
 
 version 0.52
