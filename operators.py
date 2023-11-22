@@ -1216,12 +1216,13 @@ class ConstrainToArmature(bpy.types.Operator):
     match_transform: EnumProperty(items=[
         ('None', "No Matching", "Don't match any transform"),
         ('Bone', "Match Bone Transform", "Match target bones at rest"),
-        ('Object', "Match Object Transform", "Match target object transform"),
         ('Pose', "Match Armature Pose", "Match source bones in their current poses"),
         ('World', "Match World Transform", "Match source bones with no conversion"),
     ],
         name="Match Transform",
-        default='Object')
+        default='None')
+    
+    match_object_transform: BoolProperty(name="Match Object Transform", default=True)
 
     math_look_at: BoolProperty(name="Chain Look At",
                                description="Correct chain direction based on mid limb (Useful for IK)",
@@ -1419,7 +1420,9 @@ class ConstrainToArmature(bpy.types.Operator):
 
         row = column.split(factor=0.25, align=True)
         row.label(text="Matching")
-        row.prop(self, 'match_transform', text='')
+        col = row.column()
+        col.prop(self, 'match_transform', text='')
+        col.prop(self, 'match_object_transform')
 
         column.separator()
         row = column.row()
@@ -1691,7 +1694,8 @@ class ConstrainToArmature(bpy.types.Operator):
                     new_bone.transform(def_bone.matrix.inverted())
 
                     # even transform
-                    new_bone.transform(ob.matrix_world)
+                    if self.match_object_transform:
+                        new_bone.transform(ob.matrix_world)
                     # counter target transform
                     new_bone.transform(trg_ob.matrix_world.inverted())
                     
@@ -1708,12 +1712,16 @@ class ConstrainToArmature(bpy.types.Operator):
                     new_bone.roll = bone_utils.ebone_roll_to_vector(trg_ed_bone, def_bone.z_axis)
                 elif self.match_transform == 'Pose':
                     new_bone.matrix = ob.pose.bones[src_name].matrix
-                    new_bone.transform(ob.matrix_world)
+                    if self.match_object_transform:
+                        new_bone.transform(ob.matrix_world)
                     new_bone.transform(trg_ob.matrix_world.inverted())
                 elif self.match_transform == 'World':
                     new_bone.head = new_bone.parent.head
                     new_bone.tail = new_bone.parent.tail
                     new_bone.roll = new_bone.parent.roll
+                    if self.match_object_transform:
+                        new_bone.transform(ob.matrix_world)
+                    new_bone.transform(trg_ob.matrix_world.inverted())
                 else:
                     src_bone = ob.data.bones[src_name]
                     src_z_axis_neg = Vector((0.0, 0.0, 1.0)) @ src_bone.matrix_local.inverted().to_3x3()
@@ -1721,7 +1729,7 @@ class ConstrainToArmature(bpy.types.Operator):
 
                     new_bone.roll = bone_utils.ebone_roll_to_vector(new_bone, src_z_axis_neg)
 
-                    if self.match_transform == 'Object':
+                    if self.match_object_transform:
                         new_bone.transform(ob.matrix_world)
                         new_bone.transform(trg_ob.matrix_world.inverted())
 
