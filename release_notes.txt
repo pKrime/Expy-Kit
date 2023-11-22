@@ -1,6 +1,7 @@
 version 0.53
 
 - Extract Metarig supports extra bones through rigify attributes
+- Binding checks for bones with the same name
 - Set To Bone button for rapid Skeleton Mapping
 - Mirror mapped bones to the other side
 - Match Bones supports mismatching rolls
@@ -12,13 +13,19 @@ version 0.53
 - Faster Transfer Root Motion
 - Namespace prefix with columns (:) are accounted for when using a preset
 - Alternative prefix separator allowed when renaming bones
-- "Convert Bone Names" renames conflicting existing names ti duplicate
+- "Convert Bone Names" renames conflicting existing names to "{name}.001"
 - "Select Constrained controls" is not overrided by "Select Animated controls"
 - "Action Range to Scene" always fits the Timeline view
 - Fix missing eyes in extracted metarig
 - Fix occasional glitch in baked animations
 - Fix renaming from Current Settings
 - Faster Expy Panel
+- Copy presets dir to clipboard in the preferences
+- Support blender 4.0 bone collections
+- Add World Space matching
+- Bind name-matching bones
+- Optionally bind only selected bones
+- Can re-bind binded rigs
 
 
 version 0.52

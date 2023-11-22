@@ -5,6 +5,18 @@ from mathutils import Quaternion
 from math import pi
 
 
+def is_pose_bone_all_locked(pose_bone) -> bool:
+    """Return True if all pose_bone's transform channels are locked"""
+    if not all(pose_bone.lock_location):
+        return False
+    if not all(pose_bone.lock_scale):
+        return False
+    if not all(pose_bone.lock_rotation):
+        return False
+    
+    return True
+
+
 def vec_roll_to_mat3_normalized(nor, roll):
     THETA_SAFE = 1.0e-5  # theta above this value are always safe to use
     THETA_CRITICAL = 1.0e-9  # above this is safe under certain conditions
@@ -116,7 +128,12 @@ def copy_bone_to_arm(src_ob, trg_ob, bone_name, suffix='CP'):
         return
 
     new_name = '_'.join((bone_name, suffix)) if suffix else bone_name
-    new_bone = trg_ob.data.edit_bones.new(new_name)
+    
+    try:
+        new_bone = trg_ob.data.edit_bones[new_name]
+    except KeyError:
+        new_bone = trg_ob.data.edit_bones.new(new_name)
+
     new_bone.head = src_bone.head_local
     new_bone.tail = src_bone.tail_local
 
@@ -145,14 +162,21 @@ def copy_bone(ob, bone_name, assign_name='', constraints=False, deform_bone='SAM
     edit_bone_2.use_connect = edit_bone_1.use_connect
 
     # Copy edit bone attributes
-    edit_bone_2.layers = list(edit_bone_1.layers)
+    try:
+        edit_bone_2.layers = list(edit_bone_1.layers)
+    except AttributeError:
+        for collection in edit_bone_1.collections:
+            collection.assign(edit_bone_2)
 
     edit_bone_2.head = Vector(edit_bone_1.head)
     edit_bone_2.tail = Vector(edit_bone_1.tail)
     edit_bone_2.roll = edit_bone_1.roll
 
     edit_bone_2.use_inherit_rotation = edit_bone_1.use_inherit_rotation
-    edit_bone_2.use_inherit_scale = edit_bone_1.use_inherit_scale
+    try:
+        edit_bone_2.use_inherit_scale = edit_bone_1.use_inherit_scale
+    except AttributeError:
+        edit_bone_2.inherit_scale = edit_bone_1.inherit_scale
     edit_bone_2.use_local_location = edit_bone_1.use_local_location
 
     if deform_bone == 'SAME':
@@ -164,10 +188,15 @@ def copy_bone(ob, bone_name, assign_name='', constraints=False, deform_bone='SAM
     edit_bone_2.bbone_custom_handle_end = edit_bone_1.bbone_custom_handle_end
 
     # ITD- bones go to MCH layer
-    edit_bone_2.layers[30] = True
-    edit_bone_2.layers[31] = False
-    for i in range(30):
-        edit_bone_2.layers[i] = False
+    try:
+        edit_bone_2.layers[30] = True
+    except AttributeError:
+        # TODO: use collections
+        pass
+    else:
+        edit_bone_2.layers[31] = False
+        for i in range(30):
+            edit_bone_2.layers[i] = False
 
     ob.update_from_editmode()
 
@@ -322,7 +351,12 @@ def copy_chain(ob, first, last_excluded=None, flip_bones=False):
 
         # ITD- bones go to MCH layer
         for new_bone in (itd_bone, cp_bone):
-            new_bone.layers[30] = True
+            try:
+                new_bone.layers[30] = True
+            except AttributeError:
+                #TODO: use collections
+                break
+
             new_bone.layers[31] = False
             for i in range(30):
                 new_bone.layers[i] = False
@@ -533,9 +567,13 @@ def gamefriendly_hierarchy(ob, fix_tail=True, limit_scale=False):
 
     if fix_tail:
         # FIXME: these bones will not be added to num_reparents
-        new_root_name = fix_tail_direction(ob)
-        if new_root_name:
-            def_root_name = new_root_name
+        try:
+            new_root_name = fix_tail_direction(ob)
+        except IndexError:
+            fix_tail = False
+        else:
+            if new_root_name:
+                def_root_name = new_root_name
 
     if limit_scale:
         limit_spine_scale(ob)
