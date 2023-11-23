@@ -1215,8 +1215,8 @@ class ConstrainToArmature(bpy.types.Operator):
 
     match_transform: EnumProperty(items=[
         ('None', "None", "Don't match any transform"),
-        ('Bone', "Auto-Adjust to Target Rest Pose", "Account for difference between rest pose (Requires similar proportions and Y bone-axis)"),
-        ('Pose', "Pose was manually adjusted to Target Rest pose", "Posing armatures manually to match a different rest pose"),
+        ('Bone', "Rest Pose difference", "Account for difference between control and deform rest pose (Requires similar proportions and Y bone-axis)"),
+        ('Pose', "Current Pose as target Rest Pose", "Armature was posed manually to match rest pose of target"),
         ('World', "Follow target Pose in world space", "Just copy target world positions (Same bone orient, different rest pose)"),
     ],
         name="Match Transform",
@@ -1391,6 +1391,21 @@ class ConstrainToArmature(bpy.types.Operator):
         
         column.separator()
         row = column.row()
+        row.label(text='Transform')
+
+        row = column.split(factor=self._prop_indent, align=True)
+        row.label(text="Match:")
+        col = row.column()
+        col.prop(self, 'match_transform', text='')
+        col.prop(self, 'match_object_transform')
+
+        if not self.loc_constraints and self.match_transform == 'Bone':
+            col.label(text="'Copy Location' might be required", icon='ERROR')
+        else:
+            col.separator()
+ 
+        column.separator()
+        row = column.row()
         row.label(text='Constraints')
 
         row = column.row()
@@ -1417,16 +1432,6 @@ class ConstrainToArmature(bpy.types.Operator):
         row = column.split(factor=self._prop_indent, align=True)
         row.label(text="Policy")
         row.prop(self, 'constraint_policy', text='')
-
-        column.separator()
-        row = column.row()
-        row.label(text='Transform')
-
-        row = column.split(factor=self._prop_indent, align=True)
-        row.label(text="Match:")
-        col = row.column()
-        col.prop(self, 'match_transform', text='')
-        col.prop(self, 'match_object_transform')
 
         column.separator()
         row = column.row()
