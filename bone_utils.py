@@ -191,8 +191,12 @@ def copy_bone(ob, bone_name, assign_name='', constraints=False, deform_bone='SAM
     try:
         edit_bone_2.layers[30] = True
     except AttributeError:
-        # TODO: use collections
-        pass
+        try:
+            MCH_coll = ob.data.collections['MCH']
+        except KeyError:
+            MCH_coll = ob.data.collections.new('MCH')
+        else:
+            MCH_coll.assign(edit_bone_2)
     else:
         edit_bone_2.layers[31] = False
         for i in range(30):
