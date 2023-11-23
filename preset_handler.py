@@ -101,12 +101,12 @@ def set_preset_skel(preset, validate=True):
     spec = importlib.util.spec_from_file_location("sel_preset", preset_path)
     preset_mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(preset_mod)
+    
     if validate:
         validate_preset(bpy.context.active_object.data)
 
     mapping = get_settings_skel(preset_mod.skeleton)
     return mapping
-
 
 def get_preset_skel(preset, settings=None):
     if not preset:
@@ -118,18 +118,25 @@ def get_preset_skel(preset, settings=None):
     if not os.path.isfile(preset_path):
         return
 
-    # HACKISH: executing the preset would apply it to the current armature. Use ast instead
-    code = ast.parse(open(preset_path).read())
-    code.body.pop(0)
-    code.body.pop(0)
-
+    # run preset on current settings if there are any, otherwise create Preset settings
+    # the attributes of 'skeleton' are set in the preset
     skeleton = settings if settings else PresetSkeleton()
+
+    # HACKISH: executing the preset would apply it to the current armature (target).
+    # We don't want that if this is runnning on the source armature. Using ast instead
+    code = ast.parse(open(preset_path).read())
+
+    # remove skeleton 
+    code.body.pop(0)  # remove line 'import bpy' from preset
+    code.body.pop(0)  # remove line 'skeleton = bpy.context.object.data.expykit_retarget' from preset
     eval(compile(code, '', 'exec'))
 
-    mapping = HumanSkeleton(preset=skeleton)
     if settings:
         validate_preset(settings.id_data)
+
+    mapping = HumanSkeleton(preset=skeleton)
     del skeleton
+    
     return mapping
 
 

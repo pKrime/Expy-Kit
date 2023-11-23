@@ -1721,7 +1721,6 @@ class ConstrainToArmature(bpy.types.Operator):
                     new_bone.roll = new_bone.parent.roll
                     if self.match_object_transform:
                         new_bone.transform(ob.matrix_world)
-                    new_bone.transform(trg_ob.matrix_world.inverted())
                 else:
                     src_bone = ob.data.bones[src_name]
                     src_z_axis_neg = Vector((0.0, 0.0, 1.0)) @ src_bone.matrix_local.inverted().to_3x3()
@@ -1839,7 +1838,7 @@ class ConstrainToArmature(bpy.types.Operator):
 
                 if is_bone_floating(src_pbone, src_skeleton.spine.hips) and self.bind_floating:
                     constr_types = ['COPY_LOCATION', 'COPY_ROTATION']
-                elif (src_name in left_finger_bones or src_name in right_finger_bones) and self.no_finger_loc:
+                elif self.no_finger_loc and (src_name in left_finger_bones or src_name in right_finger_bones):
                     constr_types = ['COPY_ROTATION']
                 else:
                     constr_types = self._bind_constraints
