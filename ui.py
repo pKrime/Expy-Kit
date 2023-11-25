@@ -581,6 +581,7 @@ class DATA_PT_expy_retarget(RetargetBasePanel, bpy.types.Panel):
 
 class DATA_PT_expy_retarget_face(RetargetBasePanel, bpy.types.Panel):
     bl_label = "Face"
+    bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
         ob = context.object
@@ -640,6 +641,7 @@ class DATA_PT_expy_retarget_face(RetargetBasePanel, bpy.types.Panel):
 
 class DATA_PT_expy_retarget_fingers(RetargetBasePanel, bpy.types.Panel):
     bl_label = "Fingers"
+    bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
         ob = context.object
@@ -680,6 +682,7 @@ class DATA_PT_expy_retarget_fingers(RetargetBasePanel, bpy.types.Panel):
 
 class DATA_PT_expy_retarget_arms_IK(RetargetBasePanel, bpy.types.Panel):
     bl_label = "Arms IK"
+    bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
         ob = context.object
@@ -730,6 +733,7 @@ class DATA_PT_expy_retarget_spine(RetargetBasePanel, bpy.types.Panel):
 
 class DATA_PT_expy_retarget_leg_IK(RetargetBasePanel, bpy.types.Panel):
     bl_label = "Legs IK"
+    bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
         ob = context.object
