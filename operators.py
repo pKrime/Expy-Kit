@@ -1190,7 +1190,7 @@ class ConstrainToArmature(bpy.types.Operator):
                              )
 
     trg_preset: EnumProperty(items=preset_handler.iterate_presets_with_current,
-                             name="Bind Target",
+                             name="Bind To",
                              options={'SKIP_SAVE'}
                              )
     
@@ -1215,8 +1215,8 @@ class ConstrainToArmature(bpy.types.Operator):
 
     match_transform: EnumProperty(items=[
         ('None', "None", "Don't match any transform"),
-        ('Bone', "Rest Pose difference", "Account for difference between control and deform rest pose (Requires similar proportions and Y bone-axis)"),
-        ('Pose', "Current Pose as target Rest Pose", "Armature was posed manually to match rest pose of target"),
+        ('Bone', "Bones Offset", "Account for difference between control and deform rest pose (Requires similar proportions and Y bone-axis)"),
+        ('Pose', "Current Pose is target Rest Pose", "Armature was posed manually to match rest pose of target"),
         ('World', "Follow target Pose in world space", "Just copy target world positions (Same bone orient, different rest pose)"),
     ],
         name="Match Transform",
@@ -1235,6 +1235,8 @@ class ConstrainToArmature(bpy.types.Operator):
     copy_IK_roll_feet: BoolProperty(name="Feet IK Roll",
                             description="USe IK target roll from source armature (Useful for IK)",
                             default=False)
+    
+    fit_target_scale: BoolProperty(name="Fit target Height", default=False)
 
     constrain_root: EnumProperty(items=[
         ('None', "No Root", "Don't constrain root bone"),
@@ -1242,7 +1244,7 @@ class ConstrainToArmature(bpy.types.Operator):
         ('Object', "Object", "Constrain root to object")
     ],
         name="Constrain Root",
-        default='Bone')
+        default='None')
 
     loc_constraints: BoolProperty(name="Copy Location",
                                   description="Use Location Constraint when binding",
@@ -1347,63 +1349,29 @@ class ConstrainToArmature(bpy.types.Operator):
         column = layout.column()
 
         row = column.row()
-        row.label(text='Binding')
-        
-        row = column.row()
         row.prop(self, 'src_preset', text="To Bind")
     
         row = column.row()
-        row.prop(self, 'trg_preset', text="Bind Target")
+        row.prop(self, 'trg_preset', text="Bind To")
 
-        if self.use_legacy_index:
-            row = column.split(factor=self._prop_indent, align=True)
-            row.separator()
-            row.prop(self, 'ret_bones_layer')
-        else:
-            row = column.row()
-            row.prop(self, 'ret_bones_collection')
-        
-        row = column.row()
-        
-        row = column.row()
-        row = column.split(factor=self._prop_indent, align=True)
-        row.separator()
-        col = row.column()
-        col.prop(self, 'only_selected')
-        row.prop(self, 'bind_by_name', text="Also by Name")
-        if self.bind_by_name:
-            row = column.row()
-            col = row.column()
-            col.label(text="Prefix")
-            col.prop(self, 'name_prefix', text="")
-
-            col = row.column()
-            col.label(text="Replace:")
-            col.prop(self, 'name_replace', text="")
-
-            col = row.column()
-            col.label(text="With:")
-            col.prop(self, 'name_replace_with', text="")
-
-            col = row.column()
-            col.label(text="Suffix:")
-            col.prop(self, 'name_suffix', text="")
-        
         column.separator()
         row = column.row()
         row.label(text='Transform')
 
         row = column.split(factor=self._prop_indent, align=True)
-        row.label(text="Match:")
+        row.separator()
         col = row.column()
         col.prop(self, 'match_transform', text='')
         col.prop(self, 'match_object_transform')
+        col.prop(self, 'fit_target_scale')
 
         if not self.loc_constraints and self.match_transform == 'Bone':
             col.label(text="'Copy Location' might be required", icon='ERROR')
+        elif not self.fit_target_scale and self.match_transform == 'Pose':
+            col.label(text="'Fit target Height' might be required", icon='ERROR')
         else:
             col.separator()
- 
+
         column.separator()
         row = column.row()
         row.label(text='Constraints')
@@ -1430,8 +1398,35 @@ class ConstrainToArmature(bpy.types.Operator):
         ik_aim_row.prop(self, 'copy_IK_roll_feet')
 
         row = column.split(factor=self._prop_indent, align=True)
-        row.label(text="Policy")
-        row.prop(self, 'constraint_policy', text='')
+        constr_col.prop(self, 'constraint_policy', text='')
+        
+        column.separator()
+        row = column.row()
+        row.label(text="Affect")
+        
+        row = column.row()
+        row = column.split(factor=self._prop_indent, align=True)
+        row.separator()
+        col = row.column()
+        col.prop(self, 'only_selected')
+        row.prop(self, 'bind_by_name', text="Also by Name")
+        if self.bind_by_name:
+            row = column.row()
+            col = row.column()
+            col.label(text="Prefix")
+            col.prop(self, 'name_prefix', text="")
+
+            col = row.column()
+            col.label(text="Replace:")
+            col.prop(self, 'name_replace', text="")
+
+            col = row.column()
+            col.label(text="With:")
+            col.prop(self, 'name_replace_with', text="")
+
+            col = row.column()
+            col.label(text="Suffix:")
+            col.prop(self, 'name_suffix', text="")
 
         column.separator()
         row = column.row()
@@ -1513,6 +1508,15 @@ class ConstrainToArmature(bpy.types.Operator):
             row.prop(self, "root_cp_rot_y", text="Y", toggle=True)
             row.prop(self, "root_cp_rot_z", text="Z", toggle=True)
 
+        column.separator()
+        if self.use_legacy_index:
+            row = column.split(factor=self._prop_indent, align=True)
+            row.separator()
+            row.prop(self, 'ret_bones_layer')
+        else:
+            row = column.row()
+            row.prop(self, 'ret_bones_collection', text="Layer")
+
     def _bone_bound_already(self, bone):
         for constr in bone.constraints:
             if constr.type in self._bind_constraints:
@@ -1581,6 +1585,11 @@ class ConstrainToArmature(bpy.types.Operator):
         cp_suffix = 'RET'
         prefix = ""
 
+        if self.fit_target_scale:
+            trg_ob.data.pose_position = 'REST'
+            trg_shoulder_height = (trg_ob.matrix_world @ trg_ob.pose.bones[trg_skeleton.left_arm.shoulder].head)
+            trg_ob.data.pose_position = 'POSE'
+
         for ob in context.selected_objects:
             if ob == trg_ob:
                 continue
@@ -1594,6 +1603,14 @@ class ConstrainToArmature(bpy.types.Operator):
                 src_skeleton = preset_handler.get_preset_skel(self.src_preset, src_settings)
                 if not src_skeleton:
                     return {'FINISHED'}
+
+            if self.fit_target_scale:
+                ob.data.pose_position = 'REST'
+                ob_shoulder_height = (ob.matrix_world @ ob.pose.bones[src_skeleton.left_arm.shoulder].head)
+                ob.data.pose_position = 'POSE'
+
+                height_ratio = ob_shoulder_height[2] / trg_shoulder_height[2]
+                trg_ob.scale *= height_ratio
 
             bone_names_map = src_skeleton.conversion_map(trg_skeleton)
             def_skeleton = preset_handler.get_preset_skel(src_settings.deform_preset)
