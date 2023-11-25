@@ -1214,7 +1214,7 @@ class ConstrainToArmature(bpy.types.Operator):
         use_legacy_index = False
 
     match_transform: EnumProperty(items=[
-        ('None', "None", "Don't match any transform"),
+        ('None', "- None -", "Don't match any transform"),
         ('Bone', "Bones Offset", "Account for difference between control and deform rest pose (Requires similar proportions and Y bone-axis)"),
         ('Pose', "Current Pose is target Rest Pose", "Armature was posed manually to match rest pose of target"),
         ('World', "Follow target Pose in world space", "Just copy target world positions (Same bone orient, different rest pose)"),
@@ -1236,7 +1236,17 @@ class ConstrainToArmature(bpy.types.Operator):
                             description="USe IK target roll from source armature (Useful for IK)",
                             default=False)
     
-    fit_target_scale: BoolProperty(name="Fit target Height", default=False)
+    fit_target_scale: EnumProperty(name="Fit at",
+                                   items=(('--', '- None -', 'None'),
+                                          ('head', 'head', 'head'),
+                                          ('neck', 'neck', 'neck'),
+                                          ('spine2', 'chest', 'spine2'),
+                                          ('spine1', 'spine1', 'spine1'),
+                                          ('spine', 'spine', 'spine'),
+                                          ('hips', 'hips', 'hips'),
+                                          ),
+                                    default='--',
+                                    description="Fit height of the target Armature at selected bone")
 
     constrain_root: EnumProperty(items=[
         ('None', "No Root", "Don't constrain root bone"),
@@ -1356,7 +1366,7 @@ class ConstrainToArmature(bpy.types.Operator):
 
         column.separator()
         row = column.row()
-        row.label(text='Transform')
+        row.label(text='Conversion')
 
         row = column.split(factor=self._prop_indent, align=True)
         row.separator()
@@ -1367,8 +1377,8 @@ class ConstrainToArmature(bpy.types.Operator):
 
         if not self.loc_constraints and self.match_transform == 'Bone':
             col.label(text="'Copy Location' might be required", icon='ERROR')
-        elif not self.fit_target_scale and self.match_transform == 'Pose':
-            col.label(text="'Fit target Height' might be required", icon='ERROR')
+        elif self.fit_target_scale == '--' and self.match_transform == 'Pose':
+            col.label(text="'Fit at' might be required", icon='ERROR')
         else:
             col.separator()
 
@@ -1585,9 +1595,9 @@ class ConstrainToArmature(bpy.types.Operator):
         cp_suffix = 'RET'
         prefix = ""
 
-        if self.fit_target_scale:
+        if self.fit_target_scale != '--':
             trg_ob.data.pose_position = 'REST'
-            trg_shoulder_height = (trg_ob.matrix_world @ trg_ob.pose.bones[trg_skeleton.left_arm.shoulder].head)
+            trg_height = (trg_ob.matrix_world @ trg_ob.pose.bones[getattr(trg_skeleton.spine, self.fit_target_scale)].head)
             trg_ob.data.pose_position = 'POSE'
 
         for ob in context.selected_objects:
@@ -1604,12 +1614,12 @@ class ConstrainToArmature(bpy.types.Operator):
                 if not src_skeleton:
                     return {'FINISHED'}
 
-            if self.fit_target_scale:
+            if self.fit_target_scale != '--':
                 ob.data.pose_position = 'REST'
-                ob_shoulder_height = (ob.matrix_world @ ob.pose.bones[src_skeleton.left_arm.shoulder].head)
+                ob_height = (ob.matrix_world @ ob.pose.bones[getattr(src_skeleton.spine, self.fit_target_scale)].head)
                 ob.data.pose_position = 'POSE'
 
-                height_ratio = ob_shoulder_height[2] / trg_shoulder_height[2]
+                height_ratio = ob_height[2] / trg_height[2]
                 trg_ob.scale *= height_ratio
 
             bone_names_map = src_skeleton.conversion_map(trg_skeleton)
