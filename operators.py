@@ -1190,7 +1190,7 @@ class ConstrainToArmature(bpy.types.Operator):
                              )
 
     trg_preset: EnumProperty(items=preset_handler.iterate_presets_with_current,
-                             name="Bind Target",
+                             name="Bind To",
                              options={'SKIP_SAVE'}
                              )
     
@@ -1214,16 +1214,17 @@ class ConstrainToArmature(bpy.types.Operator):
         use_legacy_index = False
 
     match_transform: EnumProperty(items=[
-        ('None', "No Matching", "Don't match any transform"),
-        ('Bone', "Match Bone Transform", "Match target bones at rest"),
-        ('Object', "Match Object Transform", "Match target object transform"),
-        ('Pose', "Match Armature Pose", "Match source bones in their current poses"),
-        ('World', "Match World Transform", "Match source bones with no conversion"),
+        ('None', "- None -", "Don't match any transform"),
+        ('Bone', "Bones Offset", "Account for difference between control and deform rest pose (Requires similar proportions and Y bone-axis)"),
+        ('Pose', "Current Pose is target Rest Pose", "Armature was posed manually to match rest pose of target"),
+        ('World', "Follow target Pose in world space", "Just copy target world positions (Same bone orient, different rest pose)"),
     ],
         name="Match Transform",
-        default='Object')
+        default='None')
+    
+    match_object_transform: BoolProperty(name="Match Object Transform", default=True)
 
-    math_look_at: BoolProperty(name="Chain Look At",
+    math_look_at: BoolProperty(name="Fix direction",
                                description="Correct chain direction based on mid limb (Useful for IK)",
                                default=False)
     
@@ -1234,6 +1235,18 @@ class ConstrainToArmature(bpy.types.Operator):
     copy_IK_roll_feet: BoolProperty(name="Feet IK Roll",
                             description="USe IK target roll from source armature (Useful for IK)",
                             default=False)
+    
+    fit_target_scale: EnumProperty(name="Fit at",
+                                   items=(('--', '- None -', 'None'),
+                                          ('head', 'head', 'head'),
+                                          ('neck', 'neck', 'neck'),
+                                          ('spine2', 'chest', 'spine2'),
+                                          ('spine1', 'spine1', 'spine1'),
+                                          ('spine', 'spine', 'spine'),
+                                          ('hips', 'hips', 'hips'),
+                                          ),
+                                    default='--',
+                                    description="Fit height of the target Armature at selected bone")
 
     constrain_root: EnumProperty(items=[
         ('None', "No Root", "Don't constrain root bone"),
@@ -1241,18 +1254,18 @@ class ConstrainToArmature(bpy.types.Operator):
         ('Object', "Object", "Constrain root to object")
     ],
         name="Constrain Root",
-        default='Bone')
+        default='None')
 
     loc_constraints: BoolProperty(name="Copy Location",
                                   description="Use Location Constraint when binding",
-                                  default=True)
+                                  default=False)
     
     rot_constraints: BoolProperty(name="Copy Rotation",
                                   description="Use Rotation Constraint when binding",
                                   default=True)
     
     constraint_policy: EnumProperty(items=[
-        ('skip', "Skip Constrained", "Skip Bones that are constrained already"),
+        ('skip', "Skip Existing Constraints", "Skip Bones that are constrained already"),
         ('disable', "Disable Existing Constraints", "Disable existing binding constraints and add new ones"),
         ('remove', "Delete Existing Constraints", "Delete existing binding constraints")
         ],
@@ -1305,6 +1318,8 @@ class ConstrainToArmature(bpy.types.Operator):
     
     _autovars_unset = True
     _constrained_root = None
+
+    _prop_indent = 0.15
     
     @property
     def _bind_constraints(self):
@@ -1344,26 +1359,63 @@ class ConstrainToArmature(bpy.types.Operator):
         column = layout.column()
 
         row = column.row()
-        row.label(text='Binding')
-        
-        row = column.row()
         row.prop(self, 'src_preset', text="To Bind")
     
         row = column.row()
-        row.prop(self, 'trg_preset', text="Bind Target")
+        row.prop(self, 'trg_preset', text="Bind To")
 
-        if self.use_legacy_index:
-            row = column.split(factor=0.25, align=True)
-            row.separator()
-            row.prop(self, 'ret_bones_layer')
+        column.separator()
+        row = column.row()
+        row.label(text='Conversion')
+
+        row = column.split(factor=self._prop_indent, align=True)
+        row.separator()
+        col = row.column()
+        col.prop(self, 'match_transform', text='')
+        col.prop(self, 'match_object_transform')
+        col.prop(self, 'fit_target_scale')
+
+        if not self.loc_constraints and self.match_transform == 'Bone':
+            col.label(text="'Copy Location' might be required", icon='ERROR')
+        elif self.fit_target_scale == '--' and self.match_transform == 'Pose':
+            col.label(text="'Fit at' might be required", icon='ERROR')
         else:
-            row = column.row()
-            row.prop(self, 'ret_bones_collection')
+            col.separator()
+
+        column.separator()
+        row = column.row()
+        row.label(text='Constraints')
+
+        row = column.row()
+        row = column.split(factor=self._prop_indent, align=True)
+        row.separator()
+
+        constr_col = row.column()
+        
+        copy_loc_row = constr_col.row()
+        copy_loc_row.prop(self, 'loc_constraints')
+        if self.loc_constraints:
+            copy_loc_row.prop(self, 'no_finger_loc', text="Except Fingers")
+        else:
+            copy_loc_row.prop(self, 'bind_floating', text="Only Floating")
+        
+        copy_rot_row = constr_col.row()
+        copy_rot_row.prop(self, 'rot_constraints')
+        copy_rot_row.prop(self, 'math_look_at')
+
+        ik_aim_row = constr_col.row()
+        ik_aim_row.prop(self, 'copy_IK_roll_hands')
+        ik_aim_row.prop(self, 'copy_IK_roll_feet')
+
+        row = column.split(factor=self._prop_indent, align=True)
+        constr_col.prop(self, 'constraint_policy', text='')
+        
+        column.separator()
+        row = column.row()
+        row.label(text="Affect")
         
         row = column.row()
-        
-        row = column.row()
-        row = column.split(factor=0.1, align=True)
+        row = column.split(factor=self._prop_indent, align=True)
         row.separator()
         col = row.column()
         col.prop(self, 'only_selected')
@@ -1385,51 +1437,16 @@ class ConstrainToArmature(bpy.types.Operator):
             col = row.column()
             col.label(text="Suffix:")
             col.prop(self, 'name_suffix', text="")
-        
-        column.separator()
-        row = column.row()
-        row.label(text='Constraints')
-
-        row = column.row()
-        row = column.split(factor=0.25, align=True)
-        row.separator()
-
-        col = row.column()
-        col.prop(self, 'loc_constraints')
-        col.prop(self, 'rot_constraints')
-        col.prop(self, 'bind_floating')
-
-        col = row.column()     
-        col.prop(self, 'math_look_at')
-        col.prop(self, 'no_finger_loc')
-
-        row = column.row()
-        row = column.split(factor=0.25, align=True)
-        row.separator()
-        row.prop(self, 'copy_IK_roll_hands')
-        row.prop(self, 'copy_IK_roll_feet')
-
-        row = column.split(factor=0.25, align=True)
-        row.label(text="    Policy")
-        row.prop(self, 'constraint_policy', text='')
-
-        column.separator()
-        row = column.row()
-        row.label(text='Transform')
-
-        row = column.split(factor=0.25, align=True)
-        row.label(text="Matching")
-        row.prop(self, 'match_transform', text='')
 
         column.separator()
         row = column.row()
         row.label(text="Root Animation")
-        row = column.split(factor=0.25, align=True)
+        row = column.split(factor=self._prop_indent, align=True)
         row.separator()
         row.prop(self, 'constrain_root', text="")
 
         if self.constrain_root != 'None':
-            row = column.split(factor=0.25, align=True)
+            row = column.split(factor=self._prop_indent, align=True)
             row.label(text="")
             row.prop_search(self, 'root_motion_bone',
                             context.active_object.data,
@@ -1501,6 +1518,15 @@ class ConstrainToArmature(bpy.types.Operator):
             row.prop(self, "root_cp_rot_y", text="Y", toggle=True)
             row.prop(self, "root_cp_rot_z", text="Z", toggle=True)
 
+        column.separator()
+        if self.use_legacy_index:
+            row = column.split(factor=self._prop_indent, align=True)
+            row.separator()
+            row.prop(self, 'ret_bones_layer')
+        else:
+            row = column.row()
+            row.prop(self, 'ret_bones_collection', text="Layer")
+
     def _bone_bound_already(self, bone):
         for constr in bone.constraints:
             if constr.type in self._bind_constraints:
@@ -1569,6 +1595,11 @@ class ConstrainToArmature(bpy.types.Operator):
         cp_suffix = 'RET'
         prefix = ""
 
+        if self.fit_target_scale != '--':
+            trg_ob.data.pose_position = 'REST'
+            trg_height = (trg_ob.matrix_world @ trg_ob.pose.bones[getattr(trg_skeleton.spine, self.fit_target_scale)].head)
+            trg_ob.data.pose_position = 'POSE'
+
         for ob in context.selected_objects:
             if ob == trg_ob:
                 continue
@@ -1582,6 +1613,14 @@ class ConstrainToArmature(bpy.types.Operator):
                 src_skeleton = preset_handler.get_preset_skel(self.src_preset, src_settings)
                 if not src_skeleton:
                     return {'FINISHED'}
+
+            if self.fit_target_scale != '--':
+                ob.data.pose_position = 'REST'
+                ob_height = (ob.matrix_world @ ob.pose.bones[getattr(src_skeleton.spine, self.fit_target_scale)].head)
+                ob.data.pose_position = 'POSE'
+
+                height_ratio = ob_height[2] / trg_height[2]
+                trg_ob.scale *= height_ratio
 
             bone_names_map = src_skeleton.conversion_map(trg_skeleton)
             def_skeleton = preset_handler.get_preset_skel(src_settings.deform_preset)
@@ -1691,7 +1730,8 @@ class ConstrainToArmature(bpy.types.Operator):
                     new_bone.transform(def_bone.matrix.inverted())
 
                     # even transform
-                    new_bone.transform(ob.matrix_world)
+                    if self.match_object_transform:
+                        new_bone.transform(ob.matrix_world)
                     # counter target transform
                     new_bone.transform(trg_ob.matrix_world.inverted())
                     
@@ -1708,12 +1748,15 @@ class ConstrainToArmature(bpy.types.Operator):
                     new_bone.roll = bone_utils.ebone_roll_to_vector(trg_ed_bone, def_bone.z_axis)
                 elif self.match_transform == 'Pose':
                     new_bone.matrix = ob.pose.bones[src_name].matrix
-                    new_bone.transform(ob.matrix_world)
+                    if self.match_object_transform:
+                        new_bone.transform(ob.matrix_world)
                     new_bone.transform(trg_ob.matrix_world.inverted())
                 elif self.match_transform == 'World':
                     new_bone.head = new_bone.parent.head
                     new_bone.tail = new_bone.parent.tail
                     new_bone.roll = new_bone.parent.roll
+                    if self.match_object_transform:
+                        new_bone.transform(ob.matrix_world)
                 else:
                     src_bone = ob.data.bones[src_name]
                     src_z_axis_neg = Vector((0.0, 0.0, 1.0)) @ src_bone.matrix_local.inverted().to_3x3()
@@ -1721,7 +1764,7 @@ class ConstrainToArmature(bpy.types.Operator):
 
                     new_bone.roll = bone_utils.ebone_roll_to_vector(new_bone, src_z_axis_neg)
 
-                    if self.match_transform == 'Object':
+                    if self.match_object_transform:
                         new_bone.transform(ob.matrix_world)
                         new_bone.transform(trg_ob.matrix_world.inverted())
 
@@ -1831,7 +1874,7 @@ class ConstrainToArmature(bpy.types.Operator):
 
                 if is_bone_floating(src_pbone, src_skeleton.spine.hips) and self.bind_floating:
                     constr_types = ['COPY_LOCATION', 'COPY_ROTATION']
-                elif (src_name in left_finger_bones or src_name in right_finger_bones) and self.no_finger_loc:
+                elif self.no_finger_loc and (src_name in left_finger_bones or src_name in right_finger_bones):
                     constr_types = ['COPY_ROTATION']
                 else:
                     constr_types = self._bind_constraints
@@ -2133,13 +2176,13 @@ class AddRootMotion(bpy.types.Operator):
             row = column.row()
             row.prop(self, 'rig_preset', text="Rig Type:")
 
-        row = column.split(factor=0.25, align=True)
+        row = column.split(factor=self._prop_indent, align=True)
         row.label(text="From")
         row.prop_search(self, 'motion_bone',
                         context.active_object.data,
                         "bones", text="")
 
-        split = column.split(factor=0.25, align=True)
+        split = column.split(factor=self._prop_indent, align=True)
         split.label(text="To")
 
         col = split.column()
@@ -2149,7 +2192,7 @@ class AddRootMotion(bpy.types.Operator):
                         context.active_object.data,
                         "bones", text="")
 
-        row = column.split(factor=0.25, align=True)
+        row = column.split(factor=self._prop_indent, align=True)
         row.label(text="Suffix:")
         row.prop(self, 'new_anim_suffix', text="")
 

@@ -1,31 +1,35 @@
-version 0.53
+version 0.6
 
-- Extract Metarig supports extra bones through rigify attributes
-- Binding checks for bones with the same name
-- Set To Bone button for rapid Skeleton Mapping
-- Mirror mapped bones to the other side
-- Match Bones supports mismatching rolls
-- Match Bones supports deform skeletons
-- Match Bones supports current pose
-- Transfer Root Motion to armature object
-- More accurate Root Motion extraction
-- "Spine2" is now displayed as "Chest" in the Retargeting panel
-- Faster Transfer Root Motion
-- Namespace prefix with columns (:) are accounted for when using a preset
-- Alternative prefix separator allowed when renaming bones
+- "Bind to Armature" checks for bones with the same name
+- "Bind to Armature" can disable or delete existing constraints
+- "Bind to Armature" can retarget IK rolls
+- "Bind to Armature" can retarget to the current pose (retarget different rigs animation)
+- "Bind to Armature" can retarget to World Space (retarget to same rig with a different bind pose)
+- "Bind to Armature" accounts for namespaces with columns (:) when using presets
+- "Bind to Armature" can skip unselected bones
+- "Bind to Armature" can be used on already bound rigs
+- "Bind to Armature" Object space transform now is a checkbox to combine with other retarget spaces
+
+- "Transfer Root Motion" can animate at object level
+- "Extract Metarig" supports extra bones through rigify attributes
+- "Transfer Root Motion" is faster and more accurate
+
+- Retarget panel is faster
+- Retarget panel button for setting slot to active bone
+- Retarget panel button for mirroring bones to the other side
+- Retargeting panel now displays "Spine2" as "Chest"
+
 - "Convert Bone Names" renames conflicting existing names to "{name}.001"
+- "Convert Bone Names" accepts custom separator characters
+
 - "Select Constrained controls" is not overrided by "Select Animated controls"
 - "Action Range to Scene" always fits the Timeline view
+- Presets dir can be copied to the clipboard from the preferences
+
 - Fix missing eyes in extracted metarig
 - Fix occasional glitch in baked animations
 - Fix renaming from Current Settings
-- Faster Expy Panel
-- Copy presets dir to clipboard in the preferences
-- Support blender 4.0 bone collections
-- Add World Space matching
-- Bind name-matching bones
-- Optionally bind only selected bones
-- Can re-bind binded rigs
+- Fix blender 4.0 bone collections
 
 
 version 0.52
