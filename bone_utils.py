@@ -663,7 +663,6 @@ def closest_bone_axis(bone, mat, direction):
     ret = xyz[index]
 
     if dot_prods[index] < 0:
-        print(bone.name, "inverted")
         ret *= -1
 
     return ret
