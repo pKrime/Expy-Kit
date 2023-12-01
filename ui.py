@@ -483,6 +483,30 @@ class DATA_MT_retarget_presets(Menu):
     draw = Menu.draw_preset
 
 
+class VIEW3D_PT_BindPanel(bpy.types.Panel):
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = "Expy"
+    bl_label = "Expy Binding"
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode == 'POSE'
+
+    def draw(self, context):
+        layout = self.layout
+
+        layout.label(text="To Bind:")
+        row = layout.row()
+        row.prop(context.scene, 'expykit_to_bind', text="")
+        # row.prop(context.scene, 'expykit_to_bind_preset', text="")
+
+        layout.label(text="Bind To:")
+        row = layout.row()
+        # row.prop(context.scene, 'expykit_bind_to', text="")
+        # row.prop(context.scene, 'expykit_bind_to_preset', text="")
+
+
 class RetargetBasePanel:
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -490,12 +514,7 @@ class RetargetBasePanel:
 
     @classmethod
     def poll(cls, context):
-        if not context.object:
-            return False
-        if context.object.type != 'ARMATURE':
-            return False
-
-        return True
+        return context.mode == 'POSE'
 
     def sided_rows(self, ob, limbs, bone_names, suffix=""):
         split = self.layout.split()
@@ -541,17 +560,8 @@ class RetargetBasePanel:
             row.label(text=(k + suffix).title())
 
 
-class DATA_PT_expy_retarget(RetargetBasePanel, bpy.types.Panel):
-    bl_label = "Expy Retargeting"
-
-    @classmethod
-    def poll(cls, context):
-        if not context.object:
-            return False
-        if context.object.type != 'ARMATURE':
-            return False
-
-        return True
+class VIEW3D_PT_expy_retarget(RetargetBasePanel, bpy.types.Panel):
+    bl_label = "Expy Mapping"
 
     def draw(self, context):
         layout = self.layout
@@ -563,7 +573,7 @@ class DATA_PT_expy_retarget(RetargetBasePanel, bpy.types.Panel):
         row.operator(AddPresetArmatureRetarget.bl_idname, text="-").remove_active = True
 
 
-class DATA_PT_expy_retarget_face(RetargetBasePanel, bpy.types.Panel):
+class VIEW3D_PT_expy_retarget_face(RetargetBasePanel, bpy.types.Panel):
     bl_label = "Face"
 
     def draw(self, context):
@@ -622,7 +632,7 @@ class DATA_PT_expy_retarget_face(RetargetBasePanel, bpy.types.Panel):
         row.prop(skeleton.face, "super_copy", text="As Rigify Super Copy")
 
 
-class DATA_PT_expy_retarget_fingers(RetargetBasePanel, bpy.types.Panel):
+class VIEW3D_PT_expy_retarget_fingers(RetargetBasePanel, bpy.types.Panel):
     bl_label = "Fingers"
 
     def draw(self, context):
@@ -662,7 +672,7 @@ class DATA_PT_expy_retarget_fingers(RetargetBasePanel, bpy.types.Panel):
         m_props[1].src_setting = "right_fingers"
 
 
-class DATA_PT_expy_retarget_arms_IK(RetargetBasePanel, bpy.types.Panel):
+class VIEW3D_PT_expy_retarget_arms_IK(RetargetBasePanel, bpy.types.Panel):
     bl_label = "Arms IK"
 
     def draw(self, context):
@@ -675,7 +685,7 @@ class DATA_PT_expy_retarget_arms_IK(RetargetBasePanel, bpy.types.Panel):
         self.sided_rows(ob, (skeleton.right_arm_ik, skeleton.left_arm_ik), arm_bones, suffix=" IK")
 
 
-class DATA_PT_expy_retarget_arms(RetargetBasePanel, bpy.types.Panel):
+class VIEW3D_PT_expy_retarget_arms(RetargetBasePanel, bpy.types.Panel):
     bl_label = "Arms"
 
     def draw(self, context):
@@ -695,7 +705,7 @@ class DATA_PT_expy_retarget_arms(RetargetBasePanel, bpy.types.Panel):
         self.sided_rows(ob, (skeleton.right_arm, skeleton.left_arm), arm_bones)
 
 
-class DATA_PT_expy_retarget_spine(RetargetBasePanel, bpy.types.Panel):
+class VIEW3D_PT_expy_retarget_spine(RetargetBasePanel, bpy.types.Panel):
     bl_label = "Spine"
 
     def draw(self, context):
@@ -712,7 +722,7 @@ class DATA_PT_expy_retarget_spine(RetargetBasePanel, bpy.types.Panel):
             props.slot_name = slot
 
 
-class DATA_PT_expy_retarget_leg_IK(RetargetBasePanel, bpy.types.Panel):
+class VIEW3D_PT_expy_retarget_leg_IK(RetargetBasePanel, bpy.types.Panel):
     bl_label = "Legs IK"
 
     def draw(self, context):
@@ -724,7 +734,7 @@ class DATA_PT_expy_retarget_leg_IK(RetargetBasePanel, bpy.types.Panel):
         self.sided_rows(ob, (skeleton.right_leg_ik, skeleton.left_leg_ik), leg_bones, suffix=" IK")
 
 
-class DATA_PT_expy_retarget_leg(RetargetBasePanel, bpy.types.Panel):
+class VIEW3D_PT_expy_retarget_leg(RetargetBasePanel, bpy.types.Panel):
     bl_label = "Legs"
 
     def draw(self, context):
@@ -743,7 +753,7 @@ class DATA_PT_expy_retarget_leg(RetargetBasePanel, bpy.types.Panel):
         self.sided_rows(ob, (skeleton.right_leg, skeleton.left_leg), leg_bones)
 
 
-class DATA_PT_expy_retarget_root(RetargetBasePanel, bpy.types.Panel):
+class VIEW3D_PT_expy_retarget_root(RetargetBasePanel, bpy.types.Panel):
     bl_label = "Root"
 
     def draw(self, context):
@@ -775,20 +785,21 @@ def register_classes():
     bpy.utils.register_class(SetToActiveBone)
     bpy.utils.register_class(MirrorSettings)
 
+    bpy.utils.register_class(VIEW3D_PT_BindPanel)
     bpy.utils.register_class(BindingsMenu)
     bpy.utils.register_class(ConvertMenu)
     bpy.utils.register_class(AnimMenu)
     bpy.utils.register_class(ActionRenameSimple)
     bpy.utils.register_class(DATA_PT_expy_buttons)
-    bpy.utils.register_class(DATA_PT_expy_retarget)
-    bpy.utils.register_class(DATA_PT_expy_retarget_face)
-    bpy.utils.register_class(DATA_PT_expy_retarget_fingers)
-    bpy.utils.register_class(DATA_PT_expy_retarget_arms_IK)
-    bpy.utils.register_class(DATA_PT_expy_retarget_arms)
-    bpy.utils.register_class(DATA_PT_expy_retarget_spine)
-    bpy.utils.register_class(DATA_PT_expy_retarget_leg_IK)
-    bpy.utils.register_class(DATA_PT_expy_retarget_leg)
-    bpy.utils.register_class(DATA_PT_expy_retarget_root)
+    bpy.utils.register_class(VIEW3D_PT_expy_retarget)
+    bpy.utils.register_class(VIEW3D_PT_expy_retarget_face)
+    bpy.utils.register_class(VIEW3D_PT_expy_retarget_fingers)
+    bpy.utils.register_class(VIEW3D_PT_expy_retarget_arms_IK)
+    bpy.utils.register_class(VIEW3D_PT_expy_retarget_arms)
+    bpy.utils.register_class(VIEW3D_PT_expy_retarget_spine)
+    bpy.utils.register_class(VIEW3D_PT_expy_retarget_leg_IK)
+    bpy.utils.register_class(VIEW3D_PT_expy_retarget_leg)
+    bpy.utils.register_class(VIEW3D_PT_expy_retarget_root)
 
     bpy.types.VIEW3D_MT_pose_context_menu.append(pose_context_options)
     bpy.types.VIEW3D_MT_armature_context_menu.append(armature_context_options)
@@ -806,19 +817,20 @@ def unregister_classes():
     bpy.types.DOPESHEET_HT_header.remove(action_header_buttons)
 
     bpy.utils.unregister_class(BindingsMenu)
+    bpy.utils.unregister_class(VIEW3D_PT_BindPanel)
     bpy.utils.unregister_class(ConvertMenu)
     bpy.utils.unregister_class(AnimMenu)
     bpy.utils.unregister_class(ActionRenameSimple)
     bpy.utils.unregister_class(DATA_PT_expy_buttons)
-    bpy.utils.unregister_class(DATA_PT_expy_retarget)
-    bpy.utils.unregister_class(DATA_PT_expy_retarget_root)
-    bpy.utils.unregister_class(DATA_PT_expy_retarget_leg_IK)
-    bpy.utils.unregister_class(DATA_PT_expy_retarget_leg)
-    bpy.utils.unregister_class(DATA_PT_expy_retarget_spine)
-    bpy.utils.unregister_class(DATA_PT_expy_retarget_arms_IK)
-    bpy.utils.unregister_class(DATA_PT_expy_retarget_arms)
-    bpy.utils.unregister_class(DATA_PT_expy_retarget_fingers)
-    bpy.utils.unregister_class(DATA_PT_expy_retarget_face)
+    bpy.utils.unregister_class(VIEW3D_PT_expy_retarget)
+    bpy.utils.unregister_class(VIEW3D_PT_expy_retarget_root)
+    bpy.utils.unregister_class(VIEW3D_PT_expy_retarget_leg_IK)
+    bpy.utils.unregister_class(VIEW3D_PT_expy_retarget_leg)
+    bpy.utils.unregister_class(VIEW3D_PT_expy_retarget_spine)
+    bpy.utils.unregister_class(VIEW3D_PT_expy_retarget_arms_IK)
+    bpy.utils.unregister_class(VIEW3D_PT_expy_retarget_arms)
+    bpy.utils.unregister_class(VIEW3D_PT_expy_retarget_fingers)
+    bpy.utils.unregister_class(VIEW3D_PT_expy_retarget_face)
 
     bpy.utils.unregister_class(SetToActiveBone)
     bpy.utils.unregister_class(MirrorSettings)
