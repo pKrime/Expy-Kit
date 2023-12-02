@@ -3,6 +3,7 @@ import bpy
 from bpy.props import StringProperty
 from bpy.props import FloatProperty
 from bpy.props import PointerProperty
+from bpy.props import EnumProperty
 from bpy.types import Operator, Menu
 from bl_operators.presets import AddPresetBase
 
@@ -497,14 +498,20 @@ class VIEW3D_PT_BindPanel(bpy.types.Panel):
         layout = self.layout
 
         layout.label(text="To Bind:")
-        row = layout.row()
-        row.prop(context.scene, 'expykit_to_bind', text="")
-        # row.prop(context.scene, 'expykit_to_bind_preset', text="")
+        split = layout.split(factor=0.25)
+        split.separator()
+        
+        col = split.column()
+        col.prop(context.scene, 'expykit_to_bind', text="")
+        col.prop(context.scene, 'expykit_to_bind_preset', text="")
 
         layout.label(text="Bind To:")
-        row = layout.row()
-        # row.prop(context.scene, 'expykit_bind_to', text="")
-        # row.prop(context.scene, 'expykit_bind_to_preset', text="")
+        split = layout.split(factor=0.25)
+        split.separator()
+
+        col = split.column()
+        col.prop(context.scene, 'expykit_bind_to', text="")
+        col.prop(context.scene, 'expykit_bind_to_preset', text="")
 
 
 class RetargetBasePanel:
@@ -776,7 +783,30 @@ class VIEW3D_PT_expy_retarget_root(RetargetBasePanel, bpy.types.Panel):
         row.operator(ClearArmatureRetarget.bl_idname, text="Clear All")
 
 
+def poll_armature_to_bind(self, object):
+    return object != bpy.context.scene.expykit_bind_to and object.type == 'ARMATURE'
+
+def poll_armature_bind_to(self, object):
+    return object != bpy.context.scene.expykit_to_bind and object.type == 'ARMATURE'
+
+
 def register_classes():
+    # TODO: check EnumProperty current settomgs when PointerProperty is changed
+    bpy.types.Scene.expykit_to_bind = bpy.props.PointerProperty(type=bpy.types.Object,
+                                                                name="To Bind",
+                                                                poll=poll_armature_to_bind,
+                                                                description="This armature will be constrained to another one.")
+    bpy.types.Scene.expykit_to_bind_preset= EnumProperty(items=preset_handler.iterate_presets_with_current,
+                                                         name="Bind's Preset")
+
+    bpy.types.Scene.expykit_bind_to = bpy.props.PointerProperty(type=bpy.types.Object,
+                                                                name="Bind To",
+                                                                poll=poll_armature_bind_to,
+                                                                description="This armature will be drive another one.")
+    bpy.types.Scene.expykit_bind_to_preset = EnumProperty(items=preset_handler.iterate_presets_with_current,
+                                                         name="Bind To's Preset")
+                                                         
+
     bpy.utils.register_class(ClearArmatureRetarget)
     bpy.utils.register_class(DATA_MT_retarget_presets)
     bpy.utils.register_class(ExecutePresetArmatureRetarget)
@@ -834,3 +864,8 @@ def unregister_classes():
 
     bpy.utils.unregister_class(SetToActiveBone)
     bpy.utils.unregister_class(MirrorSettings)
+
+    del bpy.types.Scene.expykit_to_bind
+    del bpy.types.Scene.expykit_to_bind_preset
+    del bpy.types.Scene.expykit_bind_to
+    del bpy.types.Scene.expykit_bind_to_preset
