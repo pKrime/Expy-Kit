@@ -334,6 +334,9 @@ class ClearArmatureRetarget(Operator):
         skeleton.root = ''
         skeleton.deform_preset = '--'
 
+        context.scene.expykit_bind_to_preset = '--'
+        context.scene.expykit_to_bind_preset = '--'
+
         return {'FINISHED'}
 
 
@@ -503,7 +506,9 @@ class VIEW3D_PT_BindPanel(bpy.types.Panel):
         
         col = split.column()
         col.prop(context.scene, 'expykit_to_bind', text="")
-        col.prop(context.scene, 'expykit_to_bind_preset', text="")
+        row = col.row()
+        row.prop(context.scene, 'expykit_to_bind_preset', text="")
+        row.enabled = bool(context.scene.expykit_to_bind)
 
         layout.label(text="Bind To:")
         split = layout.split(factor=0.25)
@@ -511,8 +516,12 @@ class VIEW3D_PT_BindPanel(bpy.types.Panel):
 
         col = split.column()
         col.prop(context.scene, 'expykit_bind_to', text="")
-        col.prop(context.scene, 'expykit_bind_to_preset', text="")
+        row = col.row()
+        row.prop(context.scene, 'expykit_bind_to_preset', text="")
+        row.enabled = bool(context.scene.expykit_bind_to)
 
+        row = layout.row()
+        row.operator(operators.ConstrainToArmature.bl_idname, text="Bind")
 
 class RetargetBasePanel:
     bl_space_type = 'VIEW_3D'
@@ -789,6 +798,26 @@ def poll_armature_to_bind(self, object):
 def poll_armature_bind_to(self, object):
     return object != bpy.context.scene.expykit_to_bind and object.type == 'ARMATURE'
 
+def on_to_bind_preset_update(self: bpy.types.Scene, context: bpy.types.Context):
+    if not self.expykit_to_bind:
+        return
+    
+    if self.expykit_to_bind_preset == '--':
+        return
+    
+    preset_handler.get_preset_skel(self.expykit_to_bind_preset,
+                                   self.expykit_to_bind.data.expykit_retarget)
+
+def on_bind_to_preset_update(self: bpy.types.Scene, context: bpy.types.Context):
+    if not self.expykit_bind_to:
+        return
+    
+    if self.expykit_bind_to_preset == '--':
+        return
+
+    preset_handler.get_preset_skel(self.expykit_bind_to_preset,
+                                   self.expykit_bind_to.data.expykit_retarget)
+
 
 def register_classes():
     # TODO: check EnumProperty current settomgs when PointerProperty is changed
@@ -797,14 +826,16 @@ def register_classes():
                                                                 poll=poll_armature_to_bind,
                                                                 description="This armature will be constrained to another one.")
     bpy.types.Scene.expykit_to_bind_preset= EnumProperty(items=preset_handler.iterate_presets_with_current,
-                                                         name="Bind's Preset")
+                                                         name="Bind's Preset",
+                                                         update=on_to_bind_preset_update)
 
     bpy.types.Scene.expykit_bind_to = bpy.props.PointerProperty(type=bpy.types.Object,
                                                                 name="Bind To",
                                                                 poll=poll_armature_bind_to,
                                                                 description="This armature will be drive another one.")
     bpy.types.Scene.expykit_bind_to_preset = EnumProperty(items=preset_handler.iterate_presets_with_current,
-                                                         name="Bind To's Preset")
+                                                         name="Bind To's Preset",
+                                                         update=on_bind_to_preset_update)
                                                          
 
     bpy.utils.register_class(ClearArmatureRetarget)

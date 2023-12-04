@@ -123,6 +123,7 @@ def register_classes():
     bpy.utils.register_class(RetargetFaceSimple)
 
     bpy.utils.register_class(RetargetSettings)
+
     bpy.types.Armature.expykit_retarget = PointerProperty(type=RetargetSettings)
     bpy.types.Armature.expykit_twist_on = BoolProperty(default=False)
 
