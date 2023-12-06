@@ -111,16 +111,9 @@ class SelectConstrainedControls(bpy.types.Operator):
         ob = context.object
 
         if self.select_type == 'constr':
-            for bone in ob.data.bones:
-                if bone.use_deform:  # FIXME: ik controls might have use_deform just to be exported for games
-                    bone.select = False
-                    continue
-                pbone = ob.pose.bones[bone.name]
-                if len(pbone.constraints) == 0:
-                    bone.select = False
-                    continue
+            for pb in bone_utils.get_constrained_controls(ob, unselect=True):
+                pb.bone.select = bool(pb.custom_shape)
 
-                bone.select = bool(pbone.custom_shape)
         elif self.select_type == 'anim':
             if not ob.animation_data:
                 return {'FINISHED'}
@@ -1935,8 +1928,8 @@ class ConstrainToArmature(bpy.types.Operator):
         return {'FINISHED'}
 
 
-def validate_actions(act, path_resolve):
-    for fc in act.fcurves:
+def validate_actions(action: bpy.types.Action, path_resolve: callable):
+    for fc in action.fcurves:
         data_path = fc.data_path
         if fc.array_index:
             data_path = data_path + "[%d]" % fc.array_index
@@ -1950,11 +1943,8 @@ def validate_actions(act, path_resolve):
 class BakeConstrainedActions(bpy.types.Operator):
     bl_idname = "armature.expykit_bake_constrained_actions"
     bl_label = "Bake Constrained Actions"
-    bl_description = "Bake Actions constrained from another Armature"
+    bl_description = "Bake Actions constrained from another Armature. No need to select two armatures"
     bl_options = {'REGISTER', 'UNDO'}
-
-    rig_preset: EnumProperty(items=preset_handler.iterate_presets,
-                             name="Type to Bake")
 
     clear_users_old: BoolProperty(name="Clear original Action Users",
                                   default=True)
@@ -1962,17 +1952,22 @@ class BakeConstrainedActions(bpy.types.Operator):
     fake_user_new: BoolProperty(name="Save New Action User",
                                 default=True)
 
-    do_bake: BoolProperty(name="Bake and Exit", description="Constrain to the new offset and exit",
+    do_bake: BoolProperty(name="Bake and Exit", description="Bake driven motion and exit",
                           default=False, options={'SKIP_SAVE'})
 
     def draw(self, context):
         layout = self.layout
         column = layout.column()
 
-        to_bake = next(ob for ob in context.selected_objects if ob != context.active_object)
-        if not to_bake.data.expykit_retarget.has_settings():
-            row = column.row()
-            row.prop(self, 'rig_preset', text="Type to Bake")
+        for to_bake in context.selected_objects:
+            trg_ob = self.get_trg_ob(to_bake)
+            if not trg_ob:
+                continue
+
+            column.label(text=f"Baking from {trg_ob.name} to {to_bake.name}")
+
+        if len(context.selected_objects) > 1:
+            column.label(text="No need to select two Armatures anymore", icon='ERROR')
 
         row = column.split(factor=0.30, align=True)
         row.label(text="")
@@ -1988,43 +1983,41 @@ class BakeConstrainedActions(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        if len(context.selected_objects) != 2:
-            return False
-        if context.mode != 'POSE':
-            return False
-        for ob in context.selected_objects:
-            if ob.type != 'ARMATURE':
-                return False
+        return context.mode == 'POSE'
 
-        return True
+    @staticmethod
+    def get_trg_ob(ob: bpy.types.Object) -> bpy.types.Object:
+        for pb in bone_utils.get_constrained_controls(armature_object=ob):
+            for constr in pb.constraints:
+                try:
+                    subtarget = constr.subtarget
+                except AttributeError:
+                    continue
+
+                if subtarget.endswith("_RET"):
+                    return(constr.target)
 
     def execute(self, context):
         if not self.do_bake:
             return {'FINISHED'}
 
-        trg_ob = context.active_object
-        trg_ob.select_set(False)
-        path_resolve = trg_ob.path_resolve
+        sel_obs = list(context.selected_objects)
+        for ob in sel_obs:
+            ob.select_set(False)
 
-        for ob in context.selected_objects:
-            if ob == trg_ob:
-                # should not happen, but anyway
+            trg_ob = self.get_trg_ob(ob)
+            if not trg_ob:
                 continue
 
-            rig_settings = ob.data.expykit_retarget
-            if not rig_settings.has_settings():
-                src_skeleton = preset_handler.get_preset_skel(self.rig_preset, rig_settings)
-                if not src_skeleton:
-                    return {'FINISHED'}
-            else:
-                src_skeleton = preset_handler.get_settings_skel(rig_settings)
-
-            bone_names = list(bn for bn in src_skeleton.bone_names() if bn)
-            for bone in ob.data.bones:
-                bone.select = bone.name in bone_names
+            constr_bone_names = []
+            for pb in bone_utils.get_constrained_controls(ob, unselect=True):
+                
+                if pb.name + "_RET" in trg_ob.data.bones:
+                    pb.bone.select = True
+                    constr_bone_names.append(pb.name)
 
             for action in bpy.data.actions:
-                if not validate_actions(action, path_resolve):
+                if not validate_actions(action, trg_ob.path_resolve):
                     continue
 
                 trg_ob.animation_data.action = action
@@ -2039,7 +2032,7 @@ class BakeConstrainedActions(bpy.types.Operator):
                     action.user_clear()
 
             # delete Constraints
-            for bone_name in bone_names:
+            for bone_name in constr_bone_names:
                 try:
                     pbone = ob.pose.bones[bone_name]
                 except KeyError:

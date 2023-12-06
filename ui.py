@@ -815,7 +815,6 @@ def register_classes():
     bpy.utils.register_class(SetToActiveBone)
     bpy.utils.register_class(MirrorSettings)
 
-    bpy.utils.register_class(VIEW3D_PT_BindPanel)
     bpy.utils.register_class(BindingsMenu)
     bpy.utils.register_class(ConvertMenu)
     bpy.utils.register_class(AnimMenu)
@@ -847,7 +846,6 @@ def unregister_classes():
     bpy.types.DOPESHEET_HT_header.remove(action_header_buttons)
 
     bpy.utils.unregister_class(BindingsMenu)
-    bpy.utils.unregister_class(VIEW3D_PT_BindPanel)
     bpy.utils.unregister_class(ConvertMenu)
     bpy.utils.unregister_class(AnimMenu)
     bpy.utils.unregister_class(ActionRenameSimple)
