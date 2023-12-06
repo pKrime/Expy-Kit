@@ -124,6 +124,10 @@ class ActionRenameSimple(bpy.types.Operator):
     """Rename Current Action"""
     bl_idname = "object.expykit_rename_action_simple"
     bl_label = "Expy Action Rename"
+    
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = "Expy Animation"
 
     new_name: StringProperty(default="")
 

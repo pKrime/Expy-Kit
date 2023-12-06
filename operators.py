@@ -2027,6 +2027,12 @@ class BakeConstrainedActions(bpy.types.Operator):
                                  visual_keying=True, clear_constraints=False)
 
                 ob.animation_data.action.use_fake_user = self.fake_user_new
+                
+                if trg_ob.name in action.name:
+                    new_name = action.name.replace(trg_ob.name, ob.name)
+                else:
+                    new_name = f"{ob.name}|{action.name}"
+                ob.animation_data.action.name = new_name
 
                 if self.clear_users_old:
                     action.user_clear()
@@ -2550,8 +2556,6 @@ class RenameActionsFromFbxFiles(bpy.types.Operator, ImportHelper):
         type=bpy.types.OperatorFileListElement,
     )
 
-    starts_with: StringProperty(default="Action", name="Starts With")
-
     def execute(self, context):
         fbx_durations = dict()
         for f in self.files:
@@ -2575,8 +2579,6 @@ class RenameActionsFromFbxFiles(bpy.types.Operator, ImportHelper):
 
         path_resolve = context.object.path_resolve
         for action in bpy.data.actions:
-            if self.starts_with and not action.name.startswith(self.starts_with):
-                continue
             if not validate_actions(action, path_resolve):
                 continue
 
