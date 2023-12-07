@@ -1,10 +1,11 @@
 from email.policy import default
+import typing
 import bpy
 from bpy.props import StringProperty
 from bpy.props import FloatProperty
 from bpy.props import PointerProperty
 from bpy.props import EnumProperty
-from bpy.types import Operator, Menu
+from bpy.types import Context, Operator, Menu
 from bl_operators.presets import AddPresetBase
 
 from . import operators
@@ -120,16 +121,44 @@ def action_header_buttons(self, context):
     row.operator(operators.ActionRangeToScene.bl_idname, icon='PREVIEW_RANGE', text='To Scene Range')
 
 
+class ActionMakeActive(bpy.types.Operator):
+    bl_idname = "object.expykit_make_action_active"
+    bl_label = "Expy apply action"
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode == 'POSE'
+    
+    def execute(self, context: Context):
+        ob = context.object
+        to_rename = [a for a in bpy.data.actions if len(a.expykit_name_candidates) > 1 and operators.validate_actions(a, ob.path_resolve)]
+
+        if len(to_rename) == 0:
+            return {'CANCELLED'}
+        
+        if not ob.animation_data.action:
+            action = to_rename.pop()
+        else:
+            try:
+                idx = to_rename.index(ob.animation_data.action)
+            except ValueError:
+                action = to_rename.pop()
+            else:
+                action = to_rename[idx - 1]
+
+        bpy.context.object.animation_data.action = action
+        bpy.ops.object.expykit_action_to_range()
+
+        return {'FINISHED'}
+
+
 class ActionRenameSimple(bpy.types.Operator):
     """Rename Current Action"""
     bl_idname = "object.expykit_rename_action_simple"
     bl_label = "Expy Action Rename"
-    
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
-    bl_category = "Expy Animation"
+    bl_options = {'REGISTER', 'UNDO'}
 
-    new_name: StringProperty(default="")
+    new_name: StringProperty(default="", name="Renamed to")
 
     @classmethod
     def poll(cls, context):
@@ -163,33 +192,35 @@ class ActionRenameSimple(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class DATA_PT_expy_buttons(bpy.types.Panel):
-    bl_label = "Expy Utilities"
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = "data"
+class VIEW3D_PT_expy_rename_candidates(bpy.types.Panel):
+    bl_label = "Action Name Candidates"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = "Expy"
 
     @classmethod
     def poll(cls, context):
-        if not context.object:
-            return False
-        if context.object.type != 'ARMATURE':
-            return False
-        if not context.object.animation_data:
-            return False
-        action = context.object.animation_data.action
-        if not action:
+        if not context.mode == 'POSE':
             return False
 
-        return len(action.expykit_name_candidates) > 0
+        to_rename = [a for a in bpy.data.actions if len(a.expykit_name_candidates) > 1]
+        return len(to_rename) > 0
 
     def draw(self, context):
         layout = self.layout
 
+        to_rename = [a for a in bpy.data.actions if len(a.expykit_name_candidates) > 1 and operators.validate_actions(a, context.object.path_resolve)]
+
         row = layout.row()
-        row.label(text="Candidate Names")
+        row.operator(ActionMakeActive.bl_idname, text=f"Next of {len(to_rename)} actions to rename")
 
         action = context.object.animation_data.action
+        if not action:
+            return
+        
+        row = layout.row()
+        row.label(text=action.name)
+        
         for candidate in action.expykit_name_candidates:
             if candidate.name in bpy.data.actions:
                 # that name has been taken
@@ -220,7 +251,7 @@ class ExecutePresetArmatureRetarget(Operator):
         filepath = self.filepath
 
         # change the menu title to the most recently chosen option
-        preset_class = DATA_MT_retarget_presets
+        preset_class = VIEW3D_MT_retarget_presets
         preset_class.bl_label = bpy.path.display_name(basename(filepath), title_case=False)
 
         ext = splitext(filepath)[1].lower()
@@ -481,7 +512,7 @@ class MirrorSettings(Operator):
         return {'FINISHED'}
 
 
-class DATA_MT_retarget_presets(Menu):
+class VIEW3D_MT_retarget_presets(Menu):
     bl_label = "Retarget Presets"
     preset_subdir = AddPresetArmatureRetarget.preset_subdir
     preset_operator = ExecutePresetArmatureRetarget.bl_idname
@@ -578,7 +609,7 @@ class VIEW3D_PT_expy_retarget(RetargetBasePanel, bpy.types.Panel):
         layout = self.layout
 
         split = layout.split(factor=0.75)
-        split.menu(DATA_MT_retarget_presets.__name__, text=DATA_MT_retarget_presets.bl_label)
+        split.menu(VIEW3D_MT_retarget_presets.__name__, text=VIEW3D_MT_retarget_presets.bl_label)
         row = split.row(align=True)
         row.operator(AddPresetArmatureRetarget.bl_idname, text="+")
         row.operator(AddPresetArmatureRetarget.bl_idname, text="-").remove_active = True
@@ -812,7 +843,7 @@ def register_classes():
                                                          
 
     bpy.utils.register_class(ClearArmatureRetarget)
-    bpy.utils.register_class(DATA_MT_retarget_presets)
+    bpy.utils.register_class(VIEW3D_MT_retarget_presets)
     bpy.utils.register_class(ExecutePresetArmatureRetarget)
     bpy.utils.register_class(AddPresetArmatureRetarget)
     
@@ -822,8 +853,11 @@ def register_classes():
     bpy.utils.register_class(BindingsMenu)
     bpy.utils.register_class(ConvertMenu)
     bpy.utils.register_class(AnimMenu)
+
     bpy.utils.register_class(ActionRenameSimple)
-    bpy.utils.register_class(DATA_PT_expy_buttons)
+    bpy.utils.register_class(ActionMakeActive)
+    bpy.utils.register_class(VIEW3D_PT_expy_rename_candidates)
+
     bpy.utils.register_class(VIEW3D_PT_expy_retarget)
     bpy.utils.register_class(VIEW3D_PT_expy_retarget_face)
     bpy.utils.register_class(VIEW3D_PT_expy_retarget_fingers)
@@ -840,7 +874,7 @@ def register_classes():
 
 
 def unregister_classes():
-    bpy.utils.unregister_class(DATA_MT_retarget_presets)
+    bpy.utils.unregister_class(VIEW3D_MT_retarget_presets)
     bpy.utils.unregister_class(AddPresetArmatureRetarget)
     bpy.utils.unregister_class(ExecutePresetArmatureRetarget)
     bpy.utils.unregister_class(ClearArmatureRetarget)
@@ -852,8 +886,11 @@ def unregister_classes():
     bpy.utils.unregister_class(BindingsMenu)
     bpy.utils.unregister_class(ConvertMenu)
     bpy.utils.unregister_class(AnimMenu)
+
     bpy.utils.unregister_class(ActionRenameSimple)
-    bpy.utils.unregister_class(DATA_PT_expy_buttons)
+    bpy.utils.unregister_class(ActionMakeActive)   
+    bpy.utils.unregister_class(VIEW3D_PT_expy_rename_candidates)
+
     bpy.utils.unregister_class(VIEW3D_PT_expy_retarget)
     bpy.utils.unregister_class(VIEW3D_PT_expy_retarget_root)
     bpy.utils.unregister_class(VIEW3D_PT_expy_retarget_leg_IK)
