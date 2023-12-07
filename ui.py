@@ -121,6 +121,23 @@ def action_header_buttons(self, context):
     row.operator(operators.ActionRangeToScene.bl_idname, icon='PREVIEW_RANGE', text='To Scene Range')
 
 
+class ActionRemoveRenameData(bpy.types.Operator):
+    bl_idname = "object.expykit_remove_action_rename_data"
+    bl_label = "Expy remove rename data"
+
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode == 'POSE'
+    
+    def execute(self, context):
+        for action in bpy.data.actions:
+            action.expykit_name_candidates.clear()
+
+        return {'FINISHED'}
+
+
 class ActionMakeActive(bpy.types.Operator):
     bl_idname = "object.expykit_make_action_active"
     bl_label = "Expy apply action"
@@ -197,6 +214,7 @@ class VIEW3D_PT_expy_rename_candidates(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = "Expy"
+    bl_idname = "VIEW3D_PT_expy_rename_candidates"
 
     @classmethod
     def poll(cls, context):
@@ -229,6 +247,28 @@ class VIEW3D_PT_expy_rename_candidates(bpy.types.Panel):
             row = layout.row()
             op = row.operator(ActionRenameSimple.bl_idname, text=candidate.name)
             op.new_name = candidate.name
+
+
+class VIEW3D_PT_expy_rename_advanced(bpy.types.Panel):
+    bl_label = "Advanced Options"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = "Expy"
+
+    bl_options = {'DEFAULT_CLOSED'}
+    bl_parent_id = VIEW3D_PT_expy_rename_candidates.bl_idname
+
+    @classmethod
+    def poll(cls, context):
+        if not context.mode == 'POSE':
+            return False
+
+        to_rename = [a for a in bpy.data.actions if len(a.expykit_name_candidates) > 1]
+        return len(to_rename) > 0
+
+    def draw(self, context):
+        row = self.layout.row()
+        row.operator(ActionRemoveRenameData.bl_idname, text="Remove Rename Data")
 
 
 class ExecutePresetArmatureRetarget(Operator):
@@ -617,6 +657,7 @@ class VIEW3D_PT_expy_retarget(RetargetBasePanel, bpy.types.Panel):
 
 class VIEW3D_PT_expy_retarget_face(RetargetBasePanel, bpy.types.Panel):
     bl_label = "Face"
+    bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
         ob = context.object
@@ -676,6 +717,7 @@ class VIEW3D_PT_expy_retarget_face(RetargetBasePanel, bpy.types.Panel):
 
 class VIEW3D_PT_expy_retarget_fingers(RetargetBasePanel, bpy.types.Panel):
     bl_label = "Fingers"
+    bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
         ob = context.object
@@ -716,6 +758,7 @@ class VIEW3D_PT_expy_retarget_fingers(RetargetBasePanel, bpy.types.Panel):
 
 class VIEW3D_PT_expy_retarget_arms_IK(RetargetBasePanel, bpy.types.Panel):
     bl_label = "Arms IK"
+    bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
         ob = context.object
@@ -766,6 +809,7 @@ class VIEW3D_PT_expy_retarget_spine(RetargetBasePanel, bpy.types.Panel):
 
 class VIEW3D_PT_expy_retarget_leg_IK(RetargetBasePanel, bpy.types.Panel):
     bl_label = "Legs IK"
+    bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
         ob = context.object
@@ -856,7 +900,9 @@ def register_classes():
 
     bpy.utils.register_class(ActionRenameSimple)
     bpy.utils.register_class(ActionMakeActive)
+    bpy.utils.register_class(ActionRemoveRenameData)
     bpy.utils.register_class(VIEW3D_PT_expy_rename_candidates)
+    bpy.utils.register_class(VIEW3D_PT_expy_rename_advanced)
 
     bpy.utils.register_class(VIEW3D_PT_expy_retarget)
     bpy.utils.register_class(VIEW3D_PT_expy_retarget_face)
@@ -889,7 +935,9 @@ def unregister_classes():
 
     bpy.utils.unregister_class(ActionRenameSimple)
     bpy.utils.unregister_class(ActionMakeActive)   
+    bpy.utils.unregister_class(ActionRemoveRenameData)   
     bpy.utils.unregister_class(VIEW3D_PT_expy_rename_candidates)
+    bpy.utils.unregister_class(VIEW3D_PT_expy_rename_advanced)
 
     bpy.utils.unregister_class(VIEW3D_PT_expy_retarget)
     bpy.utils.unregister_class(VIEW3D_PT_expy_retarget_root)
