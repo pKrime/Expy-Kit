@@ -1229,7 +1229,7 @@ class ConstrainToArmature(bpy.types.Operator):
                             description="USe IK target roll from source armature (Useful for IK)",
                             default=False)
     
-    fit_target_scale: EnumProperty(name="Fit at",
+    fit_target_scale: EnumProperty(name="Fit height",
                                    items=(('--', '- None -', 'None'),
                                           ('head', 'head', 'head'),
                                           ('neck', 'neck', 'neck'),
@@ -1307,7 +1307,7 @@ class ConstrainToArmature(bpy.types.Operator):
         default=":"
     )
 
-    current_frame: IntProperty()
+    force_dialog: BoolProperty(default=False, options={'HIDDEN', 'SKIP_SAVE'})
     
     _autovars_unset = True
     _constrained_root = None
@@ -1345,7 +1345,10 @@ class ConstrainToArmature(bpy.types.Operator):
         if context.active_object.data.expykit_retarget.has_settings():
             self.trg_preset = '--Current--'
 
-        return self.execute(context)
+        if self.force_dialog:
+            return context.window_manager.invoke_props_dialog(self)
+
+        return self.execute(context)        
 
     def draw(self, context):
         layout = self.layout
@@ -1356,6 +1359,9 @@ class ConstrainToArmature(bpy.types.Operator):
     
         row = column.row()
         row.prop(self, 'trg_preset', text="Bind To")
+
+        if self.force_dialog:
+            return
 
         column.separator()
         row = column.row()
@@ -1371,7 +1377,7 @@ class ConstrainToArmature(bpy.types.Operator):
         if not self.loc_constraints and self.match_transform == 'Bone':
             col.label(text="'Copy Location' might be required", icon='ERROR')
         elif self.fit_target_scale == '--' and self.match_transform == 'Pose':
-            col.label(text="'Fit at' might be required", icon='ERROR')
+            col.label(text="'Fit height' might improve results", icon='ERROR')
         else:
             col.separator()
 
@@ -1405,7 +1411,7 @@ class ConstrainToArmature(bpy.types.Operator):
         
         column.separator()
         row = column.row()
-        row.label(text="Affect")
+        row.label(text="Affect Bones")
         
         row = column.row()
         row = column.split(factor=self._prop_indent, align=True)
@@ -1569,6 +1575,9 @@ class ConstrainToArmature(bpy.types.Operator):
         return limit_constraints
 
     def execute(self, context):
+        # force_dialog limits drawn properties and is no longer required
+        self.force_dialog = False
+
         trg_ob = context.active_object
 
         if self.trg_preset == '--':
