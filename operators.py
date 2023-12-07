@@ -1050,9 +1050,14 @@ class MergeHeadTails(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class MakeRestPose(bpy.types.Operator):
-    """Apply current pose to model and rig"""
-    # TODO
+def mute_fcurves(obj: bpy.types.Object, channel_name: str):
+    action = obj.animation_data.action
+    if not action:
+        return
+    
+    for fc in action.fcurves:
+        if fc.data_path == channel_name:
+            fc.mute = True
 
 
 class ConvertGameFriendly(bpy.types.Operator):
@@ -1622,6 +1627,9 @@ class ConstrainToArmature(bpy.types.Operator):
                 ob.data.pose_position = 'POSE'
 
                 height_ratio = ob_height[2] / trg_height[2]
+                
+                # mute animated scale
+                mute_fcurves(trg_ob, 'scale')
                 trg_ob.scale *= height_ratio
 
             bone_names_map = src_skeleton.conversion_map(trg_skeleton)
