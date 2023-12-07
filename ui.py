@@ -122,6 +122,7 @@ def action_header_buttons(self, context):
 
 
 class ActionRemoveRenameData(bpy.types.Operator):
+    """Remove action rename data"""
     bl_idname = "object.expykit_remove_action_rename_data"
     bl_label = "Expy remove rename data"
 
@@ -139,6 +140,7 @@ class ActionRemoveRenameData(bpy.types.Operator):
 
 
 class ActionMakeActive(bpy.types.Operator):
+    """Apply next action and adjust timeline"""
     bl_idname = "object.expykit_make_action_active"
     bl_label = "Expy apply action"
 
@@ -221,8 +223,12 @@ class VIEW3D_PT_expy_rename_candidates(bpy.types.Panel):
         if not context.mode == 'POSE':
             return False
 
-        to_rename = [a for a in bpy.data.actions if len(a.expykit_name_candidates) > 1]
-        return len(to_rename) > 0
+        try:
+            next(a for a in bpy.data.actions if len(a.expykit_name_candidates) > 1)
+        except StopIteration:
+            return False
+        
+        return True
 
     def draw(self, context):
         layout = self.layout
