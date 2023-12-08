@@ -5,10 +5,18 @@ version 0.6
 - "Bind to Armature" can retarget IK rolls
 - "Bind to Armature" can retarget to the current pose (retarget different rigs animation)
 - "Bind to Armature" can retarget to World Space (retarget to same rig with a different bind pose)
+- "Bind to Armature" can rescale target Armature
 - "Bind to Armature" accounts for namespaces with columns (:) when using presets
 - "Bind to Armature" can skip unselected bones
 - "Bind to Armature" can be used on already bound rigs
 - "Bind to Armature" Object space transform now is a checkbox to combine with other retarget spaces
+
+- "Action Rename" panel is now in the View 3D "N" panel
+- "Action Rename" panel has button to scroll through candidate actions
+- "Action Rename" panel has button to remove rename data
+
+- "Bake Actions" doesn't require selecting driving Armature anymore
+- "Rename from fbx" applies a name starts with or contains logic
 
 - "Transfer Root Motion" can animate at object level
 - "Extract Metarig" supports extra bones through rigify attributes
@@ -22,7 +30,7 @@ version 0.6
 - "Convert Bone Names" renames conflicting existing names to "{name}.001"
 - "Convert Bone Names" accepts custom separator characters
 
-- "Select Constrained controls" is not overrided by "Select Animated controls"
+- "Select Constrained controls" is not overridden by "Select Animated controls"
 - "Action Range to Scene" always fits the Timeline view
 - Presets dir can be copied to the clipboard from the preferences
 

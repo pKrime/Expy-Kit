@@ -111,16 +111,9 @@ class SelectConstrainedControls(bpy.types.Operator):
         ob = context.object
 
         if self.select_type == 'constr':
-            for bone in ob.data.bones:
-                if bone.use_deform:  # FIXME: ik controls might have use_deform just to be exported for games
-                    bone.select = False
-                    continue
-                pbone = ob.pose.bones[bone.name]
-                if len(pbone.constraints) == 0:
-                    bone.select = False
-                    continue
+            for pb in bone_utils.get_constrained_controls(ob, unselect=True):
+                pb.bone.select = bool(pb.custom_shape)
 
-                bone.select = bool(pbone.custom_shape)
         elif self.select_type == 'anim':
             if not ob.animation_data:
                 return {'FINISHED'}
@@ -1057,9 +1050,14 @@ class MergeHeadTails(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class MakeRestPose(bpy.types.Operator):
-    """Apply current pose to model and rig"""
-    # TODO
+def mute_fcurves(obj: bpy.types.Object, channel_name: str):
+    action = obj.animation_data.action
+    if not action:
+        return
+    
+    for fc in action.fcurves:
+        if fc.data_path == channel_name:
+            fc.mute = True
 
 
 class ConvertGameFriendly(bpy.types.Operator):
@@ -1236,7 +1234,7 @@ class ConstrainToArmature(bpy.types.Operator):
                             description="USe IK target roll from source armature (Useful for IK)",
                             default=False)
     
-    fit_target_scale: EnumProperty(name="Fit at",
+    fit_target_scale: EnumProperty(name="Fit height",
                                    items=(('--', '- None -', 'None'),
                                           ('head', 'head', 'head'),
                                           ('neck', 'neck', 'neck'),
@@ -1314,7 +1312,7 @@ class ConstrainToArmature(bpy.types.Operator):
         default=":"
     )
 
-    current_frame: IntProperty()
+    force_dialog: BoolProperty(default=False, options={'HIDDEN', 'SKIP_SAVE'})
     
     _autovars_unset = True
     _constrained_root = None
@@ -1352,7 +1350,10 @@ class ConstrainToArmature(bpy.types.Operator):
         if context.active_object.data.expykit_retarget.has_settings():
             self.trg_preset = '--Current--'
 
-        return self.execute(context)
+        if self.force_dialog:
+            return context.window_manager.invoke_props_dialog(self)
+
+        return self.execute(context)        
 
     def draw(self, context):
         layout = self.layout
@@ -1363,6 +1364,9 @@ class ConstrainToArmature(bpy.types.Operator):
     
         row = column.row()
         row.prop(self, 'trg_preset', text="Bind To")
+
+        if self.force_dialog:
+            return
 
         column.separator()
         row = column.row()
@@ -1378,7 +1382,7 @@ class ConstrainToArmature(bpy.types.Operator):
         if not self.loc_constraints and self.match_transform == 'Bone':
             col.label(text="'Copy Location' might be required", icon='ERROR')
         elif self.fit_target_scale == '--' and self.match_transform == 'Pose':
-            col.label(text="'Fit at' might be required", icon='ERROR')
+            col.label(text="'Fit height' might improve results", icon='ERROR')
         else:
             col.separator()
 
@@ -1412,7 +1416,7 @@ class ConstrainToArmature(bpy.types.Operator):
         
         column.separator()
         row = column.row()
-        row.label(text="Affect")
+        row.label(text="Affect Bones")
         
         row = column.row()
         row = column.split(factor=self._prop_indent, align=True)
@@ -1576,6 +1580,9 @@ class ConstrainToArmature(bpy.types.Operator):
         return limit_constraints
 
     def execute(self, context):
+        # force_dialog limits drawn properties and is no longer required
+        self.force_dialog = False
+
         trg_ob = context.active_object
 
         if self.trg_preset == '--':
@@ -1620,6 +1627,9 @@ class ConstrainToArmature(bpy.types.Operator):
                 ob.data.pose_position = 'POSE'
 
                 height_ratio = ob_height[2] / trg_height[2]
+                
+                # mute animated scale
+                mute_fcurves(trg_ob, 'scale')
                 trg_ob.scale *= height_ratio
 
             bone_names_map = src_skeleton.conversion_map(trg_skeleton)
@@ -1935,8 +1945,8 @@ class ConstrainToArmature(bpy.types.Operator):
         return {'FINISHED'}
 
 
-def validate_actions(act, path_resolve):
-    for fc in act.fcurves:
+def validate_actions(action: bpy.types.Action, path_resolve: callable):
+    for fc in action.fcurves:
         data_path = fc.data_path
         if fc.array_index:
             data_path = data_path + "[%d]" % fc.array_index
@@ -1950,11 +1960,8 @@ def validate_actions(act, path_resolve):
 class BakeConstrainedActions(bpy.types.Operator):
     bl_idname = "armature.expykit_bake_constrained_actions"
     bl_label = "Bake Constrained Actions"
-    bl_description = "Bake Actions constrained from another Armature"
+    bl_description = "Bake Actions constrained from another Armature. No need to select two armatures"
     bl_options = {'REGISTER', 'UNDO'}
-
-    rig_preset: EnumProperty(items=preset_handler.iterate_presets,
-                             name="Type to Bake")
 
     clear_users_old: BoolProperty(name="Clear original Action Users",
                                   default=True)
@@ -1962,17 +1969,22 @@ class BakeConstrainedActions(bpy.types.Operator):
     fake_user_new: BoolProperty(name="Save New Action User",
                                 default=True)
 
-    do_bake: BoolProperty(name="Bake and Exit", description="Constrain to the new offset and exit",
+    do_bake: BoolProperty(name="Bake and Exit", description="Bake driven motion and exit",
                           default=False, options={'SKIP_SAVE'})
 
     def draw(self, context):
         layout = self.layout
         column = layout.column()
 
-        to_bake = next(ob for ob in context.selected_objects if ob != context.active_object)
-        if not to_bake.data.expykit_retarget.has_settings():
-            row = column.row()
-            row.prop(self, 'rig_preset', text="Type to Bake")
+        for to_bake in context.selected_objects:
+            trg_ob = self.get_trg_ob(to_bake)
+            if not trg_ob:
+                continue
+
+            column.label(text=f"Baking from {trg_ob.name} to {to_bake.name}")
+
+        if len(context.selected_objects) > 1:
+            column.label(text="No need to select two Armatures anymore", icon='ERROR')
 
         row = column.split(factor=0.30, align=True)
         row.label(text="")
@@ -1988,43 +2000,41 @@ class BakeConstrainedActions(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        if len(context.selected_objects) != 2:
-            return False
-        if context.mode != 'POSE':
-            return False
-        for ob in context.selected_objects:
-            if ob.type != 'ARMATURE':
-                return False
+        return context.mode == 'POSE'
 
-        return True
+    @staticmethod
+    def get_trg_ob(ob: bpy.types.Object) -> bpy.types.Object:
+        for pb in bone_utils.get_constrained_controls(armature_object=ob):
+            for constr in pb.constraints:
+                try:
+                    subtarget = constr.subtarget
+                except AttributeError:
+                    continue
+
+                if subtarget.endswith("_RET"):
+                    return(constr.target)
 
     def execute(self, context):
         if not self.do_bake:
             return {'FINISHED'}
 
-        trg_ob = context.active_object
-        trg_ob.select_set(False)
-        path_resolve = trg_ob.path_resolve
+        sel_obs = list(context.selected_objects)
+        for ob in sel_obs:
+            ob.select_set(False)
 
-        for ob in context.selected_objects:
-            if ob == trg_ob:
-                # should not happen, but anyway
+            trg_ob = self.get_trg_ob(ob)
+            if not trg_ob:
                 continue
 
-            rig_settings = ob.data.expykit_retarget
-            if not rig_settings.has_settings():
-                src_skeleton = preset_handler.get_preset_skel(self.rig_preset, rig_settings)
-                if not src_skeleton:
-                    return {'FINISHED'}
-            else:
-                src_skeleton = preset_handler.get_settings_skel(rig_settings)
-
-            bone_names = list(bn for bn in src_skeleton.bone_names() if bn)
-            for bone in ob.data.bones:
-                bone.select = bone.name in bone_names
+            constr_bone_names = []
+            for pb in bone_utils.get_constrained_controls(ob, unselect=True):
+                
+                if pb.name + "_RET" in trg_ob.data.bones:
+                    pb.bone.select = True
+                    constr_bone_names.append(pb.name)
 
             for action in bpy.data.actions:
-                if not validate_actions(action, path_resolve):
+                if not validate_actions(action, trg_ob.path_resolve):
                     continue
 
                 trg_ob.animation_data.action = action
@@ -2034,12 +2044,18 @@ class BakeConstrainedActions(bpy.types.Operator):
                                  visual_keying=True, clear_constraints=False)
 
                 ob.animation_data.action.use_fake_user = self.fake_user_new
+                
+                if trg_ob.name in action.name:
+                    new_name = action.name.replace(trg_ob.name, ob.name)
+                else:
+                    new_name = f"{ob.name}|{action.name}"
+                ob.animation_data.action.name = new_name
 
                 if self.clear_users_old:
                     action.user_clear()
 
             # delete Constraints
-            for bone_name in bone_names:
+            for bone_name in constr_bone_names:
                 try:
                     pbone = ob.pose.bones[bone_name]
                 except KeyError:
@@ -2557,7 +2573,8 @@ class RenameActionsFromFbxFiles(bpy.types.Operator, ImportHelper):
         type=bpy.types.OperatorFileListElement,
     )
 
-    starts_with: StringProperty(default="Action", name="Starts With")
+    contains: StringProperty(name="Containing", default="|")
+    starts_with: StringProperty(name="Starting with", default="Action")
 
     def execute(self, context):
         fbx_durations = dict()
@@ -2582,8 +2599,16 @@ class RenameActionsFromFbxFiles(bpy.types.Operator, ImportHelper):
 
         path_resolve = context.object.path_resolve
         for action in bpy.data.actions:
-            if self.starts_with and not action.name.startswith(self.starts_with):
+            skip_action = True
+
+            if self.contains and self.contains in action.name:
+                skip_action = False
+            if skip_action and self.starts_with and action.name.startswith(self.starts_with):
+                skip_action = False
+            
+            if skip_action:
                 continue
+
             if not validate_actions(action, path_resolve):
                 continue
 
