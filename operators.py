@@ -1059,6 +1059,26 @@ def mute_fcurves(obj: bpy.types.Object, channel_name: str):
         if fc.data_path == channel_name:
             fc.mute = True
 
+def limit_scale(obj):
+    constr = obj.constraints.new('LIMIT_SCALE')
+    
+    constr.owner_space = 'LOCAL'
+    constr.min_x = obj.scale[0]
+    constr.min_y = obj.scale[1]
+    constr.min_z = obj.scale[2]
+
+    constr.max_x = obj.scale[0]
+    constr.max_y = obj.scale[1]
+    constr.max_z = obj.scale[2]
+
+    constr.use_min_x = True
+    constr.use_min_y = True
+    constr.use_min_z = True
+
+    constr.use_max_x = True
+    constr.use_max_y = True
+    constr.use_max_z = True
+
 
 class ConvertGameFriendly(bpy.types.Operator):
     """Convert Rigify (0.5) rigs to a Game Friendly hierarchy"""
@@ -1628,9 +1648,9 @@ class ConstrainToArmature(bpy.types.Operator):
 
                 height_ratio = ob_height[2] / trg_height[2]
                 
-                # mute animated scale
                 mute_fcurves(trg_ob, 'scale')
                 trg_ob.scale *= height_ratio
+                limit_scale(trg_ob)
 
             bone_names_map = src_skeleton.conversion_map(trg_skeleton)
             def_skeleton = preset_handler.get_preset_skel(src_settings.deform_preset)
@@ -1760,7 +1780,7 @@ class ConstrainToArmature(bpy.types.Operator):
                     new_bone.matrix = ob.pose.bones[src_name].matrix
                     if self.match_object_transform:
                         new_bone.transform(ob.matrix_world)
-                    new_bone.transform(trg_ob.matrix_world.inverted())
+                    new_bone.transform(trg_ob.matrix_world.inverted_safe())
                 elif self.match_transform == 'World':
                     new_bone.head = new_bone.parent.head
                     new_bone.tail = new_bone.parent.tail
