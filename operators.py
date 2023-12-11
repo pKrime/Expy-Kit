@@ -1624,7 +1624,12 @@ class ConstrainToArmature(bpy.types.Operator):
 
         if self.fit_target_scale != '--':
             trg_ob.data.pose_position = 'REST'
-            trg_height = (trg_ob.matrix_world @ trg_ob.pose.bones[getattr(trg_skeleton.spine, self.fit_target_scale)].head)
+            try:
+                trg_bone = trg_ob.pose.bones[getattr(trg_skeleton.spine, self.fit_target_scale)]
+            except KeyError:
+                pass
+            else:
+                trg_height = (trg_ob.matrix_world @ trg_bone.head)
             trg_ob.data.pose_position = 'POSE'
 
         for ob in context.selected_objects:
@@ -1902,7 +1907,7 @@ class ConstrainToArmature(bpy.types.Operator):
                                 src_pbone.constraints.remove(constr)
                     # TODO: should unconstrain mid bones to!
 
-                if is_bone_floating(src_pbone, src_skeleton.spine.hips) and self.bind_floating:
+                if not self.loc_constraints and self.bind_floating and is_bone_floating(src_pbone, src_skeleton.spine.hips):
                     constr_types = ['COPY_LOCATION', 'COPY_ROTATION']
                 elif self.no_finger_loc and (src_name in left_finger_bones or src_name in right_finger_bones):
                     constr_types = ['COPY_ROTATION']
