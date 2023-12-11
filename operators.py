@@ -1265,6 +1265,7 @@ class ConstrainToArmature(bpy.types.Operator):
                                           ),
                                     default='--',
                                     description="Fit height of the target Armature at selected bone")
+    adjust_location: BoolProperty(default=True, name="Adjust location to new scale")
 
     constrain_root: EnumProperty(items=[
         ('None', "No Root", "Don't constrain root bone"),
@@ -1398,6 +1399,8 @@ class ConstrainToArmature(bpy.types.Operator):
         col.prop(self, 'match_transform', text='')
         col.prop(self, 'match_object_transform')
         col.prop(self, 'fit_target_scale')
+        if self.fit_target_scale != "--":
+            col.prop(self, 'adjust_location')
 
         if not self.loc_constraints and self.match_transform == 'Bone':
             col.label(text="'Copy Location' might be required", icon='ERROR')
@@ -1623,14 +1626,12 @@ class ConstrainToArmature(bpy.types.Operator):
         prefix = ""
 
         if self.fit_target_scale != '--':
-            trg_ob.data.pose_position = 'REST'
             try:
                 trg_bone = trg_ob.pose.bones[getattr(trg_skeleton.spine, self.fit_target_scale)]
             except KeyError:
                 pass
             else:
-                trg_height = (trg_ob.matrix_world @ trg_bone.head)
-            trg_ob.data.pose_position = 'POSE'
+                trg_height = (trg_ob.matrix_world @ trg_bone.bone.head_local)
 
         for ob in context.selected_objects:
             if ob == trg_ob:
@@ -1647,15 +1648,24 @@ class ConstrainToArmature(bpy.types.Operator):
                     return {'FINISHED'}
 
             if self.fit_target_scale != '--':
-                ob.data.pose_position = 'REST'
-                ob_height = (ob.matrix_world @ ob.pose.bones[getattr(src_skeleton.spine, self.fit_target_scale)].head)
-                ob.data.pose_position = 'POSE'
-
+                ob_height = (ob.matrix_world @ ob.pose.bones[getattr(src_skeleton.spine, self.fit_target_scale)].bone.head_local)
                 height_ratio = ob_height[2] / trg_height[2]
                 
                 mute_fcurves(trg_ob, 'scale')
                 trg_ob.scale *= height_ratio
                 limit_scale(trg_ob)
+
+                if self.adjust_location:
+                    # scale location animation to avoid offset
+                    trg_action = trg_ob.animation_data.action
+                    for fc in trg_action.fcurves:
+                        data_path = fc.data_path
+
+                        if not data_path.endswith('location'):
+                            continue
+
+                        for kf in fc.keyframe_points:
+                            kf.co[1] /= height_ratio
 
             bone_names_map = src_skeleton.conversion_map(trg_skeleton)
             def_skeleton = preset_handler.get_preset_skel(src_settings.deform_preset)
@@ -2363,6 +2373,8 @@ class AddRootMotion(bpy.types.Operator):
 
         start, end = self._get_start_end(context)
 
+        current_position = arm_ob.data.pose_position
+
         if self.offset_type == 'start':
             context.scene.frame_set(start)
         elif self.offset_type == 'end':
@@ -2373,7 +2385,7 @@ class AddRootMotion(bpy.types.Operator):
         start_mat_inverse = hip_bone.matrix.inverted()
         
         context.scene.frame_set(start)
-        arm_ob.data.pose_position = 'POSE'
+        arm_ob.data.pose_position = current_position
 
         for frame_num in range(start, end + 1):
             context.scene.frame_set(frame_num)
