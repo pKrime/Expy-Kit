@@ -345,7 +345,7 @@ class AddPresetArmatureRetarget(AddPresetBase, Operator):
     """Add a Bone Retarget Preset"""
     bl_idname = "object.expy_kit_armature_preset_add"
     bl_label = "Add Bone Retarget Preset"
-    preset_menu = "DATA_MT_retarget_presets"
+    preset_menu = "VIEW3D_MT_retarget_presets"
 
     # variable used for all preset values
     preset_defines = [
