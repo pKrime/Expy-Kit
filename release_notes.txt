@@ -33,6 +33,7 @@ version 0.6
 - "Select Constrained controls" is not overridden by "Select Animated controls"
 - "Action Range to Scene" always fits the Timeline view
 - Presets dir can be copied to the clipboard from the preferences
+- New mapping preset: Motus
 
 - Fix missing eyes in extracted metarig
 - Fix occasional glitch in baked animations
