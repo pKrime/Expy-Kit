@@ -2204,6 +2204,7 @@ class AddRootMotion(bpy.types.Operator):
     root_cp_rot_z: BoolProperty(name="Root Copy Rot Z", description="Copy Root Z Rotation", default=False)
 
     _armature = None
+    _prop_indent = 0.15
 
     @classmethod
     def poll(cls, context):
@@ -2413,7 +2414,7 @@ class AddRootMotion(bpy.types.Operator):
         rig_settings = context.object.data.expykit_retarget
         if not rig_settings.has_settings():
             rig_settings = preset_handler.set_preset_skel(self.rig_preset)
-            self.set_defaults(rig_settings)
+            self._set_defaults(rig_settings)
         if not self.root_motion_bone:
             return {'FINISHED'}
         if not self.motion_bone:
