@@ -336,17 +336,8 @@ class ExecutePresetArmatureRetarget(Operator):
 
         preset_handler.validate_preset(context.object.data)
 
-        # fix default names used by operators
         settings = context.object.data.expykit_retarget
-        
-        settings.right_arm.name = 'arm'
-        settings.left_arm.name = 'arm'
-
-        settings.right_leg.name = 'leg'
-        settings.left_leg.name = 'leg'
-
-        settings.right_fingers.name = 'fingers'
-        settings.left_fingers.name = 'fingers'
+        preset_handler.reset_preset_names(settings)
 
         return {'FINISHED'}
 
@@ -409,6 +400,8 @@ class ClearArmatureRetarget(Operator):
                         skeleton.face,
                         ):
             for k in setting.keys():
+                if k == 'name':
+                    continue
                 try:
                     setattr(setting, k, '')
                 except TypeError:
@@ -416,6 +409,8 @@ class ClearArmatureRetarget(Operator):
 
         for settings in (skeleton.right_fingers, skeleton.left_fingers):
             for setting in [getattr(settings, k) for k in settings.keys()]:
+                if k == 'name':
+                    continue
                 try:
                     for k in setting.keys():
                         setattr(setting, k, '')
