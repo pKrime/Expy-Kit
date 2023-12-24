@@ -140,6 +140,18 @@ def get_preset_skel(preset, settings=None):
     return mapping
 
 
+def reset_preset_names(settings):
+    "Reset preset names used by scripts"
+    settings.right_arm.name = 'arm'
+    settings.left_arm.name = 'arm'
+
+    settings.right_leg.name = 'leg'
+    settings.left_leg.name = 'leg'
+
+    settings.right_fingers.name = 'fingers'
+    settings.left_fingers.name = 'fingers'
+
+
 class PresetFinger:
     def __init__(self):
         self.a = ""

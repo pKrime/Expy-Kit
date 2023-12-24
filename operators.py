@@ -2003,6 +2003,8 @@ class BakeConstrainedActions(bpy.types.Operator):
 
     fake_user_new: BoolProperty(name="Save New Action User",
                                 default=True)
+    
+    exclude_deform: BoolProperty(name="Exclude deform bones", default=True)
 
     do_bake: BoolProperty(name="Bake and Exit", description="Bake driven motion and exit",
                           default=False, options={'SKIP_SAVE'})
@@ -2031,15 +2033,18 @@ class BakeConstrainedActions(bpy.types.Operator):
 
         row = column.split(factor=0.30, align=True)
         row.label(text="")
+        row.prop(self, "exclude_deform")
+
+        row = column.split(factor=0.30, align=True)
+        row.label(text="")
         row.prop(self, "do_bake", toggle=True)
 
     @classmethod
     def poll(cls, context):
         return context.mode == 'POSE'
 
-    @staticmethod
-    def get_trg_ob(ob: bpy.types.Object) -> bpy.types.Object:
-        for pb in bone_utils.get_constrained_controls(armature_object=ob):
+    def get_trg_ob(self, ob: bpy.types.Object) -> bpy.types.Object:
+        for pb in bone_utils.get_constrained_controls(armature_object=ob, use_deform=not self.exclude_deform):
             for constr in pb.constraints:
                 try:
                     subtarget = constr.subtarget
@@ -2062,13 +2067,13 @@ class BakeConstrainedActions(bpy.types.Operator):
                 continue
 
             constr_bone_names = []
-            for pb in bone_utils.get_constrained_controls(ob, unselect=True):
+            for pb in bone_utils.get_constrained_controls(ob, unselect=True, use_deform=not self.exclude_deform):
                 
                 if pb.name + "_RET" in trg_ob.data.bones:
                     pb.bone.select = True
                     constr_bone_names.append(pb.name)
 
-            for action in bpy.data.actions:
+            for action in list(bpy.data.actions):  # convert to list beforehand to avoid picking new actions
                 if not validate_actions(action, trg_ob.path_resolve):
                     continue
 
@@ -2078,12 +2083,17 @@ class BakeConstrainedActions(bpy.types.Operator):
                                  bake_types={'POSE'}, only_selected=True,
                                  visual_keying=True, clear_constraints=False)
 
+                if not ob.animation_data:
+                    self.report({'WARNING'}, f"failed to bake {action.name}")
+                    continue
+                
                 ob.animation_data.action.use_fake_user = self.fake_user_new
                 
                 if trg_ob.name in action.name:
                     new_name = action.name.replace(trg_ob.name, ob.name)
                 else:
                     new_name = f"{ob.name}|{action.name}"
+
                 ob.animation_data.action.name = new_name
 
                 if self.clear_users_old:

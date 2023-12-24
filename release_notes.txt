@@ -16,6 +16,8 @@ version 0.6
 - "Action Rename" panel has button to remove rename data
 
 - "Bake Actions" doesn't require selecting driving Armature anymore
+- "Bake Actions" can bake deform bones too
+- "Bake Actions" doesn't freeze when baking two similar rigs
 - "Rename from fbx" applies a name starts with or contains logic
 
 - "Transfer Root Motion" can animate at object level
@@ -33,8 +35,11 @@ version 0.6
 - "Select Constrained controls" is not overridden by "Select Animated controls"
 - "Action Range to Scene" always fits the Timeline view
 - Presets dir can be copied to the clipboard from the preferences
-- New mapping preset: Motus
 
+- New mapping preset: Mocap Online (Motus Digital)
+- New mapping preset: Unreal Mannequin 5.0
+
+- Fix "Clear All" button breaking mirror and set operators
 - Fix missing eyes in extracted metarig
 - Fix occasional glitch in baked animations
 - Fix renaming from Current Settings
