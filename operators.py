@@ -1625,12 +1625,14 @@ class ConstrainToArmature(bpy.types.Operator):
         cp_suffix = 'RET'
         prefix = ""
 
+        fit_scale = False
         if self.fit_target_scale != '--':
             try:
                 trg_bone = trg_ob.pose.bones[getattr(trg_skeleton.spine, self.fit_target_scale)]
             except KeyError:
                 pass
             else:
+                fit_scale = True
                 trg_height = (trg_ob.matrix_world @ trg_bone.bone.head_local)
 
         for ob in context.selected_objects:
@@ -1647,7 +1649,7 @@ class ConstrainToArmature(bpy.types.Operator):
                 if not src_skeleton:
                     return {'FINISHED'}
 
-            if self.fit_target_scale != '--':
+            if fit_scale:
                 ob_height = (ob.matrix_world @ ob.pose.bones[getattr(src_skeleton.spine, self.fit_target_scale)].bone.head_local)
                 height_ratio = ob_height[2] / trg_height[2]
                 
