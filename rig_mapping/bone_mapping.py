@@ -68,8 +68,10 @@ class HumanArm(HumanLimb):
         self.shoulder = shoulder
         self.arm = arm
         self.arm_twist = None
+        self.arm_twist_02 = None
         self.forearm = forearm
         self.forearm_twist = None
+        self.forearm_twist_02 = None
         self.hand = hand
 
 
@@ -77,20 +79,22 @@ class HumanLeg(HumanLimb):
     def __init__(self, upleg='', leg='', foot='', toe=''):
         self.upleg = upleg
         self.upleg_twist = None
+        self.upleg_twist_02 = None
         self.leg = leg
         self.leg_twist = None
+        self.leg_twist_02 = None
         self.foot = foot
         self.toe = toe
 
 
 class HumanFingers(HumanLimb):
-    def __init__(self, thumb=[''] * 3, index=[''] * 3, middle=[''] * 3, ring=[''] * 3, pinky=[''] * 3, preset=None):
+    def __init__(self, thumb=[''] * 4, index=[''] * 4, middle=[''] * 4, ring=[''] * 4, pinky=[''] * 4, preset=None):
         if preset:
-            self.thumb = [preset.thumb.a, preset.thumb.b, preset.thumb.c]
-            self.index = [preset.index.a, preset.index.b, preset.index.c]
-            self.middle = [preset.middle.a, preset.middle.b, preset.middle.c]
-            self.ring = [preset.ring.a, preset.ring.b, preset.ring.c]
-            self.pinky = [preset.pinky.a, preset.pinky.b, preset.pinky.c]
+            self.thumb = [preset.thumb.a, preset.thumb.b, preset.thumb.c, preset.thumb.meta]
+            self.index = [preset.index.a, preset.index.b, preset.index.c, preset.index.meta]
+            self.middle = [preset.middle.a, preset.middle.b, preset.middle.c, preset.middle.meta]
+            self.ring = [preset.ring.a, preset.ring.b, preset.ring.c, preset.ring.meta]
+            self.pinky = [preset.pinky.a, preset.pinky.b, preset.pinky.c, preset.pinky.meta]
         else:
             self.thumb = thumb
             self.index = index

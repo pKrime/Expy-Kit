@@ -814,7 +814,7 @@ class VIEW3D_PT_expy_retarget_arms(RetargetBasePanel, bpy.types.Panel):
         row.prop(ob.data, "expykit_twist_on", text="Display Twist Bones")
         
         if ob.data.expykit_twist_on:
-            arm_bones = ('shoulder', 'arm', 'arm_twist', 'forearm', 'forearm_twist', 'hand')
+            arm_bones = ('shoulder', 'arm', 'arm_twist', 'arm_twist_02', 'forearm', 'forearm_twist', 'forearm_twist_02', 'hand')
         else:
             arm_bones = ('shoulder', 'arm', 'forearm', 'hand')
 
@@ -863,7 +863,7 @@ class VIEW3D_PT_expy_retarget_leg(RetargetBasePanel, bpy.types.Panel):
         row.prop(ob.data, "expykit_twist_on", text="Display Twist Bones")
 
         if ob.data.expykit_twist_on:
-            leg_bones = ('upleg', 'upleg_twist', 'leg', 'leg_twist', 'foot', 'toe')
+            leg_bones = ('upleg', 'upleg_twist', 'upleg_twist_02', 'leg', 'leg_twist', 'leg_twist_02', 'foot', 'toe')
         else:
             leg_bones = ('upleg', 'leg', 'foot', 'toe')
 
