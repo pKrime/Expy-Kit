@@ -36,6 +36,7 @@ version 0.6
 - "Action Range to Scene" always fits the Timeline view
 - Presets dir can be copied to the clipboard from the preferences
 
+- Jaw bone for Mixamo mapping
 - New mapping preset: Mocap Online (Motus Digital)
 - New mapping preset: Unreal Mannequin 5.0
 

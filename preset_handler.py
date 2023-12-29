@@ -75,7 +75,7 @@ def validate_preset(armature_data, separator=':'):
             except TypeError:
                 continue
 
-    finger_bones = 'a', 'b', 'c'
+    finger_bones = 'meta', 'a', 'b', 'c'
     for trg_grp in settings.left_fingers, settings.right_fingers:
         for k, trg_finger in trg_grp.items():
             if k == 'name':  # skip Property Group name
@@ -83,7 +83,7 @@ def validate_preset(armature_data, separator=':'):
 
             for slot in finger_bones:
                 bone_name = trg_finger.get(slot)
-                if bone_name not in armature_data.bones:
+                if bone_name and bone_name not in armature_data.bones:
                     with_prefix = prefix + bone_name
                     trg_finger[slot] = with_prefix if with_prefix in armature_data.bones else ""
 
@@ -157,6 +157,7 @@ class PresetFinger:
         self.a = ""
         self.b = ""
         self.c = ""
+        self.meta = ""
 
 
 class PresetSkeleton:
@@ -186,7 +187,7 @@ class PresetSkeleton:
             for k in setting.keys():
                 setattr(setting, k, getattr(trg_setting, k))
 
-        finger_bones = 'a', 'b', 'c'
+        finger_bones = 'a', 'b', 'c', 'meta'
         for group, trg_grp in zip((self.left_fingers, self.right_fingers),
                                   (settings.left_fingers, settings.right_fingers)):
             for k in group.keys():

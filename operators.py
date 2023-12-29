@@ -933,6 +933,18 @@ class ExtractMetarig(bpy.types.Operator):
             metarig.pose.bones[src_meta].rigify_type = src_attr
             # TODO: should copy rigify options of specific types as well
 
+        if current_settings.left_leg.upleg_twist_02 or current_settings.left_leg.leg_twist_02:
+            metarig.pose.bones['thigh.L']['rigify_parameters']['segments'] = 3
+
+        if current_settings.right_leg.upleg_twist_02 or current_settings.right_leg.leg_twist_02:
+            metarig.pose.bones['thigh.R']['rigify_parameters']['segments'] = 3
+        
+        if current_settings.left_arm.arm_twist_02 or current_settings.left_arm.forearm_twist_02:
+            metarig.pose.bones['upper_arm.L']['rigify_parameters']['segments'] = 3
+        
+        if current_settings.right_arm.arm_twist_02 or current_settings.right_arm.forearm_twist_02:
+            metarig.pose.bones['upper_arm.R']['rigify_parameters']['segments'] = 3
+
         if self.assign_metarig:
             met_armature.rigify_target_rig = src_object
 

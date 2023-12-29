@@ -31,8 +31,10 @@ class RetargetArm(RetargetBase):
     shoulder: StringProperty(name="shoulder")
     arm: StringProperty(name="arm")
     arm_twist: StringProperty(name="arm_twist")
+    arm_twist_02: StringProperty(name="arm_twist_02")
     forearm: StringProperty(name="forearm")
     forearm_twist: StringProperty(name="forearm_twist")
+    forearm_twist_02: StringProperty(name="forearm_twist_02")
     hand: StringProperty(name="hand")
 
     name: StringProperty(default='arm')
@@ -41,8 +43,10 @@ class RetargetArm(RetargetBase):
 class RetargetLeg(RetargetBase):
     upleg: StringProperty(name="upleg")
     upleg_twist: StringProperty(name="upleg_twist")
+    upleg_twist_02: StringProperty(name="upleg_twist_02")
     leg: StringProperty(name="leg")
     leg_twist: StringProperty(name="leg_twist")
+    leg_twist_02: StringProperty(name="leg_twist_02")
     foot: StringProperty(name="foot")
     toe: StringProperty(name="toe")
 
@@ -50,6 +54,7 @@ class RetargetLeg(RetargetBase):
 
 
 class RetargetFinger(RetargetBase):
+    meta: StringProperty(name="meta")
     a: StringProperty(name="A")
     b: StringProperty(name="B")
     c: StringProperty(name="C")
@@ -129,11 +134,13 @@ def register_classes():
 
 def unregister_classes():
     del bpy.types.Armature.expykit_retarget
+    del bpy.types.Armature.expykit_twist_on
+
     bpy.utils.unregister_class(RetargetSettings)
 
     bpy.utils.unregister_class(RetargetFaceSimple)
-    bpy.utils.unregister_class(RetargetFinger)
     bpy.utils.unregister_class(RetargetFingers)
+    bpy.utils.unregister_class(RetargetFinger)
     bpy.utils.unregister_class(RetargetSpine)
 
     bpy.utils.unregister_class(RetargetArm)
