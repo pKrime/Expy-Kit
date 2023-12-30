@@ -276,6 +276,30 @@ class HumanSkeleton:
         for limb_name, bone_name in self.spine.items():
             bone_mapping('spine', limb_name, bone_name)
 
+        if self.left_arm_ik:
+            for limb_name, bone_name in self.left_arm_ik.items():
+                if bone_name == self.left_arm[limb_name]:
+                    continue
+                bone_mapping('left_arm_ik', limb_name, bone_name)
+
+        if self.right_arm_ik:
+            for limb_name, bone_name in self.right_arm_ik.items():
+                if bone_name == self.right_arm[limb_name]:
+                    continue
+                bone_mapping('right_arm_ik', limb_name, bone_name)
+
+        if self.left_leg_ik:
+            for limb_name, bone_name in self.left_leg_ik.items():
+                if bone_name == self.left_leg[limb_name]:
+                    continue
+                bone_mapping('left_leg_ik', limb_name, bone_name)
+
+        if self.right_leg_ik:
+            for limb_name, bone_name in self.right_leg_ik.items():
+                if bone_name == self.right_leg[limb_name]:
+                    continue
+                bone_mapping('right_leg_ik', limb_name, bone_name)
+
         for limb_name, bone_name in self.left_arm.items():
             bone_mapping('left_arm', limb_name, bone_name)
 
@@ -287,23 +311,7 @@ class HumanSkeleton:
 
         for limb_name, bone_name in self.right_leg.items():
             bone_mapping('right_leg', limb_name, bone_name)
-
-        if self.left_arm_ik:
-            for limb_name, bone_name in self.left_arm_ik.items():
-                bone_mapping('left_arm_ik', limb_name, bone_name)
-
-        if self.right_arm_ik:
-            for limb_name, bone_name in self.right_arm_ik.items():
-                bone_mapping('right_arm_ik', limb_name, bone_name)
-
-        if self.left_leg_ik:
-            for limb_name, bone_name in self.left_leg_ik.items():
-                bone_mapping('left_leg_ik', limb_name, bone_name)
-
-        if self.right_leg_ik:
-            for limb_name, bone_name in self.right_leg_ik.items():
-                bone_mapping('right_leg_ik', limb_name, bone_name)
-
+        
         def fingers_mapping(src_fingers, trg_fingers):
             for finger, bone_names in src_fingers.items():
                 trg_bone_names = trg_fingers[finger]
