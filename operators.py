@@ -95,6 +95,9 @@ class SelectConstrainedControls(bpy.types.Operator):
     ],
         name="Select if",
         default='constr')
+    
+    skip_deform: BoolProperty(name="Skip Deform Bones", default=True)
+    has_shape: BoolProperty(name="Only Control shapes", default=True)
 
     @classmethod
     def poll(cls, context):
@@ -111,8 +114,8 @@ class SelectConstrainedControls(bpy.types.Operator):
         ob = context.object
 
         if self.select_type == 'constr':
-            for pb in bone_utils.get_constrained_controls(ob, unselect=True):
-                pb.bone.select = bool(pb.custom_shape)
+            for pb in bone_utils.get_constrained_controls(ob, unselect=True, use_deform=not self.skip_deform):
+                pb.bone.select = bool(pb.custom_shape) if self.has_shape else True
 
         elif self.select_type == 'anim':
             if not ob.animation_data:
