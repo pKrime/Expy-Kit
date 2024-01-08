@@ -33,14 +33,18 @@ version 0.6
 - "Convert Bone Names" accepts custom separator characters
 
 - "Select Constrained controls" is not overridden by "Select Animated controls"
+- "Select Constrained controls" ignoring deform bones and bones with no shape was made optional
 - "Action Range to Scene" always fits the Timeline view
 - Presets dir can be copied to the clipboard from the preferences
 
 - Jaw bone for Mixamo mapping
+- Three segments limbs mapping
 - New mapping preset: Mocap Online (Motus Digital)
 - New mapping preset: Unreal Mannequin 5.0
 
 - Fix "Clear All" button breaking mirror and set operators
+- Fix IK occasionally overriding def bones
+- Fix extracted metarig copying IK bones
 - Fix missing eyes in extracted metarig
 - Fix occasional glitch in baked animations
 - Fix renaming from Current Settings

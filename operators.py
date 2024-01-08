@@ -95,6 +95,9 @@ class SelectConstrainedControls(bpy.types.Operator):
     ],
         name="Select if",
         default='constr')
+    
+    skip_deform: BoolProperty(name="Skip Deform Bones", default=True)
+    has_shape: BoolProperty(name="Only Control shapes", default=True)
 
     @classmethod
     def poll(cls, context):
@@ -111,8 +114,8 @@ class SelectConstrainedControls(bpy.types.Operator):
         ob = context.object
 
         if self.select_type == 'constr':
-            for pb in bone_utils.get_constrained_controls(ob, unselect=True):
-                pb.bone.select = bool(pb.custom_shape)
+            for pb in bone_utils.get_constrained_controls(ob, unselect=True, use_deform=not self.skip_deform):
+                pb.bone.select = bool(pb.custom_shape) if self.has_shape else True
 
         elif self.select_type == 'anim':
             if not ob.animation_data:
@@ -238,9 +241,9 @@ class ConvertBoneNaming(bpy.types.Operator):
         return src_skeleton, trg_skeleton
 
     @staticmethod
-    def rename_bones(context, src_skeleton, trg_skeleton, separator="", replace_existing=False):
+    def rename_bones(context, src_skeleton, trg_skeleton, separator="", replace_existing=False, skip_ik=False):
         # FIXME: separator should not be necessary anymore, as it is handled at preset validation
-        bone_names_map = src_skeleton.conversion_map(trg_skeleton)
+        bone_names_map = src_skeleton.conversion_map(trg_skeleton, skip_ik=skip_ik)
 
         if separator:
             for bone in context.object.data.bones:
@@ -612,7 +615,7 @@ class ExtractMetarig(bpy.types.Operator):
             if not [b for b in bones_needed if b in src_armature.bones]:
                 # Converted settings should not be validated yet, as bones have not been renamed
                 src_skeleton, trg_skeleton = ConvertBoneNaming.convert_settings(current_settings, 'Rigify_Deform.py', validate=False)
-                ConvertBoneNaming.rename_bones(context, src_skeleton, trg_skeleton)
+                ConvertBoneNaming.rename_bones(context, src_skeleton, trg_skeleton, skip_ik=True)
                 src_skeleton = bone_mapping.RigifySkeleton()
 
                 for name_attr in ('left_eye', 'right_eye'):
