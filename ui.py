@@ -431,17 +431,10 @@ class SetToActiveBone(Operator):
     attr_name: StringProperty(default="", options={'SKIP_SAVE'})
     sub_attr_name: StringProperty(default="", options={'SKIP_SAVE'})
     slot_name: StringProperty(default="", options={'SKIP_SAVE'})
-    attr_ptr = PointerProperty(type=properties.retarget.RetargetBase)
 
     @classmethod
     def poll(cls, context):
-        if not context.object:
-            return False
         if not context.active_pose_bone:
-            return False
-        if context.object.type != 'ARMATURE':
-            return False
-        if not context.object.data.expykit_retarget:
             return False
 
         return True
