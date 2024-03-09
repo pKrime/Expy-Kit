@@ -1,3 +1,8 @@
+
+version 0.6
+
+- "Rigify Game Friendly": fix twist reparent on right side
+
 version 0.6
 
 - "Bind to Armature" checks for bones with the same name
