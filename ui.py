@@ -421,7 +421,6 @@ class SetToActiveBone(Operator):
     attr_name: StringProperty(default="", options={'SKIP_SAVE'})
     sub_attr_name: StringProperty(default="", options={'SKIP_SAVE'})
     slot_name: StringProperty(default="", options={'SKIP_SAVE'})
-    attr_ptr = PointerProperty(type=properties.RetargetBase)
 
     @classmethod
     def poll(cls, context):
