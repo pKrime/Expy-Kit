@@ -146,4 +146,4 @@ def unregister_classes():
 
     bpy.utils.unregister_class(RetargetArm)
     bpy.utils.unregister_class(RetargetLeg)
-    bpy.utils.register_class(RetargetBase)
+    bpy.utils.unregister_class(RetargetBase)
