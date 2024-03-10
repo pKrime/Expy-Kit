@@ -1186,10 +1186,10 @@ class ConvertGameFriendly(bpy.types.Operator):
         num_reparents = bone_utils.gamefriendly_hierarchy(ob, fix_tail=self.fix_tail, limit_scale=self.limit_scale)
 
         if self.reparent_twist:
-            arm_bones = ["DEF-upper_arm", "DEF-forearm", "DEF-hand"]
-            leg_bones = ["DEF-thigh", "DEF-shin", "DEF-foot"]
+            arm_bones = ("DEF-upper_arm", "DEF-forearm", "DEF-hand")
+            leg_bones = ("DEF-thigh", "DEF-shin", "DEF-foot")
             for side in ".L", ".R":
-                for bone_names in arm_bones, leg_bones:
+                for bone_names in list(arm_bones), list(leg_bones):
                     parent_bone = ob.data.edit_bones[bone_names.pop(0) + side] 
                     for bone in bone_names:
                         e_bone = ob.data.edit_bones[bone + side]
