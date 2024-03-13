@@ -120,6 +120,7 @@ class RetargetSettings(PropertyGroup):
 
 
 def register_classes():
+    bpy.utils.register_class(RetargetBase)
     bpy.utils.register_class(RetargetSpine)
     bpy.utils.register_class(RetargetArm)
     bpy.utils.register_class(RetargetLeg)
@@ -145,3 +146,4 @@ def unregister_classes():
 
     bpy.utils.unregister_class(RetargetArm)
     bpy.utils.unregister_class(RetargetLeg)
+    bpy.utils.unregister_class(RetargetBase)

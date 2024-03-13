@@ -308,7 +308,10 @@ class ExecutePresetArmatureRetarget(Operator):
 
         # change the menu title to the most recently chosen option
         preset_class = VIEW3D_MT_retarget_presets
-        preset_class.bl_label = bpy.path.display_name(basename(filepath), title_case=False)
+        if bpy.app.version < (2, 93, 0):
+            preset_class.bl_label = bpy.path.display_name(basename(filepath))
+        else:
+            preset_class.bl_label = bpy.path.display_name(basename(filepath), title_case=False)
 
         ext = splitext(filepath)[1].lower()
 
