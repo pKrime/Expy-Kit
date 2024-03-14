@@ -580,7 +580,8 @@ class BindFromPanelSelection(bpy.types.Operator):
         context.view_layer.objects.active = context.scene.expykit_bind_to
         bpy.ops.object.mode_set(mode='POSE')
 
-        if context.scene.expykit_bind_to.animation_data.action:
+        _ = context.scene.expykit_bind_to.animation_data
+        if _ and _.action:
             # TODO: this should be in the constrain operator
             bpy.ops.object.expykit_action_to_range()
         
