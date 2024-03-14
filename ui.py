@@ -12,6 +12,12 @@ from . import operators
 from . import preset_handler
 from . import properties
 
+try:
+    from ._extra_ import quick_poses
+    _EXTRA_FEATURES_ = True
+except ImportError:
+    _EXTRA_FEATURES_ = False
+
 
 def menu_header(layout):
     row = layout.row()
@@ -93,6 +99,10 @@ class AnimMenu(bpy.types.Menu):
         row = layout.row()
         op = row.operator(operators.SelectConstrainedControls.bl_idname, text="Select Animated Controls")
         op.select_type = 'anim'
+
+        if _EXTRA_FEATURES_:
+            row = layout.row()
+            op = row.operator(quick_poses.TransferPose.bl_idname, text="Transfer Pose")
 
 
 def pose_context_options(self, context):
@@ -880,8 +890,8 @@ class VIEW3D_PT_expy_retarget_root(RetargetBasePanel, bpy.types.Panel):
         row.operator(ClearArmatureRetarget.bl_idname, text="Clear All")
 
 
-def poll_armature_bind_to(self, object):
-    return object != bpy.context.object and object.type == 'ARMATURE'
+def poll_armature_bind_to(self, obj):
+    return obj != bpy.context.object and obj.type == 'ARMATURE'
 
 
 def register_classes():

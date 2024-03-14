@@ -606,7 +606,7 @@ def gamefriendly_hierarchy(ob, fix_tail=True, limit_scale=False):
     return num_reparents
 
 
-def iterate_rigged_obs(armature_object):
+def iterate_rigged_mods(armature_object):
     for ob in bpy.data.objects:
         if ob.type != 'MESH':
             continue
@@ -614,8 +614,13 @@ def iterate_rigged_obs(armature_object):
             continue
         for modifier in [mod for mod in ob.modifiers if mod.type == 'ARMATURE']:
             if modifier.object == armature_object:
-                yield ob
+                yield modifier
                 break
+
+
+def iterate_rigged_obs(armature_object):
+    for mod in iterate_rigged_mods(armature_object):
+        yield mod.id_data
 
 
 def get_group_verts(obj, vertex_group, threshold=0.1):
@@ -667,9 +672,16 @@ def closest_bone_axis(bone, mat, direction):
     xyz = bone.x_axis, bone.y_axis, bone.z_axis
     xyz = [(mat @ x).normalized() for x in xyz]
 
-    dot_prods = [abs(direction.dot(x)) for x in xyz]
+    dot_prods = [direction.dot(x) for x in xyz]
+    abs_dots = [abs(x) for x in dot_prods]
+    index = abs_dots.index(max(abs_dots))
 
-    return xyz[dot_prods.index(max(dot_prods))]
+    ret = xyz[index]
+
+    if dot_prods[index] < 0:
+        ret *= -1
+
+    return ret
 
 
 def relative_direction(start_bone, end_bone, mat):
