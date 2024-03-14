@@ -1922,7 +1922,7 @@ class ConstrainToArmature(bpy.types.Operator):
 
                 if self._bone_bound_already(src_pbone):
                     if self.constraint_policy == 'skip':
-                       continue
+                        continue
                     
                     if self.constraint_policy == 'disable':
                         for constr in src_pbone.constraints:

@@ -886,8 +886,8 @@ class VIEW3D_PT_expy_retarget_root(RetargetBasePanel, bpy.types.Panel):
         row.operator(ClearArmatureRetarget.bl_idname, text="Clear All")
 
 
-def poll_armature_bind_to(self, object):
-    return object != bpy.context.object and object.type == 'ARMATURE'
+def poll_armature_bind_to(self, obj):
+    return obj != bpy.context.object and obj.type == 'ARMATURE'
 
 
 def register_classes():
