@@ -31,7 +31,10 @@ from . import ui
 from . import preferences
 from . import preset_handler
 from . import properties
-from . import _extra_
+try:
+    from . import _extra_
+except:
+    pass
 
 from . import __refresh__
 __refresh__.reload_modules()
@@ -42,13 +45,19 @@ def register():
     preferences.register_classes()
     operators.register_classes()
     ui.register_classes()
-    _extra_.register_classes()
+    try:
+        _extra_.register_classes()
+    except:
+        pass
 
     preset_handler.install_presets()
 
 
 def unregister():
-    _extra_.unregister_classes()
+    try:
+        _extra_.unregister_classes()
+    except:
+        pass
     ui.unregister_classes()
     operators.unregister_classes()
     preferences.unregister_classes()
