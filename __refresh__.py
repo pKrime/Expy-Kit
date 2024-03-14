@@ -9,6 +9,7 @@ def _reload_modules():
     from . import preferences
     from . import preset_handler
     from . import properties
+    from .properties import retarget, storage
     from . import ui
 
     from .rig_mapping import bone_mapping
@@ -18,6 +19,8 @@ def _reload_modules():
     reload(bone_utils)
     reload(preferences)
     reload(preset_handler)
+    reload(storage)
+    reload(retarget)
     reload(properties)
     reload(ui)
     reload(bone_mapping)
