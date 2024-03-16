@@ -402,10 +402,10 @@ class ClearArmatureRetarget(Operator):
 
         for settings in (skeleton.right_fingers, skeleton.left_fingers):
             for setting in [getattr(settings, k) for k in settings.keys()]:
-                if k == 'name':
-                    continue
                 try:
                     for k in setting.keys():
+                        if k == 'name':
+                            continue
                         setattr(setting, k, '')
                 except AttributeError:
                     continue
