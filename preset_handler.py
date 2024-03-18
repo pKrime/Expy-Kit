@@ -32,10 +32,12 @@ def iterate_presets_with_current(scene, context):
     yield '--', "--", "None"  # first menu entry, doesn't do anything
     yield "--Current--", "-- Current Settings --", "Use Bones set in Expy Retarget Panel"
 
-    for f in os.listdir(get_retarget_dir()):
-        if not f.endswith('.py'):
-            continue
-        yield f, os.path.splitext(f)[0].title(), ""
+    _dir = get_retarget_dir()
+    if os.path.isdir(_dir):
+        for f in os.listdir(_dir):
+            if not f.endswith('.py'):
+                continue
+            yield f, os.path.splitext(f)[0].title(), ""
 
 
 def iterate_presets(scene, context):
@@ -43,10 +45,12 @@ def iterate_presets(scene, context):
 
     yield '--', "--", "None"  # first menu entry, doesn't do anything
 
-    for f in os.listdir(get_retarget_dir()):
-        if not f.endswith('.py'):
-            continue
-        yield f, os.path.splitext(f)[0].title(), ""
+    _dir = get_retarget_dir()
+    if os.path.isdir(_dir):
+        for f in os.listdir(_dir):
+            if not f.endswith('.py'):
+                continue
+            yield f, os.path.splitext(f)[0].title(), ""
 
 
 def get_settings_skel(settings):
