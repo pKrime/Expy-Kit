@@ -298,7 +298,10 @@ class ExecutePresetArmatureRetarget(Operator):
 
         # change the menu title to the most recently chosen option
         preset_class = VIEW3D_MT_retarget_presets
-        preset_class.bl_label = bpy.path.display_name(basename(filepath), title_case=False)
+        if bpy.app.version < (2, 93, 0):
+            preset_class.bl_label = bpy.path.display_name(basename(filepath))
+        else:
+            preset_class.bl_label = bpy.path.display_name(basename(filepath), title_case=False)
 
         ext = splitext(filepath)[1].lower()
 
@@ -399,10 +402,10 @@ class ClearArmatureRetarget(Operator):
 
         for settings in (skeleton.right_fingers, skeleton.left_fingers):
             for setting in [getattr(settings, k) for k in settings.keys()]:
-                if k == 'name':
-                    continue
                 try:
                     for k in setting.keys():
+                        if k == 'name':
+                            continue
                         setattr(setting, k, '')
                 except AttributeError:
                     continue
@@ -577,7 +580,8 @@ class BindFromPanelSelection(bpy.types.Operator):
         context.view_layer.objects.active = context.scene.expykit_bind_to
         bpy.ops.object.mode_set(mode='POSE')
 
-        if context.scene.expykit_bind_to.animation_data.action:
+        _ad = context.scene.expykit_bind_to.animation_data
+        if _ad and _ad.action:
             # TODO: this should be in the constrain operator
             bpy.ops.object.expykit_action_to_range()
         
@@ -876,8 +880,8 @@ class VIEW3D_PT_expy_retarget_root(RetargetBasePanel, bpy.types.Panel):
         row.operator(ClearArmatureRetarget.bl_idname, text="Clear All")
 
 
-def poll_armature_bind_to(self, object):
-    return object != bpy.context.object and object.type == 'ARMATURE'
+def poll_armature_bind_to(self, obj):
+    return obj != bpy.context.object and obj.type == 'ARMATURE'
 
 
 def register_classes():

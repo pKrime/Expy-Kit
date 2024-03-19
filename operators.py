@@ -997,10 +997,15 @@ class ActionRangeToScene(bpy.types.Operator):
                     if area.type == 'DOPESHEET_EDITOR':
                         for region in area.regions:
                             if region.type == 'WINDOW':
-                                with context.temp_override(window=window,
-                                                           area=area,
-                                                           region=region):
-                                    bpy.ops.action.view_all()
+                                _ovr = {"window" : window,
+                                        "area" : area,
+                                        "region" : region
+                                        }
+                                if bpy.app.version < (3, 2):
+                                    bpy.ops.action.view_all(_ovr)
+                                else:
+                                    with context.temp_override(**_ovr):
+                                        bpy.ops.action.view_all()
                                 break
                         break
         return {'FINISHED'}
@@ -1922,7 +1927,7 @@ class ConstrainToArmature(bpy.types.Operator):
 
                 if self._bone_bound_already(src_pbone):
                     if self.constraint_policy == 'skip':
-                       continue
+                        continue
                     
                     if self.constraint_policy == 'disable':
                         for constr in src_pbone.constraints:
