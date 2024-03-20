@@ -1,5 +1,3 @@
-from email.policy import default
-import typing
 import bpy
 from bpy.props import StringProperty
 from bpy.props import FloatProperty
