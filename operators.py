@@ -1679,15 +1679,15 @@ class ConstrainToArmature(bpy.types.Operator):
 
                 if self.adjust_location:
                     # scale location animation to avoid offset
-                    trg_action = trg_ob.animation_data.action
-                    for fc in trg_action.fcurves:
-                        data_path = fc.data_path
+                    if trg_ob.animation_data and trg_ob.animation_data.action:
+                        for fc in trg_ob.animation_data.action.fcurves:
+                            data_path = fc.data_path
 
-                        if not data_path.endswith('location'):
-                            continue
+                            if not data_path.endswith('location'):
+                                continue
 
-                        for kf in fc.keyframe_points:
-                            kf.co[1] /= height_ratio
+                            for kf in fc.keyframe_points:
+                                kf.co[1] /= height_ratio
 
             bone_names_map = src_skeleton.conversion_map(trg_skeleton)
             def_skeleton = preset_handler.get_preset_skel(src_settings.deform_preset)
