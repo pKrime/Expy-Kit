@@ -47,7 +47,7 @@ class ConstraintStatus(bpy.types.Operator):
 
     selected_only: BoolProperty(name="Only Selected",
                                 default=False)
-    
+
     constr_type: EnumProperty(items=[(ct, ct.replace('_', ' ').title(), ct) for ct in CONSTR_TYPES],
                               name="Constraint Type",
                               default='ALL_TYPES')
@@ -95,7 +95,7 @@ class SelectConstrainedControls(bpy.types.Operator):
     ],
         name="Select if",
         default='constr')
-    
+
     skip_deform: BoolProperty(name="Skip Deform Bones", default=True)
     has_shape: BoolProperty(name="Only Control shapes", default=True)
 
@@ -272,7 +272,7 @@ class ConvertBoneNaming(bpy.types.Operator):
                     pre_existing_name = pre_existing_bone.name
                     pre_existing_bone.name = f"{trg_name}.001"
                     additional_bones[pre_existing_name] = pre_existing_bone.name
-                                          
+
             src_bone.name = trg_name
 
         bone_names_map.update(additional_bones)
@@ -912,7 +912,7 @@ class ExtractMetarig(bpy.types.Operator):
 
             try:
                 bone = next((b for b in src_armature.bones if b.name == src_name), None)
-                
+
                 if bone:
                     if bone.parent:
                         # FIXME: should use mapping to get parent bone name
@@ -941,10 +941,10 @@ class ExtractMetarig(bpy.types.Operator):
 
         if current_settings.right_leg.upleg_twist_02 or current_settings.right_leg.leg_twist_02:
             metarig.pose.bones['thigh.R']['rigify_parameters']['segments'] = 3
-        
+
         if current_settings.left_arm.arm_twist_02 or current_settings.left_arm.forearm_twist_02:
             metarig.pose.bones['upper_arm.L']['rigify_parameters']['segments'] = 3
-        
+
         if current_settings.right_arm.arm_twist_02 or current_settings.right_arm.forearm_twist_02:
             metarig.pose.bones['upper_arm.R']['rigify_parameters']['segments'] = 3
 
@@ -1074,14 +1074,14 @@ def mute_fcurves(obj: bpy.types.Object, channel_name: str):
     action = obj.animation_data.action
     if not action:
         return
-    
+
     for fc in action.fcurves:
         if fc.data_path == channel_name:
             fc.mute = True
 
 def limit_scale(obj):
     constr = obj.constraints.new('LIMIT_SCALE')
-    
+
     constr.owner_space = 'LOCAL'
     constr.min_x = obj.scale[0]
     constr.min_y = obj.scale[1]
@@ -1195,7 +1195,7 @@ class ConvertGameFriendly(bpy.types.Operator):
             leg_bones = ("DEF-thigh", "DEF-shin", "DEF-foot")
             for side in ".L", ".R":
                 for bone_names in list(arm_bones), list(leg_bones):
-                    parent_bone = ob.data.edit_bones[bone_names.pop(0) + side] 
+                    parent_bone = ob.data.edit_bones[bone_names.pop(0) + side]
                     for bone in bone_names:
                         e_bone = ob.data.edit_bones[bone + side]
                         e_bone.use_connect = False
@@ -1231,9 +1231,9 @@ class ConstrainToArmature(bpy.types.Operator):
                              name="Bind To",
                              options={'SKIP_SAVE'}
                              )
-    
+
     only_selected: BoolProperty(name="Only Selected", default=False, description="Bind only selected bones")
-    
+
     bind_by_name: BoolProperty(name="Bind bones by name", default=True)
     name_prefix: StringProperty(name="Add prefix to name", default="")
     name_replace: StringProperty(name="Replace in name", default="")
@@ -1259,21 +1259,21 @@ class ConstrainToArmature(bpy.types.Operator):
     ],
         name="Match Transform",
         default='None')
-    
+
     match_object_transform: BoolProperty(name="Match Object Transform", default=True)
 
     math_look_at: BoolProperty(name="Fix direction",
                                description="Correct chain direction based on mid limb (Useful for IK)",
                                default=False)
-    
+
     copy_IK_roll_hands: BoolProperty(name="Hands IK Roll",
                             description="USe IK target roll from source armature (Useful for IK)",
                             default=False)
-    
+
     copy_IK_roll_feet: BoolProperty(name="Feet IK Roll",
                             description="USe IK target roll from source armature (Useful for IK)",
                             default=False)
-    
+
     fit_target_scale: EnumProperty(name="Fit height",
                                    items=(('--', '- None -', 'None'),
                                           ('head', 'head', 'head'),
@@ -1298,11 +1298,11 @@ class ConstrainToArmature(bpy.types.Operator):
     loc_constraints: BoolProperty(name="Copy Location",
                                   description="Use Location Constraint when binding",
                                   default=False)
-    
+
     rot_constraints: BoolProperty(name="Copy Rotation",
                                   description="Use Rotation Constraint when binding",
                                   default=True)
-    
+
     constraint_policy: EnumProperty(items=[
         ('skip', "Skip Existing Constraints", "Skip Bones that are constrained already"),
         ('disable', "Disable Existing Constraints", "Disable existing binding constraints and add new ones"),
@@ -1354,12 +1354,12 @@ class ConstrainToArmature(bpy.types.Operator):
     )
 
     force_dialog: BoolProperty(default=False, options={'HIDDEN', 'SKIP_SAVE'})
-    
+
     _autovars_unset = True
     _constrained_root = None
 
     _prop_indent = 0.15
-    
+
     @property
     def _bind_constraints(self):
         constrs = []
@@ -1394,7 +1394,7 @@ class ConstrainToArmature(bpy.types.Operator):
         if self.force_dialog:
             return context.window_manager.invoke_props_dialog(self)
 
-        return self.execute(context)        
+        return self.execute(context)
 
     def draw(self, context):
         layout = self.layout
@@ -1402,7 +1402,7 @@ class ConstrainToArmature(bpy.types.Operator):
 
         row = column.row()
         row.prop(self, 'src_preset', text="To Bind")
-    
+
         row = column.row()
         row.prop(self, 'trg_preset', text="Bind To")
 
@@ -1438,14 +1438,14 @@ class ConstrainToArmature(bpy.types.Operator):
         row.separator()
 
         constr_col = row.column()
-        
+
         copy_loc_row = constr_col.row()
         copy_loc_row.prop(self, 'loc_constraints')
         if self.loc_constraints:
             copy_loc_row.prop(self, 'no_finger_loc', text="Except Fingers")
         else:
             copy_loc_row.prop(self, 'bind_floating', text="Only Floating")
-        
+
         copy_rot_row = constr_col.row()
         copy_rot_row.prop(self, 'rot_constraints')
         copy_rot_row.prop(self, 'math_look_at')
@@ -1456,11 +1456,11 @@ class ConstrainToArmature(bpy.types.Operator):
 
         row = column.split(factor=self._prop_indent, align=True)
         constr_col.prop(self, 'constraint_policy', text='')
-        
+
         column.separator()
         row = column.row()
         row.label(text="Affect Bones")
-        
+
         row = column.row()
         row = column.split(factor=self._prop_indent, align=True)
         row.separator()
@@ -1612,7 +1612,7 @@ class ConstrainToArmature(bpy.types.Operator):
             limit_scale.min_x = 1.0
             limit_scale.min_y = 1.0
             limit_scale.min_z = 1.0
-            
+
             limit_scale.max_x = 1.0
             limit_scale.max_y = 1.0
             limit_scale.max_z = 1.0
@@ -1660,7 +1660,7 @@ class ConstrainToArmature(bpy.types.Operator):
                 continue
 
             src_settings = ob.data.expykit_retarget
-            if self.src_preset == '--Current--' and ob.data.expykit_retarget.has_settings():    
+            if self.src_preset == '--Current--' and ob.data.expykit_retarget.has_settings():
                 if not src_settings.has_settings():
                     return {'FINISHED'}
                 src_skeleton = preset_handler.get_settings_skel(src_settings)
@@ -1672,7 +1672,7 @@ class ConstrainToArmature(bpy.types.Operator):
             if fit_scale:
                 ob_height = (ob.matrix_world @ ob.pose.bones[getattr(src_skeleton.spine, self.fit_target_scale)].bone.head_local)
                 height_ratio = ob_height[2] / trg_height[2]
-                
+
                 mute_fcurves(trg_ob, 'scale')
                 trg_ob.scale *= height_ratio
                 limit_scale(trg_ob)
@@ -1718,7 +1718,7 @@ class ConstrainToArmature(bpy.types.Operator):
                 self._constrained_root = None
             elif self.constrain_root == 'Bone':
                 bone_names_map[src_skeleton.root] = self.root_motion_bone
-            
+
             if self.only_selected:
                 b_names = list(bone_names_map.keys())
                 for b_name in b_names:
@@ -1734,7 +1734,7 @@ class ConstrainToArmature(bpy.types.Operator):
 
             # hacky, but will do it: keep target armature in place during binding
             limit_constraints = self._add_limit_constraintss(trg_ob)
-            
+
             if not self.use_legacy_index:
                 try:
                     ret_collection = trg_ob.data.collections[self.ret_bones_collection]
@@ -1801,7 +1801,7 @@ class ConstrainToArmature(bpy.types.Operator):
                         new_bone.transform(ob.matrix_world)
                     # counter target transform
                     new_bone.transform(trg_ob.matrix_world.inverted())
-                    
+
                     # align target temporarily
                     trg_roll = trg_ed_bone.roll
                     trg_ed_bone.roll = bone_utils.ebone_roll_to_vector(trg_ed_bone, def_bone.z_axis)
@@ -1893,7 +1893,7 @@ class ConstrainToArmature(bpy.types.Operator):
                             for coll in look_bone.collections:
                                 coll.unissign(look_bone)
                             ret_collection.assign(look_bone)
-                            
+
             for constr in limit_constraints:
                 trg_ob.constraints.remove(constr)
 
@@ -1928,7 +1928,7 @@ class ConstrainToArmature(bpy.types.Operator):
                 if self._bone_bound_already(src_pbone):
                     if self.constraint_policy == 'skip':
                         continue
-                    
+
                     if self.constraint_policy == 'disable':
                         for constr in src_pbone.constraints:
                             if constr.type in self._bind_constraints:
@@ -2025,7 +2025,7 @@ class BakeConstrainedActions(bpy.types.Operator):
 
     fake_user_new: BoolProperty(name="Save New Action User",
                                 default=True)
-    
+
     exclude_deform: BoolProperty(name="Exclude deform bones", default=True)
 
     do_bake: BoolProperty(name="Bake and Exit", description="Bake driven motion and exit",
@@ -2090,7 +2090,7 @@ class BakeConstrainedActions(bpy.types.Operator):
 
             constr_bone_names = []
             for pb in bone_utils.get_constrained_controls(ob, unselect=True, use_deform=not self.exclude_deform):
-                
+
                 if pb.name + "_RET" in trg_ob.data.bones:
                     pb.bone.select = True
                     constr_bone_names.append(pb.name)
@@ -2108,9 +2108,9 @@ class BakeConstrainedActions(bpy.types.Operator):
                 if not ob.animation_data:
                     self.report({'WARNING'}, f"failed to bake {action.name}")
                     continue
-                
+
                 ob.animation_data.action.use_fake_user = self.fake_user_new
-                
+
                 if trg_ob.name in action.name:
                     new_name = action.name.replace(trg_ob.name, ob.name)
                 else:
@@ -2165,7 +2165,7 @@ def get_rot_ani_path(to_animate):
         return 'rotation_quaternion', 4
     if to_animate.rotation_mode == 'AXIS_ANGLE':
         return 'rotation_axis_angle', 4
-    
+
     return 'rotation_euler', 3
 
 
@@ -2271,7 +2271,7 @@ class AddRootMotion(bpy.types.Operator):
 
         col = split.column()
         col.prop(self, 'obj_or_bone', expand=True)
-        
+
         col.prop_search(self, 'root_motion_bone',
                         context.active_object.data,
                         "bones", text="")
@@ -2356,7 +2356,7 @@ class AddRootMotion(bpy.types.Operator):
 
         if not self.motion_bone:
             self.motion_bone = rig_settings.spine.hips
-        
+
         return(bool(self.motion_bone))
 
     def invoke(self, context, event):
@@ -2365,7 +2365,7 @@ class AddRootMotion(bpy.types.Operator):
         self._rootbo_transfs = []
         self._hip_bone_transfs = []
         self._all_floating_mats = []
-        
+
         self._stored_motion_bone = ""
         self._stored_motion_type = self.obj_or_bone
         self._transforms_stored = False
@@ -2379,7 +2379,7 @@ class AddRootMotion(bpy.types.Operator):
     def _get_floating_bones(self, context):
         arm_ob = context.active_object
         skeleton = preset_handler.get_settings_skel(arm_ob.data.expykit_retarget)
-        
+
         # TODO: check controls with animation curves instead
         def consider_bone(b_name):
             if b_name == self.root_motion_bone:
@@ -2399,7 +2399,7 @@ class AddRootMotion(bpy.types.Operator):
     def _store_transforms(self, context):
         self._clear_cache()
         arm_ob = context.active_object
-        
+
         root_bone = arm_ob.pose.bones[self.root_motion_bone]
         hip_bone = arm_ob.pose.bones[self.motion_bone]
         floating_bones = self._get_floating_bones(context)
@@ -2416,7 +2416,7 @@ class AddRootMotion(bpy.types.Operator):
             arm_ob.data.pose_position = 'REST'
 
         start_mat_inverse = hip_bone.matrix.inverted()
-        
+
         context.scene.frame_set(start)
         arm_ob.data.pose_position = current_position
 
@@ -2463,7 +2463,7 @@ class AddRootMotion(bpy.types.Operator):
 
         if self._cache_dirty():
             self._store_transforms(context)
-            
+
         if not self._transforms_stored:
             self.report({'WARNING'}, "No transforms stored")
 
@@ -2474,7 +2474,7 @@ class AddRootMotion(bpy.types.Operator):
     def _get_start_end(context):
         action = context.active_object.animation_data.action
         start, end = action.frame_range
-        
+
         return int(start), int(end)
 
     def action_offs(self, context):
@@ -2514,7 +2514,7 @@ class AddRootMotion(bpy.types.Operator):
             except (TypeError, KeyError):
                 self.report({'WARNING'}, f"{root_bone_name} not found in target")
                 return {'FINISHED'}
-        
+
         bpy.context.scene.frame_set(start)
         keyframe_options = {'INSERTKEY_VISUAL', 'INSERTKEY_CYCLE_AWARE'}
         add_loc_rot_key(root_bone, start, keyframe_options)
@@ -2675,7 +2675,7 @@ class RenameActionsFromFbxFiles(bpy.types.Operator, ImportHelper):
                 skip_action = False
             if skip_action and self.starts_with and action.name.startswith(self.starts_with):
                 skip_action = False
-            
+
             if skip_action:
                 continue
 

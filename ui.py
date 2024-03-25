@@ -131,7 +131,7 @@ class ActionRemoveRenameData(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         return context.mode == 'POSE'
-    
+
     def execute(self, context):
         for action in bpy.data.actions:
             action.expykit_name_candidates.clear()
@@ -147,14 +147,14 @@ class ActionMakeActive(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         return context.mode == 'POSE'
-    
+
     def execute(self, context: Context):
         ob = context.object
         to_rename = [a for a in bpy.data.actions if len(a.expykit_name_candidates) > 1 and operators.validate_actions(a, ob.path_resolve)]
 
         if len(to_rename) == 0:
             return {'CANCELLED'}
-        
+
         if not ob.animation_data.action:
             action = to_rename.pop()
         else:
@@ -227,7 +227,7 @@ class VIEW3D_PT_expy_rename_candidates(bpy.types.Panel):
             next(a for a in bpy.data.actions if len(a.expykit_name_candidates) > 1)
         except StopIteration:
             return False
-        
+
         return True
 
     def draw(self, context):
@@ -241,10 +241,10 @@ class VIEW3D_PT_expy_rename_candidates(bpy.types.Panel):
         action = context.object.animation_data.action
         if not action:
             return
-        
+
         row = layout.row()
         row.label(text=action.name)
-        
+
         for candidate in action.expykit_name_candidates:
             if candidate.name in bpy.data.actions:
                 # that name has been taken
@@ -441,7 +441,7 @@ class SetToActiveBone(Operator):
         if not self.slot_name:
             if self.attr_name == 'root':
                 setattr(skeleton, 'root', context.active_pose_bone.name)
-            
+
             return {'FINISHED'}
 
         try:
@@ -452,7 +452,7 @@ class SetToActiveBone(Operator):
         else:
             if self.sub_attr_name:
                 rig_grp = getattr(rig_grp, self.sub_attr_name)
-                
+
             setattr(rig_grp, self.slot_name, context.active_pose_bone.name)
 
         return {'FINISHED'}
@@ -489,13 +489,13 @@ class MirrorSettings(Operator):
         if abs(trg_head.y - src_head.y) > epsilon:
             return False
         return abs(trg_head.z - src_head.z) < epsilon
-    
+
     def _is_mirrored(self, src_bone, trg_bone):
         if not self._is_mirrored_vec(src_bone.head_local, trg_bone.head_local):
             return False
         if not self._is_mirrored_vec(src_bone.tail_local, trg_bone.tail_local):
             return False
-        
+
         return True
 
     def find_mirrored(self, arm_data, bone):
@@ -516,7 +516,7 @@ class MirrorSettings(Operator):
         except AttributeError:
             # TODO: warning
             return {'FINISHED'}
-        
+
         try:
             trg_grp = getattr(skeleton, self.trg_setting)
         except AttributeError:
@@ -571,11 +571,11 @@ class BindFromPanelSelection(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         return context.mode == 'POSE' and context.scene.expykit_bind_to and context.object != context.scene.expykit_bind_to
-    
+
     def execute(self, context: Context):
         for ob in context.selected_objects:
             ob.select_set(ob == context.object)
-        
+
         context.scene.expykit_bind_to.select_set(True)
         context.view_layer.objects.active = context.scene.expykit_bind_to
         bpy.ops.object.mode_set(mode='POSE')
@@ -584,7 +584,7 @@ class BindFromPanelSelection(bpy.types.Operator):
         if _ad and _ad.action:
             # TODO: this should be in the constrain operator
             bpy.ops.object.expykit_action_to_range()
-        
+
         bpy.ops.armature.expykit_constrain_to_armature('INVOKE_DEFAULT', force_dialog=True)
 
         return {'FINISHED'}
@@ -628,7 +628,7 @@ class RetargetBasePanel:
                 attr_tokens.append(attr_suffix)
 
             attr_name = '_'.join(attr_tokens)
-            
+
             col = split.column()
             row = col.row()
             if not labels:
@@ -742,7 +742,7 @@ class VIEW3D_PT_expy_retarget_fingers(RetargetBasePanel, bpy.types.Panel):
         layout = self.layout
 
         skeleton = ob.data.expykit_retarget
-        
+
         sides = "right", "left"
         split = layout.split()
         finger_bones = ('a', 'b', 'c')
@@ -761,7 +761,7 @@ class VIEW3D_PT_expy_retarget_fingers(RetargetBasePanel, bpy.types.Panel):
                 for slot in finger_bones:
                     bsplit = col.split(factor=0.85)
                     bsplit.prop_search(finger, slot, ob.data, "bones", text="")
-                    
+
                     f_props = bsplit.operator(SetToActiveBone.bl_idname, text="<-")
                     f_props.attr_name = '_'.join([side, group.name])
                     f_props.sub_attr_name = k
@@ -799,7 +799,7 @@ class VIEW3D_PT_expy_retarget_arms(RetargetBasePanel, bpy.types.Panel):
 
         row = layout.row()
         row.prop(ob.data, "expykit_twist_on", text="Display Twist Bones")
-        
+
         if ob.data.expykit_twist_on:
             arm_bones = ('shoulder', 'arm', 'arm_twist', 'arm_twist_02', 'forearm', 'forearm_twist', 'forearm_twist_02', 'hand')
         else:
@@ -833,7 +833,7 @@ class VIEW3D_PT_expy_retarget_leg_IK(RetargetBasePanel, bpy.types.Panel):
         ob = context.object
 
         skeleton = ob.data.expykit_retarget
-        
+
         leg_bones = ('upleg', 'leg', 'foot', 'toe')
         self.sided_rows(ob, (skeleton.right_leg_ik, skeleton.left_leg_ik), leg_bones, suffix=" IK")
 
@@ -889,12 +889,12 @@ def register_classes():
                                                                 name="Bind To",
                                                                 poll=poll_armature_bind_to,
                                                                 description="This armature will drive another one.")
-                                                         
+
     bpy.utils.register_class(ClearArmatureRetarget)
     bpy.utils.register_class(VIEW3D_MT_retarget_presets)
     bpy.utils.register_class(ExecutePresetArmatureRetarget)
     bpy.utils.register_class(AddPresetArmatureRetarget)
-    
+
     bpy.utils.register_class(SetToActiveBone)
     bpy.utils.register_class(MirrorSettings)
 
@@ -907,7 +907,7 @@ def register_classes():
     bpy.utils.register_class(ActionRemoveRenameData)
     bpy.utils.register_class(VIEW3D_PT_expy_rename_candidates)
     bpy.utils.register_class(VIEW3D_PT_expy_rename_advanced)
-    
+
     bpy.utils.register_class(BindFromPanelSelection)
     bpy.utils.register_class(VIEW3D_PT_BindPanel)
 
@@ -941,11 +941,11 @@ def unregister_classes():
     bpy.utils.unregister_class(AnimMenu)
 
     bpy.utils.unregister_class(ActionRenameSimple)
-    bpy.utils.unregister_class(ActionMakeActive)   
-    bpy.utils.unregister_class(ActionRemoveRenameData)   
+    bpy.utils.unregister_class(ActionMakeActive)
+    bpy.utils.unregister_class(ActionRemoveRenameData)
     bpy.utils.unregister_class(VIEW3D_PT_expy_rename_candidates)
     bpy.utils.unregister_class(VIEW3D_PT_expy_rename_advanced)
-    
+
     bpy.utils.unregister_class(BindFromPanelSelection)
     bpy.utils.unregister_class(VIEW3D_PT_BindPanel)
 

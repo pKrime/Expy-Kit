@@ -14,7 +14,7 @@ def is_pose_bone_all_locked(pose_bone) -> bool:
         return False
     if not all(pose_bone.lock_rotation):
         return False
-    
+
     return True
 
 
@@ -129,7 +129,7 @@ def copy_bone_to_arm(src_ob, trg_ob, bone_name, suffix='CP'):
         return
 
     new_name = '_'.join((bone_name, suffix)) if suffix else bone_name
-    
+
     try:
         new_bone = trg_ob.data.edit_bones[new_name]
     except KeyError:
@@ -248,7 +248,7 @@ def get_constrained_controls(armature_object: bpy.types.Object, unselect=False, 
             if unselect:
                 pb.bone.select = False
             continue
-    
+
         yield pb
 
 

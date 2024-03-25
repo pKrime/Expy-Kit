@@ -312,7 +312,7 @@ class HumanSkeleton:
 
         for limb_name, bone_name in self.right_leg.items():
             bone_mapping('right_leg', limb_name, bone_name)
-        
+
         def fingers_mapping(src_fingers, trg_fingers):
             for finger, bone_names in src_fingers.items():
                 trg_bone_names = trg_fingers[finger]

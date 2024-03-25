@@ -101,7 +101,7 @@ def set_preset_skel(preset, validate=True):
     spec = importlib.util.spec_from_file_location("sel_preset", preset_path)
     preset_mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(preset_mod)
-    
+
     if validate:
         validate_preset(bpy.context.active_object.data)
 
@@ -126,7 +126,7 @@ def get_preset_skel(preset, settings=None):
     # We don't want that if this is runnning on the source armature. Using ast instead
     code = ast.parse(open(preset_path).read())
 
-    # remove skeleton 
+    # remove skeleton
     code.body.pop(0)  # remove line 'import bpy' from preset
     code.body.pop(0)  # remove line 'skeleton = bpy.context.object.data.expykit_retarget' from preset
     eval(compile(code, '', 'exec'))
@@ -136,7 +136,7 @@ def get_preset_skel(preset, settings=None):
 
     mapping = HumanSkeleton(preset=skeleton)
     del skeleton
-    
+
     return mapping
 
 
