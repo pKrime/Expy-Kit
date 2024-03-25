@@ -928,8 +928,13 @@ def register_classes():
     bpy.utils.register_class(VIEW3D_PT_expy_retarget_leg)
     bpy.utils.register_class(VIEW3D_PT_expy_retarget_root)
 
-    bpy.types.VIEW3D_MT_pose_context_menu.append(pose_context_options)
-    bpy.types.VIEW3D_MT_armature_context_menu.append(armature_context_options)
+    if bpy.app.version < (2, 80):
+        bpy.types.VIEW3D_MT_pose_specials.append(pose_context_options)
+        bpy.types.VIEW3D_MT_armature_specials.append(armature_context_options)
+    else:
+        bpy.types.VIEW3D_MT_pose_context_menu.append(pose_context_options)
+        bpy.types.VIEW3D_MT_armature_context_menu.append(armature_context_options)
+
     bpy.types.DOPESHEET_HT_header.append(action_header_buttons)
 
 
@@ -939,8 +944,13 @@ def unregister_classes():
     bpy.utils.unregister_class(ExecutePresetArmatureRetarget)
     bpy.utils.unregister_class(ClearArmatureRetarget)
 
-    bpy.types.VIEW3D_MT_pose_context_menu.remove(pose_context_options)
-    bpy.types.VIEW3D_MT_armature_context_menu.remove(armature_context_options)
+    if bpy.app.version < (2, 80):
+        bpy.types.VIEW3D_MT_pose_specials.remove(pose_context_options)
+        bpy.types.VIEW3D_MT_armature_specials.remove(armature_context_options)
+    else:
+        bpy.types.VIEW3D_MT_pose_context_menu.remove(pose_context_options)
+        bpy.types.VIEW3D_MT_armature_context_menu.remove(armature_context_options)
+
     bpy.types.DOPESHEET_HT_header.remove(action_header_buttons)
 
     bpy.utils.unregister_class(BindingsMenu)
