@@ -704,7 +704,7 @@ class ExtractMetarig(bpy.types.Operator):
             if axis:
                 met_bone.roll = bone_utils.ebone_roll_to_vector(met_bone, axis)
             else:
-                src_x_axis = Vector((0.0, 0.0, 1.0)) @ src_bone.matrix_local.inverted().to_3x3()
+                src_x_axis = matmul(Vector((0.0, 0.0, 1.0)), src_bone.matrix_local.inverted().to_3x3())
                 src_x_axis.normalize()
                 met_bone.roll = bone_utils.ebone_roll_to_vector(met_bone, src_x_axis)
 
@@ -802,14 +802,14 @@ class ExtractMetarig(bpy.types.Operator):
 
                 met_bone.roll = 0.0
 
-                src_z_axis = Vector((0.0, 0.0, 1.0)) @ src_bone.matrix_local.to_3x3()
+                src_z_axis = matmul(Vector((0.0, 0.0, 1.0)), src_bone.matrix_local.to_3x3())
 
                 inv_rot = met_bone.matrix.to_3x3().inverted()
-                trg_z_axis = src_z_axis @ inv_rot
-                dot_z = (met_bone.z_axis @ met_bone.matrix.inverted()).dot(trg_z_axis)
+                trg_z_axis = matmul(src_z_axis, inv_rot)
+                dot_z = (matmul(met_bone.z_axis, met_bone.matrix.inverted())).dot(trg_z_axis)
                 met_bone.roll = dot_z * pi
 
-                offset_fingers = Vector(self.offset_fingers) @ src_bone.matrix_local.to_3x3()
+                offset_fingers = matmul(Vector(self.offset_fingers), src_bone.matrix_local.to_3x3())
                 if met_bone.head.x < 0:  # Right side
                     offset_fingers /= -100
                 else:
@@ -1661,7 +1661,7 @@ class ConstrainToArmature(bpy.types.Operator):
                 pass
             else:
                 fit_scale = True
-                trg_height = (trg_ob.matrix_world @ trg_bone.bone.head_local)
+                trg_height = matmul(trg_ob.matrix_world, trg_bone.bone.head_local)
 
         for ob in context.selected_objects:
             if ob == trg_ob:
@@ -1678,7 +1678,7 @@ class ConstrainToArmature(bpy.types.Operator):
                     return {'FINISHED'}
 
             if fit_scale:
-                ob_height = (ob.matrix_world @ ob.pose.bones[getattr(src_skeleton.spine, self.fit_target_scale)].bone.head_local)
+                ob_height = matmul(ob.matrix_world, ob.pose.bones[getattr(src_skeleton.spine, self.fit_target_scale)].bone.head_local)
                 height_ratio = ob_height[2] / trg_height[2]
 
                 mute_fcurves(trg_ob, 'scale')
@@ -1834,7 +1834,7 @@ class ConstrainToArmature(bpy.types.Operator):
                         new_bone.transform(ob.matrix_world)
                 else:
                     src_bone = ob.data.bones[src_name]
-                    src_z_axis_neg = Vector((0.0, 0.0, 1.0)) @ src_bone.matrix_local.inverted().to_3x3()
+                    src_z_axis_neg = matmul(Vector((0.0, 0.0, 1.0)), src_bone.matrix_local.inverted().to_3x3())
                     src_z_axis_neg.normalize()
 
                     new_bone.roll = bone_utils.ebone_roll_to_vector(new_bone, src_z_axis_neg)
@@ -2435,7 +2435,7 @@ class AddRootMotion(bpy.types.Operator):
 
             self._all_floating_mats.append(list([b.matrix.copy() for b in floating_bones]))
             self._hip_bone_transfs.append(hip_bone.matrix.copy())
-            self._rootmo_transfs.append(hip_bone.matrix @ start_mat_inverse)
+            self._rootmo_transfs.append(matmul(hip_bone.matrix, start_mat_inverse))
 
             if self.obj_or_bone == 'object' and root_bone:
                 self._rootbo_transfs.append(root_bone.matrix.copy())
@@ -2533,7 +2533,7 @@ class AddRootMotion(bpy.types.Operator):
         for i, frame_num in enumerate(range(start, end + 1)):
             bpy.context.scene.frame_set(frame_num)
 
-            rootmo_transf = self._hip_bone_transfs[i] @ offset_mat
+            rootmo_transf = matmul(self._hip_bone_transfs[i], offset_mat)
             if self.root_cp_loc_x:
                 if self.root_use_loc_min_x:
                     rootmo_transf[0][3] = max(rootmo_transf[0][3], self.root_loc_min_x)
@@ -2619,13 +2619,13 @@ class AddRootMotion(bpy.types.Operator):
             bpy.context.scene.frame_set(frame_num)
 
             if self.obj_or_bone == 'object' and self.root_motion_bone:
-                context.active_object.pose.bones[self.root_motion_bone].matrix = root_bone.matrix_world.inverted() @ context.active_object.pose.bones[self.root_motion_bone].matrix
+                context.active_object.pose.bones[self.root_motion_bone].matrix = matmul(root_bone.matrix_world.inverted(), context.active_object.pose.bones[self.root_motion_bone].matrix)
 
             floating_mats = self._all_floating_mats[i]
             for bone, mat in zip(floating_bones, floating_mats):
                 if self.obj_or_bone == 'object':
                     # TODO: should get matrix at frame 0
-                    mat = root_bone.matrix_world.inverted() @ mat
+                    mat = matmul(root_bone.matrix_world.inverted(), mat)
 
                 bone.matrix = mat
                 add_loc_rot_key(bone, frame_num, set())

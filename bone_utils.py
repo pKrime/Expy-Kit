@@ -68,7 +68,7 @@ def vec_roll_to_mat3_normalized(nor, roll):
     rMatrix = quat.to_matrix()
 
     # Combine and output result */
-    return rMatrix @ bMatrix
+    return matmul(rMatrix, bMatrix)
 
 
 def ebone_roll_to_vector(bone, align_axis, axis_only=False):
@@ -665,7 +665,7 @@ def align_to_closer_axis(src_bone, trg_bone):
 def closest_bone_axis(bone, mat, direction):
     """Return bone axis which is closest to direction"""
     xyz = bone.x_axis, bone.y_axis, bone.z_axis
-    xyz = [(mat @ x).normalized() for x in xyz]
+    xyz = [matmul(mat, x).normalized() for x in xyz]
 
     dot_prods = [abs(direction.dot(x)) for x in xyz]
 
@@ -676,7 +676,7 @@ def relative_direction(start_bone, end_bone, mat):
     direction = end_bone.matrix_local.translation.copy()
     direction -= start_bone.matrix_local.translation
 
-    direction = mat @ direction
+    direction = matmul(mat, direction)
     return direction.normalized()
 
 
@@ -684,5 +684,5 @@ def relative_pose_direction(start_pose_bone, end_pose_bone, mat):
     direction = end_pose_bone.matrix.translation.copy()
     direction -= start_pose_bone.matrix.translation
 
-    direction = mat @ direction
+    direction = matmul(mat, direction)
     return direction.normalized()
