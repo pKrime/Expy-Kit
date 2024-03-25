@@ -102,14 +102,22 @@ def set_preset_skel(preset, validate=True):
     if not os.path.isfile(preset_path):
         return
 
-    spec = importlib.util.spec_from_file_location("sel_preset", preset_path)
-    preset_mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(preset_mod)
+    if hasattr(importlib.util, "module_from_spec"):
+        spec = importlib.util.spec_from_file_location("sel_preset", preset_path)
+        preset_mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(preset_mod)
 
-    if validate:
-        validate_preset(bpy.context.active_object.data)
+        if validate:
+            validate_preset(bpy.context.active_object.data)
 
-    mapping = get_settings_skel(preset_mod.skeleton)
+        mapping = get_settings_skel(preset_mod.skeleton)
+    else:
+        # python <3.5. using a crutch
+        mapping = get_preset_skel(preset, bpy.context.active_object.data.expykit_retarget)
+
+        if validate:
+            validate_preset(bpy.context.active_object.data)
+
     return mapping
 
 def get_preset_skel(preset, settings=None):
