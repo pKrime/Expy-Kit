@@ -9,6 +9,7 @@ from bl_operators.presets import AddPresetBase
 from . import operators
 from . import preset_handler
 from . import properties
+from .utils import make_annotations
 
 
 def menu_header(layout):
@@ -887,10 +888,10 @@ def poll_armature_bind_to(self, obj):
 
 
 def register_classes():
-    bpy.types.Scene.expykit_bind_to = bpy.props.PointerProperty(type=bpy.types.Object,
-                                                                name="Bind To",
-                                                                poll=poll_armature_bind_to,
-                                                                description="This armature will drive another one.")
+    bpy.types.Scene.expykit_bind_to = PointerProperty(type=bpy.types.Object,
+                                                      name="Bind To",
+                                                      poll=poll_armature_bind_to,
+                                                      description="This armature will drive another one.")
 
     bpy.utils.register_class(ClearArmatureRetarget)
     bpy.utils.register_class(VIEW3D_MT_retarget_presets)

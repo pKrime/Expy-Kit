@@ -3,7 +3,7 @@ from mathutils import Vector
 from mathutils import Matrix
 from mathutils import Quaternion
 from math import pi
-from typing import List
+from .utils import matmul
 
 
 def is_pose_bone_all_locked(pose_bone) -> bool:
@@ -237,7 +237,7 @@ def remove_all_bone_constraints(ob):
         remove_bone_constraints(pbone)
 
 
-def get_constrained_controls(armature_object: bpy.types.Object, unselect=False, use_deform=False) -> List[bpy.types.PoseBone]:
+def get_constrained_controls(armature_object: bpy.types.Object, unselect=False, use_deform=False): # -> List[bpy.types.PoseBone]
     for pb in armature_object.pose.bones:
         if pb.bone.use_deform and not use_deform:  # FIXME: ik controls might have use_deform just to be exported for games
             if unselect:

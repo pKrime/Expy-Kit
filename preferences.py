@@ -4,6 +4,7 @@ import bpy
 from bpy.props import StringProperty
 
 from . import preset_handler
+from .utils import make_annotations
 
 
 @make_annotations

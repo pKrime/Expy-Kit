@@ -1,6 +1,5 @@
 from math import pi
 import os
-import typing
 
 import bpy
 from bpy.props import BoolProperty
@@ -19,10 +18,10 @@ from .rig_mapping import bone_mapping
 from . import preset_handler
 from . import bone_utils
 from . import fbx_helper
+from .utils import make_annotations, matmul
 
 from mathutils import Vector
 from mathutils import Matrix
-
 
 CONSTR_STATUS = (
     ('enable', "Enable", "Enable All Constraints"),
@@ -2708,7 +2707,7 @@ class RenameActionsFromFbxFiles(bpy.types.Operator, ImportHelper):
 
             if not fbx_match:
                 continue
-            if isinstance(fbx_match, typing.List):
+            if isinstance(fbx_match, list):
                 for name in fbx_match:
                     entry = action.expykit_name_candidates.add()
                     entry.name = name
