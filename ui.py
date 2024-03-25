@@ -235,7 +235,7 @@ class VIEW3D_PT_expy_rename_candidates(bpy.types.Panel):
         to_rename = [a for a in bpy.data.actions if len(a.expykit_name_candidates) > 1 and operators.validate_actions(a, context.object.path_resolve)]
 
         row = layout.row()
-        row.operator(ActionMakeActive.bl_idname, text=f"Next of {len(to_rename)} actions to rename")
+        row.operator(ActionMakeActive.bl_idname, text="Next of {} actions to rename".format(len(to_rename)))
 
         action = context.object.animation_data.action
         if not action:

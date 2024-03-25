@@ -400,7 +400,7 @@ class DazGenesis8(HumanSkeleton):
 
             arm.arm_twist = arm.arm.replace("Bend", "Twist")
             arm.forearm_twist = arm.forearm.replace("Bend", "Twist")
-            setattr(self, f'{side}_arm', arm)
+            setattr(self, "{}_arm".format(side), arm)
 
             fingers = HumanFingers(
                 thumb=["{0}Thumb{1}".format(side_letter, i) for i in range(1, 4)],

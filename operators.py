@@ -274,7 +274,7 @@ class ConvertBoneNaming(bpy.types.Operator):
                 pre_existing_bone = context.object.data.bones.get(trg_name, None)
                 if pre_existing_bone:
                     pre_existing_name = pre_existing_bone.name
-                    pre_existing_bone.name = f"{trg_name}.001"
+                    pre_existing_bone.name = "{}.001".format(trg_name)
                     additional_bones[pre_existing_name] = pre_existing_bone.name
 
             src_bone.name = trg_name
@@ -636,7 +636,7 @@ class ExtractMetarig(bpy.types.Operator):
                         bone_name = getattr(src_skeleton.face, name_attr)
 
                         if not bone_name.startswith('DEF-'):
-                            new_name = f"DEF-{bone_name}"
+                            new_name = "DEF-{}".format(bone_name)
                             try:
                                 context.object.data.bones[bone_name].name = new_name
                             except KeyError:
@@ -688,7 +688,7 @@ class ExtractMetarig(bpy.types.Operator):
                 return
 
             if not src_bone:
-                self.report({'WARNING'}, f"{bone_attr}, {src_bone_name} not found in {src_armature}")
+                self.report({'WARNING'}, "{}, {} not found in {}".format(bone_attr, src_bone_name, src_armature))
                 return
 
             met_bone.head = src_bone.head_local
@@ -699,7 +699,7 @@ class ExtractMetarig(bpy.types.Operator):
                 parent_dir = met_bone.parent.vector.normalized()
 
                 if bone_dir.dot(parent_dir) < -0.6:
-                    self.report({'WARNING'}, f"{met_bone.name} is not aligned with its parent")
+                    self.report({'WARNING'}, "{} is not aligned with its parent".format(met_bone.name))
                     # TODO
 
             if axis:
@@ -913,7 +913,7 @@ class ExtractMetarig(bpy.types.Operator):
                     child_bone.parent = met_armature.edit_bones[new_parent_name]
                     child_bone.use_connect = True
 
-                    bone.name = f"DEF-{bone.name}"
+                    bone.name = "DEF-{}".format(bone.name)
                     new_parent_name = child_bone_name
 
             try:
@@ -930,7 +930,7 @@ class ExtractMetarig(bpy.types.Operator):
                         # already a DEF, need to strip that from metarig bone instead
                         met_armature.edit_bones[new_bone_name].name = new_bone_name.replace("DEF-", '')
                     else:
-                        bone.name = f'DEF-{bone.name}'
+                        bone.name = "DEF-{}".format(bone.name)
             except KeyError:
                 self.report({'WARNING'}, "bones not found in target, perhaps wrong preset?")
                 continue
@@ -1220,7 +1220,7 @@ class ConvertGameFriendly(bpy.types.Operator):
                 bone.bbone_segments = 1
                 # TODO: disable bbone drivers
 
-        self.report({'INFO'}, f'{num_reparents} bones were re-parented')
+        self.report({'INFO'}, "{} bones were re-parented".format(num_reparents))
         return {'FINISHED'}
 
 
@@ -1781,7 +1781,7 @@ class ConstrainToArmature(bpy.types.Operator):
                     if is_object_root:
                         new_parent = None
                     else:
-                        self.report({'WARNING'}, f"{trg_name} not found in target")
+                        self.report({'WARNING'}, "{} not found in target".format(trg_name))
                         continue
 
                 new_bone = trg_ob.data.edit_bones[new_bone_name]
@@ -1909,7 +1909,7 @@ class ConstrainToArmature(bpy.types.Operator):
             bpy.ops.object.mode_set(mode='POSE')
 
             for src_name, trg_name in look_ats.items():
-                ret_bone = trg_ob.pose.bones[f'{src_name}_{cp_suffix}']
+                ret_bone = trg_ob.pose.bones["{}_{}".format(src_name, cp_suffix)]
                 constr = ret_bone.constraints.new(type='LOCKED_TRACK')
 
                 constr.head_tail = 1.0
@@ -1959,7 +1959,7 @@ class ConstrainToArmature(bpy.types.Operator):
                     constr = src_pbone.constraints.new(type=constr_type)
                     constr.target = trg_ob
 
-                    subtarget_name = f'{src_name}_{cp_suffix}'
+                    subtarget_name = "{}_{}".format(src_name, cp_suffix)
                     if subtarget_name in trg_ob.data.bones:
                         constr.subtarget = subtarget_name
 
@@ -2050,7 +2050,7 @@ class BakeConstrainedActions(bpy.types.Operator):
             if not trg_ob:
                 continue
 
-            column.label(text=f"Baking from {trg_ob.name} to {to_bake.name}")
+            column.label(text="Baking from {} to {}".format(trg_ob.name, to_bake.name))
 
         if len(context.selected_objects) > 1:
             column.label(text="No need to select two Armatures anymore", icon='ERROR')
@@ -2116,7 +2116,7 @@ class BakeConstrainedActions(bpy.types.Operator):
                                  visual_keying=True, clear_constraints=False)
 
                 if not ob.animation_data:
-                    self.report({'WARNING'}, f"failed to bake {action.name}")
+                    self.report({'WARNING'}, "failed to bake {}".format(action.name))
                     continue
 
                 ob.animation_data.action.use_fake_user = self.fake_user_new
@@ -2124,7 +2124,7 @@ class BakeConstrainedActions(bpy.types.Operator):
                 if trg_ob.name in action.name:
                     new_name = action.name.replace(trg_ob.name, ob.name)
                 else:
-                    new_name = f"{ob.name}|{action.name}"
+                    new_name = "{}|{}".format(ob.name, action.name)
 
                 ob.animation_data.action.name = new_name
 
@@ -2468,7 +2468,7 @@ class AddRootMotion(bpy.types.Operator):
             action_dupli = armature.animation_data.action.copy()
 
             action_name = armature.animation_data.action.name
-            action_dupli.name = f'{action_name}{self.new_anim_suffix}'
+            action_dupli.name = "{}{}".format(action_name, self.new_anim_suffix)
             action_dupli.use_fake_user = armature.animation_data.action.use_fake_user
             armature.animation_data.action = action_dupli
 
@@ -2523,7 +2523,7 @@ class AddRootMotion(bpy.types.Operator):
             try:
                 root_bone = context.active_object.pose.bones[root_bone_name]
             except (TypeError, KeyError):
-                self.report({'WARNING'}, f"{root_bone_name} not found in target")
+                self.report({'WARNING'}, "{} not found in target".format(root_bone_name))
                 return {'FINISHED'}
 
         bpy.context.scene.frame_set(start)
