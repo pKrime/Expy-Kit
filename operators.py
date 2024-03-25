@@ -18,7 +18,7 @@ from .rig_mapping import bone_mapping
 from . import preset_handler
 from . import bone_utils
 from . import fbx_helper
-from .utils import make_annotations, matmul
+from .utils import make_annotations, matmul, layout_split
 
 from mathutils import Vector
 from mathutils import Matrix
@@ -385,23 +385,23 @@ class CreateTransformOffset(bpy.types.Operator):
         layout = self.layout
         column = layout.column()
 
-        row = column.split(factor=0.2, align=True)
+        row = layout_split(column, factor=0.2, align=True)
         row.label(text="Name")
         row.prop(self, 'container_name', text="")
 
-        row = column.split(factor=0.2, align=True)
+        row = layout_split(column, factor=0.2, align=True)
         row.label(text="Scale")
         row.prop(self, "container_scale", text="")
 
-        row = column.split(factor=0.2, align=True)
+        row = layout_split(column, factor=0.2, align=True)
         row.label(text="")
         row.prop(self, "fix_animations")
 
-        row = column.split(factor=0.2, align=True)
+        row = layout_split(column, factor=0.2, align=True)
         row.label(text="")
         row.prop(self, "fix_constraints")
 
-        row = column.split(factor=0.2, align=True)
+        row = layout_split(column, factor=0.2, align=True)
         row.label(text="")
         row.prop(self, "do_parent", toggle=True)
 
@@ -533,35 +533,35 @@ class ExtractMetarig(bpy.types.Operator):
         row = column.row()
         row.prop(self, 'rig_preset', text="Rig Type")
 
-        row = column.split(factor=0.5, align=True)
+        row = layout_split(column, factor=0.5, align=True)
         row.label(text="Offset Knee")
         row.prop(self, 'offset_knee', text='')
 
-        row = column.split(factor=0.5, align=True)
+        row = layout_split(column, factor=0.5, align=True)
         row.label(text="Offset Elbow")
         row.prop(self, 'offset_elbow', text='')
 
-        row = column.split(factor=0.5, align=True)
+        row = layout_split(column, factor=0.5, align=True)
         row.label(text="Offset Fingers")
         row.prop(self, 'offset_fingers', text='')
 
-        row = column.split(factor=0.5, align=True)
+        row = layout_split(column, factor=0.5, align=True)
         row.label(text="No Face Bones")
         row.prop(self, 'no_face', text='')
 
-        row = column.split(factor=0.5, align=True)
+        row = layout_split(column, factor=0.5, align=True)
         row.label(text="Use Rigify Names")
         row.prop(self, 'rigify_names', text='')
 
-        row = column.split(factor=0.5, align=True)
+        row = layout_split(column, factor=0.5, align=True)
         row.label(text="Assign Metarig")
         row.prop(self, 'assign_metarig', text='')
 
-        row = column.split(factor=0.5, align=True)
+        row = layout_split(column, factor=0.5, align=True)
         row.label(text="Align spine frontally")
         row.prop(self, 'forward_spine_roll', text='')
 
-        row = column.split(factor=0.5, align=True)
+        row = layout_split(column, factor=0.5, align=True)
         row.label(text="Apply Transform")
         row.prop(self, 'apply_transforms', text='')
 
@@ -1421,7 +1421,7 @@ class ConstrainToArmature(bpy.types.Operator):
         row = column.row()
         row.label(text='Conversion')
 
-        row = column.split(factor=self._prop_indent, align=True)
+        row = layout_split(column, factor=self._prop_indent, align=True)
         row.separator()
         col = row.column()
         col.prop(self, 'match_transform', text='')
@@ -1442,7 +1442,7 @@ class ConstrainToArmature(bpy.types.Operator):
         row.label(text='Constraints')
 
         row = column.row()
-        row = column.split(factor=self._prop_indent, align=True)
+        row = layout_split(column, factor=self._prop_indent, align=True)
         row.separator()
 
         constr_col = row.column()
@@ -1462,7 +1462,7 @@ class ConstrainToArmature(bpy.types.Operator):
         ik_aim_row.prop(self, 'copy_IK_roll_hands')
         ik_aim_row.prop(self, 'copy_IK_roll_feet')
 
-        row = column.split(factor=self._prop_indent, align=True)
+        row = layout_split(column, factor=self._prop_indent, align=True)
         constr_col.prop(self, 'constraint_policy', text='')
 
         column.separator()
@@ -1470,7 +1470,7 @@ class ConstrainToArmature(bpy.types.Operator):
         row.label(text="Affect Bones")
 
         row = column.row()
-        row = column.split(factor=self._prop_indent, align=True)
+        row = layout_split(column, factor=self._prop_indent, align=True)
         row.separator()
         col = row.column()
         col.prop(self, 'only_selected')
@@ -1496,12 +1496,12 @@ class ConstrainToArmature(bpy.types.Operator):
         column.separator()
         row = column.row()
         row.label(text="Root Animation")
-        row = column.split(factor=self._prop_indent, align=True)
+        row = layout_split(column, factor=self._prop_indent, align=True)
         row.separator()
         row.prop(self, 'constrain_root', text="")
 
         if self.constrain_root != 'None':
-            row = column.split(factor=self._prop_indent, align=True)
+            row = layout_split(column, factor=self._prop_indent, align=True)
             row.label(text="")
             row.prop_search(self, 'root_motion_bone',
                             context.active_object.data,
@@ -1575,7 +1575,7 @@ class ConstrainToArmature(bpy.types.Operator):
 
         column.separator()
         if self.use_legacy_index:
-            row = column.split(factor=self._prop_indent, align=True)
+            row = layout_split(column, factor=self._prop_indent, align=True)
             row.separator()
             row.prop(self, 'ret_bones_layer')
         else:
@@ -2054,19 +2054,19 @@ class BakeConstrainedActions(bpy.types.Operator):
         if len(context.selected_objects) > 1:
             column.label(text="No need to select two Armatures anymore", icon='ERROR')
 
-        row = column.split(factor=0.30, align=True)
+        row = layout_split(column, factor=0.30, align=True)
         row.label(text="")
         row.prop(self, "clear_users_old")
 
-        row = column.split(factor=0.30, align=True)
+        row = layout_split(column, factor=0.30, align=True)
         row.label(text="")
         row.prop(self, "fake_user_new")
 
-        row = column.split(factor=0.30, align=True)
+        row = layout_split(column, factor=0.30, align=True)
         row.label(text="")
         row.prop(self, "exclude_deform")
 
-        row = column.split(factor=0.30, align=True)
+        row = layout_split(column, factor=0.30, align=True)
         row.label(text="")
         row.prop(self, "do_bake", toggle=True)
 
@@ -2270,13 +2270,13 @@ class AddRootMotion(bpy.types.Operator):
             row = column.row()
             row.prop(self, 'rig_preset', text="Rig Type:")
 
-        row = column.split(factor=self._prop_indent, align=True)
+        row = layout_split(column, factor=self._prop_indent, align=True)
         row.label(text="From")
         row.prop_search(self, 'motion_bone',
                         context.active_object.data,
                         "bones", text="")
 
-        split = column.split(factor=self._prop_indent, align=True)
+        split = layout_split(column, factor=self._prop_indent, align=True)
         split.label(text="To")
 
         col = split.column()
@@ -2286,7 +2286,7 @@ class AddRootMotion(bpy.types.Operator):
                         context.active_object.data,
                         "bones", text="")
 
-        row = column.split(factor=self._prop_indent, align=True)
+        row = layout_split(column, factor=self._prop_indent, align=True)
         row.label(text="Suffix:")
         row.prop(self, 'new_anim_suffix', text="")
 

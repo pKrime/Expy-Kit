@@ -4,7 +4,7 @@ import bpy
 from bpy.props import StringProperty
 
 from . import preset_handler
-from .utils import make_annotations
+from .utils import make_annotations, layout_split
 
 
 @make_annotations
@@ -38,12 +38,12 @@ class ExpyPrefs(bpy.types.AddonPreferences):
         row.label(text="Useful Paths:")
 
         row = col.row()
-        split = row.split(factor=0.15, align=False)
+        split = layout_split(row, factor=0.15, align=False)
         sp_col = split.column()
         sp_col = split.column()
 
         row = col.row()
-        split = row.split(factor=0.15, align=False)
+        split = layout_split(row, factor=0.15, align=False)
         sp_col = split.column()
         sp_col = split.column()
 
@@ -54,7 +54,7 @@ class ExpyPrefs(bpy.types.AddonPreferences):
 
         col.separator()
         row = col.row()
-        split = row.split(factor=0.15, align=False)
+        split = layout_split(row, factor=0.15, align=False)
         sp_col = split.column()
         sp_col = split.column()
         op = sp_col.operator(ExpyToClipboard.bl_idname, text='Path of stored rig presets')

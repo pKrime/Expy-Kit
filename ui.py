@@ -9,7 +9,7 @@ from bl_operators.presets import AddPresetBase
 from . import operators
 from . import preset_handler
 from . import properties
-from .utils import make_annotations
+from .utils import make_annotations, layout_split
 
 
 def menu_header(layout):
@@ -622,7 +622,7 @@ class RetargetBasePanel:
         return context.mode == 'POSE'
 
     def sided_rows(self, ob, limbs, bone_names, suffix=""):
-        split = self.layout.split()
+        split = layout_split(self.layout)
 
         labels = None
         side = 'right'
@@ -653,7 +653,7 @@ class RetargetBasePanel:
                 row.label(text=side.title())
 
             for k in bone_names:
-                bsplit = col.split(factor=0.85)
+                bsplit = layout_split(col, factor=0.85)
                 bsplit.prop_search(group, k, ob.data, "bones", text="")
 
                 props = bsplit.operator(SetToActiveBone.bl_idname, text="<-")
@@ -671,7 +671,7 @@ class VIEW3D_PT_expy_retarget(RetargetBasePanel, bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
 
-        split = layout.split(factor=0.75)
+        split = layout_split(layout, factor=0.75)
         split.menu(VIEW3D_MT_retarget_presets.__name__, text=VIEW3D_MT_retarget_presets.bl_label)
         row = split.row(align=True)
         row.operator(AddPresetArmatureRetarget.bl_idname, text="+")
@@ -688,17 +688,17 @@ class VIEW3D_PT_expy_retarget_face(RetargetBasePanel, bpy.types.Panel):
 
         skeleton = ob.data.expykit_retarget
 
-        bsplit = layout.split(factor=0.85)
+        bsplit = layout_split(layout, factor=0.85)
         bsplit.prop_search(skeleton.face, "jaw", ob.data, "bones", text="Jaw")
         props = bsplit.operator(SetToActiveBone.bl_idname, text="<-")
         props.attr_name = 'face'
         props.slot_name = 'jaw'
 
-        split = layout.split()
+        split = layout_split(layout)
         col = split.column()
         col.label(text="Right")
 
-        bsplit = col.split(factor=0.85)
+        bsplit = layout_split(col, factor=0.85)
         col = bsplit.column()
         col.prop_search(skeleton.face, "right_eye", ob.data, "bones", text="")
         col.prop_search(skeleton.face, "right_upLid", ob.data, "bones", text="")
@@ -720,7 +720,7 @@ class VIEW3D_PT_expy_retarget_face(RetargetBasePanel, bpy.types.Panel):
         col = split.column()
         col.label(text="Left")
 
-        bsplit = col.split(factor=0.85)
+        bsplit = layout_split(col, factor=0.85)
         col = bsplit.column()
         col.prop_search(skeleton.face, "left_eye", ob.data, "bones", text="")
         col.prop_search(skeleton.face, "left_upLid", ob.data, "bones", text="")
@@ -749,7 +749,7 @@ class VIEW3D_PT_expy_retarget_fingers(RetargetBasePanel, bpy.types.Panel):
         skeleton = ob.data.expykit_retarget
 
         sides = "right", "left"
-        split = layout.split()
+        split = layout_split(layout)
         finger_bones = ('a', 'b', 'c')
         fingers = ('thumb', 'index', 'middle', 'ring', 'pinky')
         m_props = []
@@ -764,7 +764,7 @@ class VIEW3D_PT_expy_retarget_fingers(RetargetBasePanel, bpy.types.Panel):
                 row.label(text=" ".join((side, k)).title())
                 finger = getattr(group, k)
                 for slot in finger_bones:
-                    bsplit = col.split(factor=0.85)
+                    bsplit = layout_split(col, factor=0.85)
                     bsplit.prop_search(finger, slot, ob.data, "bones", text="")
 
                     f_props = bsplit.operator(SetToActiveBone.bl_idname, text="<-")
@@ -823,7 +823,7 @@ class VIEW3D_PT_expy_retarget_spine(RetargetBasePanel, bpy.types.Panel):
         skeleton = ob.data.expykit_retarget
 
         for slot in ('head', 'neck', 'spine2', 'spine1', 'spine', 'hips'):
-            split = layout.split(factor=0.85)
+            split = layout_split(layout, factor=0.85)
             split.prop_search(skeleton.spine, slot, ob.data, "bones", text="Chest" if slot == 'spine2' else slot.title())
             props = split.operator(SetToActiveBone.bl_idname, text="<-")
             props.attr_name = 'spine'
@@ -871,7 +871,7 @@ class VIEW3D_PT_expy_retarget_root(RetargetBasePanel, bpy.types.Panel):
 
         skeleton = ob.data.expykit_retarget
 
-        split = layout.split(factor=0.85)
+        split = layout_split(layout, factor=0.85)
         split.prop_search(skeleton, 'root', ob.data, "bones", text="Root")
         s_props = split.operator(SetToActiveBone.bl_idname, text="<-")
         s_props.attr_name = 'root'
