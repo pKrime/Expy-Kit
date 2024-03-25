@@ -565,49 +565,51 @@ class VIEW3D_MT_retarget_presets(Menu):
     draw = Menu.draw_preset
 
 
-class BindFromPanelSelection(bpy.types.Operator):
-    """Constrain to armature selected in panel"""
-    bl_idname = "object.expy_kit_bind_from_panel"
-    bl_label = "Bind Armatures"
-    bl_options = {'REGISTER', 'UNDO'}
+# for blender < 2.79 we use the binding command in the pose mode specials menu instead
+if bpy.app.version >= (2, 79, 0):
+    class BindFromPanelSelection(bpy.types.Operator):
+        """Constrain to armature selected in panel"""
+        bl_idname = "object.expy_kit_bind_from_panel"
+        bl_label = "Bind Armatures"
+        bl_options = {'REGISTER', 'UNDO'}
 
-    @classmethod
-    def poll(cls, context):
-        return context.mode == 'POSE' and context.scene.expykit_bind_to and context.object != context.scene.expykit_bind_to
+        @classmethod
+        def poll(cls, context):
+            return context.mode == 'POSE' and context.scene.expykit_bind_to and context.object != context.scene.expykit_bind_to
 
-    def execute(self, context: Context):
-        for ob in context.selected_objects:
-            ob.select_set(ob == context.object)
+        def execute(self, context: Context):
+            for ob in context.selected_objects:
+                ob.select_set(ob == context.object)
 
-        context.scene.expykit_bind_to.select_set(True)
-        context.view_layer.objects.active = context.scene.expykit_bind_to
-        bpy.ops.object.mode_set(mode='POSE')
+            context.scene.expykit_bind_to.select_set(True)
+            context.view_layer.objects.active = context.scene.expykit_bind_to
+            bpy.ops.object.mode_set(mode='POSE')
 
-        _ad = context.scene.expykit_bind_to.animation_data
-        if _ad and _ad.action:
-            # TODO: this should be in the constrain operator
-            bpy.ops.object.expykit_action_to_range()
+            _ad = context.scene.expykit_bind_to.animation_data
+            if _ad and _ad.action:
+                # TODO: this should be in the constrain operator
+                bpy.ops.object.expykit_action_to_range()
 
-        bpy.ops.armature.expykit_constrain_to_armature('INVOKE_DEFAULT', force_dialog=True)
+            bpy.ops.armature.expykit_constrain_to_armature('INVOKE_DEFAULT', force_dialog=True)
 
-        return {'FINISHED'}
+            return {'FINISHED'}
 
 
-class VIEW3D_PT_BindPanel(bpy.types.Panel):
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
-    bl_category = "Expy"
-    bl_label = "Bind To"
+    class VIEW3D_PT_BindPanel(bpy.types.Panel):
+        bl_space_type = 'VIEW_3D'
+        bl_region_type = 'UI'
+        bl_category = "Expy"
+        bl_label = "Bind To"
 
-    @classmethod
-    def poll(cls, context):
-        return context.mode == 'POSE'
+        @classmethod
+        def poll(cls, context):
+            return context.mode == 'POSE'
 
-    def draw(self, context):
-        layout = self.layout
-        layout.prop(context.scene, 'expykit_bind_to', text="")
+        def draw(self, context):
+            layout = self.layout
+            layout.prop(context.scene, 'expykit_bind_to', text="")
 
-        layout.operator(BindFromPanelSelection.bl_idname)
+            layout.operator(BindFromPanelSelection.bl_idname)
 
 
 class RetargetBasePanel:
@@ -888,10 +890,11 @@ def poll_armature_bind_to(self, obj):
 
 
 def register_classes():
-    bpy.types.Scene.expykit_bind_to = PointerProperty(type=bpy.types.Object,
-                                                      name="Bind To",
-                                                      poll=poll_armature_bind_to,
-                                                      description="This armature will drive another one.")
+    if bpy.app.version >= (2, 79, 0):
+        bpy.types.Scene.expykit_bind_to = PointerProperty(type=bpy.types.Object,
+                                                          name="Bind To",
+                                                          poll=poll_armature_bind_to,
+                                                          description="This armature will drive another one.")
 
     bpy.utils.register_class(ClearArmatureRetarget)
     bpy.utils.register_class(VIEW3D_MT_retarget_presets)
@@ -911,8 +914,9 @@ def register_classes():
     bpy.utils.register_class(VIEW3D_PT_expy_rename_candidates)
     bpy.utils.register_class(VIEW3D_PT_expy_rename_advanced)
 
-    bpy.utils.register_class(BindFromPanelSelection)
-    bpy.utils.register_class(VIEW3D_PT_BindPanel)
+    if bpy.app.version >= (2, 79, 0):
+        bpy.utils.register_class(BindFromPanelSelection)
+        bpy.utils.register_class(VIEW3D_PT_BindPanel)
 
     bpy.utils.register_class(VIEW3D_PT_expy_retarget)
     bpy.utils.register_class(VIEW3D_PT_expy_retarget_face)
@@ -949,8 +953,9 @@ def unregister_classes():
     bpy.utils.unregister_class(VIEW3D_PT_expy_rename_candidates)
     bpy.utils.unregister_class(VIEW3D_PT_expy_rename_advanced)
 
-    bpy.utils.unregister_class(BindFromPanelSelection)
-    bpy.utils.unregister_class(VIEW3D_PT_BindPanel)
+    if bpy.app.version >= (2, 79, 0):
+        bpy.utils.unregister_class(BindFromPanelSelection)
+        bpy.utils.unregister_class(VIEW3D_PT_BindPanel)
 
     bpy.utils.unregister_class(VIEW3D_PT_expy_retarget)
     bpy.utils.unregister_class(VIEW3D_PT_expy_retarget_root)
@@ -965,5 +970,5 @@ def unregister_classes():
     bpy.utils.unregister_class(SetToActiveBone)
     bpy.utils.unregister_class(MirrorSettings)
 
-    del bpy.types.Scene.expykit_bind_to
-
+    if bpy.app.version >= (2, 79, 0):
+        del bpy.types.Scene.expykit_bind_to
