@@ -582,6 +582,17 @@ class ExtractMetarig(bpy.types.Operator):
         src_object = context.object
         src_armature = context.object.data
 
+        try:
+            from rigify import bl_info as rigify_bl_info
+            rigify_version = rigify_bl_info.get("version")
+        except:
+            rigify_version = None
+        if not rigify_version:
+            self.report({'WARNING'}, 'Cannot detect Rigify version')
+            return {'CANCELLED'}
+
+        print("Rigify version:", rigify_version)
+
         if self.rig_preset == "--Current--":
             current_settings = context.object.data.expykit_retarget
 
@@ -647,22 +658,53 @@ class ExtractMetarig(bpy.types.Operator):
         # bones that have rigify attr will be copied when the metarig is in edit mode
         additional_bones = [(b.name, b.rigify_type) for b in src_object.pose.bones if b.rigify_type]
 
-        try:
-            metarig = next(ob for ob in bpy.data.objects if ob.type == 'ARMATURE' and ob.data.rigify_target_rig == src_object)
-        except AttributeError:
-            self.report({'WARNING'}, 'Rigify Add-On not enabled')
-            return {'CANCELLED'}
-        except StopIteration:
+        # look if there is a metarig for this rig already
+        metarig = None
+        for ob in bpy.data.objects:
+            if ob.type == 'ARMATURE':
+                # rigify from (0, 6, 1) has it as object ref
+                if hasattr(ob.data, "rigify_target_rig") and ob.data.rigify_target_rig:
+                    if ob.data.rigify_target_rig == src_object:
+                        metarig = ob
+                        break
+                    continue
+
+                # some versions from 0.6.1 have it
+                if hasattr(ob.data, "rigify_rig_basename") and ob.data.rigify_rig_basename:
+                    if ob.data.rigify_rig_basename == src_object.name:
+                        metarig = ob
+                        break
+                    continue
+
+                # in rigify 0.4, 0.5 it's partially implemented, but we set it ourselves (e.g. on first execute)
+                if ob.data.get("rig_object_name") and ob.data["rig_object_name"] == src_object.name:
+                    metarig = ob
+                    break
+
+        if not metarig:
             create_metarig = True
             met_armature = bpy.data.armatures.new('metarig')
             metarig = bpy.data.objects.new("metarig", met_armature)
-            try:
-                metarig.data.rigify_rig_basename = src_object.name
-            except AttributeError:
-                # removed in rigify 0.6.4
-                pass
 
-            context.collection.objects.link(metarig)
+            # FIXME: maybe registering only if self.assign_metarig?
+            # register target rig according to rigify version
+            # rigify_target_rig begins in 0.6.1
+            if hasattr(metarig.data, "rigify_target_rig"):
+                metarig.data.rigify_target_rig = src_object
+
+            # rigify_rig_basename begins in 0.6.1, dies in 0.6.4, and resurrects in 0.6.6
+            elif hasattr(metarig.data, "rigify_rig_basename"):
+                metarig.data.rigify_rig_basename = src_object.name
+
+            else:
+                # in rigify 0.4, 0.5 it's partially implemented, but we set it ourselves as custom prop
+                metarig.data["rig_object_name"] = src_object.name
+
+
+            if bpy.app.version < (2, 80):
+                context.scene.objects.link(metarig)
+            else:
+                context.collection.objects.link(metarig)
         else:
             met_armature = metarig.data
             create_metarig = False
@@ -670,8 +712,12 @@ class ExtractMetarig(bpy.types.Operator):
         bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.select_all(action='DESELECT')
 
-        metarig.select_set(True)
-        context.view_layer.objects.active = metarig
+        if bpy.app.version < (2, 80):
+            metarig.select = True
+            context.scene.objects.active = metarig
+        else:
+            metarig.select_set(True)
+            context.view_layer.objects.active = metarig
         bpy.ops.object.mode_set(mode='EDIT')
 
         if create_metarig:
@@ -954,7 +1000,18 @@ class ExtractMetarig(bpy.types.Operator):
             metarig.pose.bones['upper_arm.R']['rigify_parameters']['segments'] = 3
 
         if self.assign_metarig:
-            met_armature.rigify_target_rig = src_object
+            # register target rig according to rigify version
+            # rigify_target_rig begins in 0.6.1
+            if hasattr(metarig.data, "rigify_target_rig"):
+                metarig.data.rigify_target_rig = src_object
+
+            # rigify_rig_basename begins in 0.6.1, dies in 0.6.4, and resurrects in 0.6.6
+            elif hasattr(metarig.data, "rigify_rig_basename"):
+                metarig.data.rigify_rig_basename = src_object.name
+
+            else:
+                # in rigify 0.4, 0.5 it's partially implemented, but we set it ourselves as custom prop
+                metarig.data["rig_object_name"] = src_object.name
 
         metarig.parent = src_object.parent
 
@@ -2091,7 +2148,10 @@ class BakeConstrainedActions(bpy.types.Operator):
 
         sel_obs = list(context.selected_objects)
         for ob in sel_obs:
-            ob.select_set(False)
+            if bpy.app.version < (2, 80):
+                ob.select = False
+            else:
+                ob.select_set(False)
 
             trg_ob = self.get_trg_ob(ob)
             if not trg_ob:
