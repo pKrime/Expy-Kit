@@ -8,17 +8,21 @@ from bpy.props import EnumProperty
 from . import preset_handler
 
 
-class RetargetBase(PropertyGroup):
+class RetargetBase():
     def has_settings(self):
-        for k, v in self.items():
+        for k in self.keys():
             if k == 'name':
                 continue
+            v = getattr(self, k, None)
             if v:
+                if hasattr(v, "has_settings"):
+                    if not v.has_settings():
+                        continue
                 return True
         return False
 
 
-class RetargetSpine(RetargetBase):
+class RetargetSpine(RetargetBase, PropertyGroup):
     head: StringProperty(name="head")
     neck: StringProperty(name="neck")
     spine2: StringProperty(name="spine2")
@@ -27,7 +31,7 @@ class RetargetSpine(RetargetBase):
     hips: StringProperty(name="hips")
 
 
-class RetargetArm(RetargetBase):
+class RetargetArm(RetargetBase, PropertyGroup):
     shoulder: StringProperty(name="shoulder")
     arm: StringProperty(name="arm")
     arm_twist: StringProperty(name="arm_twist")
@@ -40,7 +44,7 @@ class RetargetArm(RetargetBase):
     name: StringProperty(default='arm')
 
 
-class RetargetLeg(RetargetBase):
+class RetargetLeg(RetargetBase, PropertyGroup):
     upleg: StringProperty(name="upleg")
     upleg_twist: StringProperty(name="upleg_twist")
     upleg_twist_02: StringProperty(name="upleg_twist_02")
@@ -53,14 +57,14 @@ class RetargetLeg(RetargetBase):
     name: StringProperty(default='leg')
 
 
-class RetargetFinger(RetargetBase):
+class RetargetFinger(RetargetBase, PropertyGroup):
     meta: StringProperty(name="meta")
     a: StringProperty(name="A")
     b: StringProperty(name="B")
     c: StringProperty(name="C")
 
 
-class RetargetFingers(PropertyGroup):
+class RetargetFingers(RetargetBase, PropertyGroup):
     thumb: PointerProperty(type=RetargetFinger)
     index: PointerProperty(type=RetargetFinger)
     middle: PointerProperty(type=RetargetFinger)
@@ -69,15 +73,8 @@ class RetargetFingers(PropertyGroup):
 
     name: StringProperty(default='fingers')
 
-    def has_settings(self):
-        for setting in (self.thumb, self.index, self.middle, self.ring, self.pinky):
-            if setting.has_settings():
-                return True
 
-        return False
-
-
-class RetargetFaceSimple(PropertyGroup):
+class RetargetFaceSimple(RetargetBase, PropertyGroup):
     jaw: StringProperty(name="jaw")
     left_eye: StringProperty(name="left_eye")
     right_eye: StringProperty(name="right_eye")
@@ -88,7 +85,7 @@ class RetargetFaceSimple(PropertyGroup):
     super_copy: BoolProperty(default=True)
 
 
-class RetargetSettings(PropertyGroup):
+class RetargetSettings(RetargetBase, PropertyGroup):
     face: PointerProperty(type=RetargetFaceSimple)
     spine: PointerProperty(type=RetargetSpine)
 
