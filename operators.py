@@ -18,7 +18,7 @@ from .rig_mapping import bone_mapping
 from . import preset_handler
 from . import bone_utils
 from . import fbx_helper
-from .utils import make_annotations, matmul, layout_split
+from .utils import make_annotations, matmul, get_preferences, layout_split
 
 from mathutils import Vector
 from mathutils import Matrix
@@ -569,7 +569,7 @@ class ExtractMetarig(bpy.types.Operator):
     def poll(cls, context):
         if not context.object:
             return False
-        if 'rigify' not in context.preferences.addons:
+        if 'rigify' not in get_preferences(context).addons:
             return False
         if context.mode != 'POSE':
             return False

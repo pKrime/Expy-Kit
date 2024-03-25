@@ -40,7 +40,6 @@ def get_preferences(context=None):
     """Intermediate method for pre and post blender 2.8 grabbing the preferences itself"""
     if not context:
         context = bpy.context
-    prefs = None
     if hasattr(context, "user_preferences"):
         return context.user_preferences
     elif hasattr(context, "preferences"):

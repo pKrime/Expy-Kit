@@ -314,10 +314,13 @@ class ExecutePresetArmatureRetarget(Operator):
             preset_class.reset_cb(context)
 
         if ext == ".py":
-            try:
-                bpy.utils.execfile(filepath)
-            except Exception as ex:
-                self.report({'ERROR'}, "Failed to execute the preset: " + repr(ex))
+            if bpy.app.version < (2, 80):
+                bpy.ops.script.python_file_run(filepath=filepath)
+            else:
+                try:
+                    bpy.utils.execfile(filepath)
+                except Exception as ex:
+                    self.report({'ERROR'}, "Failed to execute the preset: " + repr(ex))
 
         elif ext == ".xml":
             import rna_xml
