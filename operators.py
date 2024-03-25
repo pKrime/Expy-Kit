@@ -35,20 +35,21 @@ CONSTR_TYPES = bpy.types.PoseBoneConstraints.bl_rna.functions['new'].parameters[
 CONSTR_TYPES.append('ALL_TYPES')
 
 
+@make_annotations
 class ConstraintStatus(bpy.types.Operator):
     """Disable/Enable bone constraints."""
     bl_idname = "object.expykit_set_constraints_status"
     bl_label = "Enable/disable constraints"
     bl_options = {'REGISTER', 'UNDO'}
 
-    set_status: EnumProperty(items=CONSTR_STATUS,
+    set_status = EnumProperty(items=CONSTR_STATUS,
                              name="Status",
                              default='enable')
 
-    selected_only: BoolProperty(name="Only Selected",
+    selected_only = BoolProperty(name="Only Selected",
                                 default=False)
 
-    constr_type: EnumProperty(items=[(ct, ct.replace('_', ' ').title(), ct) for ct in CONSTR_TYPES],
+    constr_type = EnumProperty(items=[(ct, ct.replace('_', ' ').title(), ct) for ct in CONSTR_TYPES],
                               name="Constraint Type",
                               default='ALL_TYPES')
 
@@ -83,21 +84,22 @@ class ConstraintStatus(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@make_annotations
 class SelectConstrainedControls(bpy.types.Operator):
     bl_idname = "armature.expykit_select_constrained_ctrls"
     bl_label = "Select constrained controls"
     bl_description = "Select bone controls with constraints or animations"
     bl_options = {'REGISTER', 'UNDO'}
 
-    select_type: EnumProperty(items=[
+    select_type = EnumProperty(items=[
         ('constr', "Constrained", "Select constrained controls"),
         ('anim', "Animated", "Select animated controls"),
     ],
         name="Select if",
         default='constr')
 
-    skip_deform: BoolProperty(name="Skip Deform Bones", default=True)
-    has_shape: BoolProperty(name="Only Control shapes", default=True)
+    skip_deform = BoolProperty(name="Skip Deform Bones", default=True)
+    has_shape = BoolProperty(name="Only Control shapes", default=True)
 
     @classmethod
     def poll(cls, context):
@@ -136,17 +138,18 @@ class SelectConstrainedControls(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@make_annotations
 class RevertDotBoneNames(bpy.types.Operator):
     """Reverts dots in bones that have renamed by Unreal Engine"""
     bl_idname = "object.expykit_dot_bone_names"
     bl_label = "Revert dots in Names (from UE4 renaming)"
     bl_options = {'REGISTER', 'UNDO'}
 
-    sideletters_only: BoolProperty(name="Only Side Letters",
+    sideletters_only = BoolProperty(name="Only Side Letters",
                                    description="i.e. '_L' to '.L'",
                                    default=True)
 
-    selected_only: BoolProperty(name="Only Selected",
+    selected_only = BoolProperty(name="Only Selected",
                                 default=False)
 
     @classmethod
@@ -174,39 +177,40 @@ class RevertDotBoneNames(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@make_annotations
 class ConvertBoneNaming(bpy.types.Operator):
     """Convert Bone Names between Naming Convention"""
     bl_idname = "object.expykit_convert_bone_names"
     bl_label = "Convert Bone Names"
     bl_options = {'REGISTER', 'UNDO'}
 
-    src_preset: EnumProperty(items=preset_handler.iterate_presets_with_current,
+    src_preset = EnumProperty(items=preset_handler.iterate_presets_with_current,
                              name="Source Preset",
                              )
 
-    trg_preset: EnumProperty(items=preset_handler.iterate_presets,
+    trg_preset = EnumProperty(items=preset_handler.iterate_presets,
                              name="Target Preset",
                              )
 
-    strip_prefix: BoolProperty(
+    strip_prefix = BoolProperty(
         name="Strip Prefix",
         description="Remove prefix when found",
         default=True
     )
 
-    anim_tracks: BoolProperty(
+    anim_tracks = BoolProperty(
         name="Convert Animations",
         description="Convert Animation Tracks",
         default=True
     )
 
-    replace_existing: BoolProperty(
+    replace_existing = BoolProperty(
         name="Take Over Existing Names",
         description='Bones already named after Target Preset will get ".001" suffix',
         default=True
     )
 
-    prefix_separator: StringProperty(
+    prefix_separator = StringProperty(
         name="Prefix Separator",
         description="Separator between prefix and name, i.e: MyCharacter:head",
         default=":"
@@ -349,17 +353,18 @@ class ConvertBoneNaming(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@make_annotations
 class CreateTransformOffset(bpy.types.Operator):
     """Scale the Character and setup an Empty to preserve final transform"""
     bl_idname = "object.expykit_create_offset"
     bl_label = "Create Scale Offset"
     bl_options = {'REGISTER', 'UNDO'}
 
-    container_name: StringProperty(name="Name", description="Name of the transform container", default="EMP-Offset")
-    container_scale: FloatProperty(name="Scale", description="Scale of the transform container", default=0.01)
-    fix_animations: BoolProperty(name="Fix Animations", description="Apply Offset to character animations", default=True)
-    fix_constraints: BoolProperty(name="Fix Constraints", description="Apply Offset to character constraints", default=True)
-    do_parent: BoolProperty(name="Execute and Exit", description="Parent to the new offset and exit",
+    container_name = StringProperty(name="Name", description="Name of the transform container", default="EMP-Offset")
+    container_scale = FloatProperty(name="Scale", description="Scale of the transform container", default=0.01)
+    fix_animations = BoolProperty(name="Fix Animations", description="Apply Offset to character animations", default=True)
+    fix_constraints = BoolProperty(name="Fix Constraints", description="Apply Offset to character constraints", default=True)
+    do_parent = BoolProperty(name="Execute and Exit", description="Parent to the new offset and exit",
                             default=False, options={'SKIP_SAVE'})
 
     _allowed_modes = ['OBJECT', 'POSE']
@@ -485,6 +490,7 @@ class CreateTransformOffset(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@make_annotations
 class ExtractMetarig(bpy.types.Operator):
     """Create Metarig from current object"""
     bl_idname = "object.expykit_extract_metarig"
@@ -492,32 +498,32 @@ class ExtractMetarig(bpy.types.Operator):
     bl_description = "Create Metarig from current object"
     bl_options = {'REGISTER', 'UNDO'}
 
-    rig_preset: EnumProperty(items=preset_handler.iterate_presets_with_current,
+    rig_preset = EnumProperty(items=preset_handler.iterate_presets_with_current,
                              name="Rig Type",
                              )
 
-    offset_knee: FloatProperty(name='Offset Knee',
+    offset_knee = FloatProperty(name='Offset Knee',
                                default=0.0)
 
-    offset_elbow: FloatProperty(name='Offset Elbow',
+    offset_elbow = FloatProperty(name='Offset Elbow',
                                 default=0.0)
 
-    offset_fingers: FloatVectorProperty(name='Offset Fingers')
+    offset_fingers = FloatVectorProperty(name='Offset Fingers')
 
-    no_face: BoolProperty(name='No face bones',
+    no_face = BoolProperty(name='No face bones',
                           default=True)
 
-    rigify_names: BoolProperty(name='Use rigify names',
+    rigify_names = BoolProperty(name='Use rigify names',
                                default=True)
 
-    assign_metarig: BoolProperty(name='Assign metarig',
+    assign_metarig = BoolProperty(name='Assign metarig',
                                  default=True,
                                  description='Rigify will generate to the active object')
 
-    forward_spine_roll: BoolProperty(name='Align spine frontally', default=True,
+    forward_spine_roll = BoolProperty(name='Align spine frontally', default=True,
                                      description='Spine Z will face the Y axis')
 
-    apply_transforms: BoolProperty(name='Apply Transform', default=True,
+    apply_transforms = BoolProperty(name='Apply Transform', default=True,
                                    description='Apply current transforms before extraction')
 
     def draw(self, context):
@@ -1011,6 +1017,7 @@ class ActionRangeToScene(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@make_annotations
 class MergeHeadTails(bpy.types.Operator):
     """Connect head/tails when closer than given max distance"""
     bl_idname = "armature.expykit_merge_head_tails"
@@ -1018,19 +1025,19 @@ class MergeHeadTails(bpy.types.Operator):
     bl_description = "Connect head/tails when closer than given max distance"
     bl_options = {'REGISTER', 'UNDO'}
 
-    at_child_head: BoolProperty(
+    at_child_head = BoolProperty(
         name="Match at child head",
         description="Bring parent's tail to match child head when possible",
         default=True
     )
 
-    min_distance: FloatProperty(
+    min_distance = FloatProperty(
         name="Distance",
         description="Max Distance for merging",
         default=0.0
     )
 
-    selected_only: BoolProperty(name="Only Selected",
+    selected_only = BoolProperty(name="Only Selected",
                                 default=False)
 
     @classmethod
@@ -1100,6 +1107,7 @@ def limit_scale(obj):
     constr.use_max_z = True
 
 
+@make_annotations
 class ConvertGameFriendly(bpy.types.Operator):
     """Convert Rigify (0.5) rigs to a Game Friendly hierarchy"""
     bl_idname = "armature.expykit_convert_gamefriendly"
@@ -1107,37 +1115,37 @@ class ConvertGameFriendly(bpy.types.Operator):
     bl_description = "Make the rigify deformation bones a one root rig"
     bl_options = {'REGISTER', 'UNDO'}
 
-    keep_backup: BoolProperty(
+    keep_backup = BoolProperty(
         name="Backup",
         description="Keep copy of datablock",
         default=True
     )
-    rename: StringProperty(
+    rename = StringProperty(
         name="Rename",
         description="Rename rig to 'Armature'",
         default="Armature"
     )
-    eye_bones: BoolProperty(
+    eye_bones = BoolProperty(
         name="Keep eye bones",
         description="Activate 'deform' for eye bones",
         default=True
     )
-    limit_scale: BoolProperty(
+    limit_scale = BoolProperty(
         name="Limit Spine Scale",
         description="Limit scale on the spine deform bones",
         default=True
     )
-    disable_bendy: BoolProperty(
+    disable_bendy = BoolProperty(
         name="Disable B-Bones",
         description="Disable Bendy-Bones",
         default=True
     )
-    fix_tail: BoolProperty(
+    fix_tail = BoolProperty(
         name="Invert Tail",
         description="Reverse the tail direction so that it spawns from hip",
         default=True
     )
-    reparent_twist: BoolProperty(
+    reparent_twist = BoolProperty(
         name="Dispossess Twist Bones",
         description="Rearrange Twist Hierarchy in limbs for in game IK",
         default=True
@@ -1216,42 +1224,43 @@ class ConvertGameFriendly(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@make_annotations
 class ConstrainToArmature(bpy.types.Operator):
     bl_idname = "armature.expykit_constrain_to_armature"
     bl_label = "Bind to Active Armature"
     bl_description = "Constrain bones of selected armatures to active armature"
     bl_options = {'REGISTER', 'UNDO'}
 
-    src_preset: EnumProperty(items=preset_handler.iterate_presets_with_current,
+    src_preset = EnumProperty(items=preset_handler.iterate_presets_with_current,
                              name="To Bind",
                              options={'SKIP_SAVE'}
                              )
 
-    trg_preset: EnumProperty(items=preset_handler.iterate_presets_with_current,
+    trg_preset = EnumProperty(items=preset_handler.iterate_presets_with_current,
                              name="Bind To",
                              options={'SKIP_SAVE'}
                              )
 
-    only_selected: BoolProperty(name="Only Selected", default=False, description="Bind only selected bones")
+    only_selected = BoolProperty(name="Only Selected", default=False, description="Bind only selected bones")
 
-    bind_by_name: BoolProperty(name="Bind bones by name", default=True)
-    name_prefix: StringProperty(name="Add prefix to name", default="")
-    name_replace: StringProperty(name="Replace in name", default="")
-    name_replace_with: StringProperty(name="Replace in name with", default="")
-    name_suffix: StringProperty(name="Add suffix to name", default="")
+    bind_by_name = BoolProperty(name="Bind bones by name", default=True)
+    name_prefix = StringProperty(name="Add prefix to name", default="")
+    name_replace = StringProperty(name="Replace in name", default="")
+    name_replace_with = StringProperty(name="Replace in name with", default="")
+    name_suffix = StringProperty(name="Add suffix to name", default="")
 
     if bpy.app.version[0] < 4:
-        ret_bones_layer: IntProperty(name="Layer",
+        ret_bones_layer = IntProperty(name="Layer",
                                     min=0, max=29, default=24,
                                     description="Armature Layer to use for connection bones")
         use_legacy_index = True
     else:
-        ret_bones_collection: StringProperty(name="Layer",
+        ret_bones_collection = StringProperty(name="Layer",
                                              default="Retarget Bones",
                                              description="Armature collection to use for connection bones")
         use_legacy_index = False
 
-    match_transform: EnumProperty(items=[
+    match_transform = EnumProperty(items=[
         ('None', "- None -", "Don't match any transform"),
         ('Bone', "Bones Offset", "Account for difference between control and deform rest pose (Requires similar proportions and Y bone-axis)"),
         ('Pose', "Current Pose is target Rest Pose", "Armature was posed manually to match rest pose of target"),
@@ -1260,21 +1269,21 @@ class ConstrainToArmature(bpy.types.Operator):
         name="Match Transform",
         default='None')
 
-    match_object_transform: BoolProperty(name="Match Object Transform", default=True)
+    match_object_transform = BoolProperty(name="Match Object Transform", default=True)
 
-    math_look_at: BoolProperty(name="Fix direction",
+    math_look_at = BoolProperty(name="Fix direction",
                                description="Correct chain direction based on mid limb (Useful for IK)",
                                default=False)
 
-    copy_IK_roll_hands: BoolProperty(name="Hands IK Roll",
+    copy_IK_roll_hands = BoolProperty(name="Hands IK Roll",
                             description="USe IK target roll from source armature (Useful for IK)",
                             default=False)
 
-    copy_IK_roll_feet: BoolProperty(name="Feet IK Roll",
+    copy_IK_roll_feet = BoolProperty(name="Feet IK Roll",
                             description="USe IK target roll from source armature (Useful for IK)",
                             default=False)
 
-    fit_target_scale: EnumProperty(name="Fit height",
+    fit_target_scale = EnumProperty(name="Fit height",
                                    items=(('--', '- None -', 'None'),
                                           ('head', 'head', 'head'),
                                           ('neck', 'neck', 'neck'),
@@ -1285,9 +1294,9 @@ class ConstrainToArmature(bpy.types.Operator):
                                           ),
                                     default='--',
                                     description="Fit height of the target Armature at selected bone")
-    adjust_location: BoolProperty(default=True, name="Adjust location to new scale")
+    adjust_location = BoolProperty(default=True, name="Adjust location to new scale")
 
-    constrain_root: EnumProperty(items=[
+    constrain_root = EnumProperty(items=[
         ('None', "No Root", "Don't constrain root bone"),
         ('Bone', "Bone", "Constrain root to bone"),
         ('Object', "Object", "Constrain root to object")
@@ -1295,15 +1304,15 @@ class ConstrainToArmature(bpy.types.Operator):
         name="Constrain Root",
         default='None')
 
-    loc_constraints: BoolProperty(name="Copy Location",
+    loc_constraints = BoolProperty(name="Copy Location",
                                   description="Use Location Constraint when binding",
                                   default=False)
 
-    rot_constraints: BoolProperty(name="Copy Rotation",
+    rot_constraints = BoolProperty(name="Copy Rotation",
                                   description="Use Rotation Constraint when binding",
                                   default=True)
 
-    constraint_policy: EnumProperty(items=[
+    constraint_policy = EnumProperty(items=[
         ('skip', "Skip Existing Constraints", "Skip Bones that are constrained already"),
         ('disable', "Disable Existing Constraints", "Disable existing binding constraints and add new ones"),
         ('remove', "Delete Existing Constraints", "Delete existing binding constraints")
@@ -1313,47 +1322,47 @@ class ConstrainToArmature(bpy.types.Operator):
         default='skip'
         )
 
-    bind_floating: BoolProperty(name="Bind Floating",
+    bind_floating = BoolProperty(name="Bind Floating",
                                 description="Always bind unparented bones Location and Rotation",
                                 default=True)
 
-    root_motion_bone: StringProperty(name="Root Motion",
+    root_motion_bone = StringProperty(name="Root Motion",
                                      description="Constrain Root bone to Hip motion",
                                      default="")
 
-    root_cp_loc_x: BoolProperty(name="Root Copy Loc X", description="Copy Root X Location", default=False)
-    root_cp_loc_y: BoolProperty(name="Root Copy Loc y", description="Copy Root Y Location", default=True)
-    root_cp_loc_z: BoolProperty(name="Root Copy Loc Z", description="Copy Root Z Location", default=False)
+    root_cp_loc_x = BoolProperty(name="Root Copy Loc X", description="Copy Root X Location", default=False)
+    root_cp_loc_y = BoolProperty(name="Root Copy Loc y", description="Copy Root Y Location", default=True)
+    root_cp_loc_z = BoolProperty(name="Root Copy Loc Z", description="Copy Root Z Location", default=False)
 
-    root_use_loc_min_x: BoolProperty(name="Use Root Min X", description="Minimum Root X", default=False)
-    root_use_loc_min_y: BoolProperty(name="Use Root Min Y", description="Minimum Root Y", default=False)
-    root_use_loc_min_z: BoolProperty(name="Use Root Min Z", description="Minimum Root Z", default=True)
+    root_use_loc_min_x = BoolProperty(name="Use Root Min X", description="Minimum Root X", default=False)
+    root_use_loc_min_y = BoolProperty(name="Use Root Min Y", description="Minimum Root Y", default=False)
+    root_use_loc_min_z = BoolProperty(name="Use Root Min Z", description="Minimum Root Z", default=True)
 
-    root_loc_min_x: FloatProperty(name="Root Min X", description="Minimum Root X", default=0.0)
-    root_loc_min_y: FloatProperty(name="Root Min Y", description="Minimum Root Y", default=0.0)
-    root_loc_min_z: FloatProperty(name="Root Min Z", description="Minimum Root Z", default=0.0)
+    root_loc_min_x = FloatProperty(name="Root Min X", description="Minimum Root X", default=0.0)
+    root_loc_min_y = FloatProperty(name="Root Min Y", description="Minimum Root Y", default=0.0)
+    root_loc_min_z = FloatProperty(name="Root Min Z", description="Minimum Root Z", default=0.0)
 
-    root_use_loc_max_x: BoolProperty(name="Use Root Max X", description="Maximum Root X", default=False)
-    root_use_loc_max_y: BoolProperty(name="Use Root Max Y", description="Maximum Root Y", default=False)
-    root_use_loc_max_z: BoolProperty(name="Use Root Max Z", description="Maximum Root Z", default=False)
+    root_use_loc_max_x = BoolProperty(name="Use Root Max X", description="Maximum Root X", default=False)
+    root_use_loc_max_y = BoolProperty(name="Use Root Max Y", description="Maximum Root Y", default=False)
+    root_use_loc_max_z = BoolProperty(name="Use Root Max Z", description="Maximum Root Z", default=False)
 
-    root_loc_max_x: FloatProperty(name="Root Max X", description="Maximum Root X", default=0.0)
-    root_loc_max_y: FloatProperty(name="Root Max Y", description="Maximum Root Y", default=0.0)
-    root_loc_max_z: FloatProperty(name="Root Max Z", description="Maximum Root Z", default=0.0)
+    root_loc_max_x = FloatProperty(name="Root Max X", description="Maximum Root X", default=0.0)
+    root_loc_max_y = FloatProperty(name="Root Max Y", description="Maximum Root Y", default=0.0)
+    root_loc_max_z = FloatProperty(name="Root Max Z", description="Maximum Root Z", default=0.0)
 
-    root_cp_rot_x: BoolProperty(name="Root Copy Rot X", description="Copy Root X Rotation", default=False)
-    root_cp_rot_y: BoolProperty(name="Root Copy Rot y", description="Copy Root Y Rotation", default=False)
-    root_cp_rot_z: BoolProperty(name="Root Copy Rot Z", description="Copy Root Z Rotation", default=False)
+    root_cp_rot_x = BoolProperty(name="Root Copy Rot X", description="Copy Root X Rotation", default=False)
+    root_cp_rot_y = BoolProperty(name="Root Copy Rot y", description="Copy Root Y Rotation", default=False)
+    root_cp_rot_z = BoolProperty(name="Root Copy Rot Z", description="Copy Root Z Rotation", default=False)
 
-    no_finger_loc: BoolProperty(default=False, name="No Finger Location")
+    no_finger_loc = BoolProperty(default=False, name="No Finger Location")
 
-    prefix_separator: StringProperty(
+    prefix_separator = StringProperty(
         name="Prefix Separator",
         description="Separator between prefix and name, i.e: MyCharacter:head",
         default=":"
     )
 
-    force_dialog: BoolProperty(default=False, options={'HIDDEN', 'SKIP_SAVE'})
+    force_dialog = BoolProperty(default=False, options={'HIDDEN', 'SKIP_SAVE'})
 
     _autovars_unset = True
     _constrained_root = None
@@ -2014,21 +2023,22 @@ def validate_actions(action: bpy.types.Action, path_resolve: callable):
     return True  # Valid.
 
 
+@make_annotations
 class BakeConstrainedActions(bpy.types.Operator):
     bl_idname = "armature.expykit_bake_constrained_actions"
     bl_label = "Bake Constrained Actions"
     bl_description = "Bake Actions constrained from another Armature. No need to select two armatures"
     bl_options = {'REGISTER', 'UNDO'}
 
-    clear_users_old: BoolProperty(name="Clear original Action Users",
+    clear_users_old = BoolProperty(name="Clear original Action Users",
                                   default=True)
 
-    fake_user_new: BoolProperty(name="Save New Action User",
+    fake_user_new = BoolProperty(name="Save New Action User",
                                 default=True)
 
-    exclude_deform: BoolProperty(name="Exclude deform bones", default=True)
+    exclude_deform = BoolProperty(name="Exclude deform bones", default=True)
 
-    do_bake: BoolProperty(name="Bake and Exit", description="Bake driven motion and exit",
+    do_bake = BoolProperty(name="Bake and Exit", description="Bake driven motion and exit",
                           default=False, options={'SKIP_SAVE'})
 
     def draw(self, context):
@@ -2177,63 +2187,64 @@ def add_loc_rot_key(bone, frame, options):
         bone.keyframe_insert(mode, index=i, frame=frame, options=options)
 
 
+@make_annotations
 class AddRootMotion(bpy.types.Operator):
     bl_idname = "armature.expykit_add_rootmotion"
     bl_label = "Transfer Root Motion"
     bl_description = "Bring Motion to Root Bone"
     bl_options = {'REGISTER', 'UNDO'}
 
-    rig_preset: EnumProperty(items=preset_handler.iterate_presets,
+    rig_preset = EnumProperty(items=preset_handler.iterate_presets,
                              name="Target Preset")
 
-    motion_bone: StringProperty(name="Motion",
+    motion_bone = StringProperty(name="Motion",
                                 description="Constrain Root bone to Hip motion",
                                 default="")
 
-    root_motion_bone: StringProperty(name="Root Motion",
+    root_motion_bone = StringProperty(name="Root Motion",
                                      description="Constrain Root bone to Hip motion",
                                      default="")
 
-    new_anim_suffix: StringProperty(name="Suffix",
+    new_anim_suffix = StringProperty(name="Suffix",
                                     default="_RM",
                                     description="Suffix of the duplicate animation, leave empty to overwrite")
 
-    obj_or_bone: EnumProperty(items=[
+    obj_or_bone = EnumProperty(items=[
         ('object', "Object", "Transfer Root Motion To Object"),
         ('bone', "Bone", "Transfer Root Motion To Bone")],
                               name="Object/Bone", default='bone')
 
-    keep_offset: BoolProperty(name="Keep Offset", default=True)
-    offset_type: EnumProperty(items=[
+    keep_offset = BoolProperty(name="Keep Offset", default=True)
+    offset_type = EnumProperty(items=[
         ('start', "Action Start", "Offset to Start Pose"),
         ('end', "Action End", "Offset to Match End Pose"),
         ('rest', "Rest Pose", "Offset to Match Rest Pose")],
                               name="Offset",
                               default='rest')
 
-    root_cp_loc_x: BoolProperty(name="Root Copy Loc X", description="Copy Root X Location", default=False)
-    root_cp_loc_y: BoolProperty(name="Root Copy Loc y", description="Copy Root Y Location", default=True)
-    root_cp_loc_z: BoolProperty(name="Root Copy Loc Z", description="Copy Root Z Location", default=False)
+    root_cp_loc_x = BoolProperty(name="Root Copy Loc X", description="Copy Root X Location", default=False)
+    root_cp_loc_y = BoolProperty(name="Root Copy Loc y", description="Copy Root Y Location", default=True)
+    root_cp_loc_z = BoolProperty(name="Root Copy Loc Z", description="Copy Root Z Location", default=False)
 
-    root_use_loc_min_x: BoolProperty(name="Use Root Min X", description="Minimum Root X", default=False)
-    root_use_loc_min_y: BoolProperty(name="Use Root Min Y", description="Minimum Root Y", default=False)
-    root_use_loc_min_z: BoolProperty(name="Use Root Min Z", description="Minimum Root Z", default=True)
+    root_use_loc_min_x = BoolProperty(name="Use Root Min X", description="Minimum Root X", default=False)
+    root_use_loc_min_y = BoolProperty(name="Use Root Min Y", description="Minimum Root Y", default=False)
+    root_use_loc_min_z = BoolProperty(name="Use Root Min Z", description="Minimum Root Z", default=True)
 
-    root_loc_min_x: FloatProperty(name="Root Min X", description="Minimum Root X", default=0.0)
-    root_loc_min_y: FloatProperty(name="Root Min Y", description="Minimum Root Y", default=0.0)
-    root_loc_min_z: FloatProperty(name="Root Min Z", description="Minimum Root Z", default=0.0)
+    root_loc_min_x = FloatProperty(name="Root Min X", description="Minimum Root X", default=0.0)
+    root_loc_min_y = FloatProperty(name="Root Min Y", description="Minimum Root Y", default=0.0)
+    root_loc_min_z = FloatProperty(name="Root Min Z", description="Minimum Root Z", default=0.0)
 
-    root_use_loc_max_x: BoolProperty(name="Use Root Max X", description="Maximum Root X", default=False)
-    root_use_loc_max_y: BoolProperty(name="Use Root Max Y", description="Maximum Root Y", default=False)
-    root_use_loc_max_z: BoolProperty(name="Use Root Max Z", description="Maximum Root Z", default=False)
+    root_use_loc_max_x = BoolProperty(name="Use Root Max X", description="Maximum Root X", default=False)
+    root_use_loc_max_y = BoolProperty(name="Use Root Max Y", description="Maximum Root Y", default=False)
+    root_use_loc_max_z = BoolProperty(name="Use Root Max Z", description="Maximum Root Z", default=False)
 
-    root_loc_max_x: FloatProperty(name="Root Max X", description="Maximum Root X", default=0.0)
-    root_loc_max_y: FloatProperty(name="Root Max Y", description="Maximum Root Y", default=0.0)
-    root_loc_max_z: FloatProperty(name="Root Max Z", description="Maximum Root Z", default=0.0)
+    root_loc_max_x = FloatProperty(name="Root Max X", description="Maximum Root X", default=0.0)
+    root_loc_max_y = FloatProperty(name="Root Max Y", description="Maximum Root Y", default=0.0)
+    root_loc_max_z = FloatProperty(name="Root Max Z", description="Maximum Root Z", default=0.0)
 
-    root_cp_rot_x: BoolProperty(name="Root Copy Rot X", description="Copy Root X Rotation", default=True)
-    root_cp_rot_y: BoolProperty(name="Root Copy Rot y", description="Copy Root Y Rotation", default=True)
-    root_cp_rot_z: BoolProperty(name="Root Copy Rot Z", description="Copy Root Z Rotation", default=False)
+    root_cp_rot_x = BoolProperty(name="Root Copy Rot X", description="Copy Root X Rotation", default=True)
+    root_cp_rot_y = BoolProperty(name="Root Copy Rot y", description="Copy Root Y Rotation", default=True)
+    root_cp_rot_z = BoolProperty(name="Root Copy Rot Z", description="Copy Root Z Rotation", default=False)
 
     _armature = None
     _prop_indent = 0.15
@@ -2623,28 +2634,30 @@ class AddRootMotion(bpy.types.Operator):
         bpy.context.scene.frame_set(current)
 
 
+@make_annotations
 class ActionNameCandidates(bpy.types.PropertyGroup):
-    name: bpy.props.StringProperty(name="Name Candidate", default="")
+    name = bpy.props.StringProperty(name="Name Candidate", default="")
 
 
+@make_annotations
 class RenameActionsFromFbxFiles(bpy.types.Operator, ImportHelper):
     bl_idname = "armature.expykit_rename_actions_fbx"
     bl_label = "Rename Actions from fbx data..."
     bl_description = "Rename Actions from candidate fbx files"
     bl_options = {'PRESET', 'UNDO'}
 
-    directory: StringProperty()
+    directory = StringProperty()
 
     filename_ext = ".fbx"
-    filter_glob: StringProperty(default="*.fbx", options={'HIDDEN'})
+    filter_glob = StringProperty(default="*.fbx", options={'HIDDEN'})
 
-    files: CollectionProperty(
+    files = CollectionProperty(
         name="File Path",
         type=bpy.types.OperatorFileListElement,
     )
 
-    contains: StringProperty(name="Containing", default="|")
-    starts_with: StringProperty(name="Starting with", default="Action")
+    contains = StringProperty(name="Containing", default="|")
+    starts_with = StringProperty(name="Starting with", default="Action")
 
     def execute(self, context):
         fbx_durations = dict()

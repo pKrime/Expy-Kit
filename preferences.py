@@ -6,12 +6,13 @@ from bpy.props import StringProperty
 from . import preset_handler
 
 
+@make_annotations
 class ExpyToClipboard(bpy.types.Operator):
     """Copy Expy Kit Preferences to the clipboard"""
     bl_idname = "wm.expy_to_clipboard"
     bl_label = "Copy Stuff to the clipboard"
 
-    clip_text: StringProperty(description="Text to Copy", default="")
+    clip_text = StringProperty(description="Text to Copy", default="")
 
     @classmethod
     def poll(cls, context):

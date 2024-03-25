@@ -169,13 +169,14 @@ class ActionMakeActive(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@make_annotations
 class ActionRenameSimple(bpy.types.Operator):
     """Rename Current Action"""
     bl_idname = "object.expykit_rename_action_simple"
     bl_label = "Expy Action Rename"
     bl_options = {'REGISTER', 'UNDO'}
 
-    new_name: StringProperty(default="", name="Renamed to")
+    new_name = StringProperty(default="", name="Renamed to")
 
     @classmethod
     def poll(cls, context):
@@ -275,16 +276,17 @@ class VIEW3D_PT_expy_rename_advanced(bpy.types.Panel):
         row.operator(ActionRemoveRenameData.bl_idname, text="Remove Rename Data")
 
 
+@make_annotations
 class ExecutePresetArmatureRetarget(Operator):
     """Apply a Bone Retarget Preset"""
     bl_idname = "object.expy_kit_armature_preset_apply"
     bl_label = "Apply Bone Retarget Preset"
 
-    filepath: StringProperty(
+    filepath = StringProperty(
         subtype='FILE_PATH',
         options={'SKIP_SAVE'},
     )
-    menu_idname: StringProperty(
+    menu_idname = StringProperty(
         name="Menu ID Name",
         description="ID name of the menu this was called from",
         options={'SKIP_SAVE'},
@@ -414,14 +416,15 @@ class ClearArmatureRetarget(Operator):
         return {'FINISHED'}
 
 
+@make_annotations
 class SetToActiveBone(Operator):
     """Set adjacent UI entry to active bone"""
     bl_idname = "object.expy_kit_set_to_active_bone"
     bl_label = "Set Expy Kit value to active bone"
 
-    attr_name: StringProperty(default="", options={'SKIP_SAVE'})
-    sub_attr_name: StringProperty(default="", options={'SKIP_SAVE'})
-    slot_name: StringProperty(default="", options={'SKIP_SAVE'})
+    attr_name = StringProperty(default="", options={'SKIP_SAVE'})
+    sub_attr_name = StringProperty(default="", options={'SKIP_SAVE'})
+    slot_name = StringProperty(default="", options={'SKIP_SAVE'})
 
     @classmethod
     def poll(cls, context):
@@ -456,16 +459,17 @@ class SetToActiveBone(Operator):
         return {'FINISHED'}
 
 
+@make_annotations
 class MirrorSettings(Operator):
     """Mirror Settings to the other side"""
     bl_idname = "object.expy_kit_settings_mirror"
     bl_label = "Mirror Skeleton Mapping"
     bl_options = {'REGISTER', 'UNDO'}
 
-    src_setting: StringProperty(default="", options={'SKIP_SAVE'})
-    trg_setting: StringProperty(default="", options={'SKIP_SAVE'})
+    src_setting = StringProperty(default="", options={'SKIP_SAVE'})
+    trg_setting = StringProperty(default="", options={'SKIP_SAVE'})
 
-    tolerance: FloatProperty(default=0.001)
+    tolerance = FloatProperty(default=0.001)
 
     @classmethod
     def poll(cls, context):
