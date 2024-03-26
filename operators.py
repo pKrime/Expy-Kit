@@ -618,6 +618,8 @@ class ExtractMetarig(bpy.types.Operator):
 
         met_skeleton = bone_mapping.RigifyMeta()
 
+        src_to_met_map = src_skeleton.conversion_map(met_skeleton)
+
         if self.rigify_names:
             # check if doesn't contain rigify deform bones already
             bones_needed = met_skeleton.spine.hips, met_skeleton.spine.spine
@@ -947,7 +949,12 @@ class ExtractMetarig(bpy.types.Operator):
                 met_armature.edit_bones.remove(face_bone)
 
         for src_name, src_attr in additional_bones:
-            new_bone_name = bone_utils.copy_bone_to_arm(src_object, metarig, src_name, suffix="")
+            # find target bone name by src_name
+            met_bone_name = src_to_met_map.get(src_name)
+            if not met_bone_name:
+                continue
+
+            new_bone_name = bone_utils.copy_bone_to_arm(src_object, metarig, src_name, trg_bone_name=met_bone_name, suffix="")
 
             if 'chain' in src_attr:  # TODO: also fingers
                 # working around weird bug: sometimes src_armature.bones causes KeyError even if the bone is there
@@ -961,7 +968,7 @@ class ExtractMetarig(bpy.types.Operator):
                     except IndexError:
                         break
 
-                    child_bone_name = bone_utils.copy_bone_to_arm(src_object, metarig, bone.name, suffix="")
+                    child_bone_name = bone_utils.copy_bone_to_arm(src_object, metarig, bone.name, trg_bone_name=src_to_met_map.get(bone.name), suffix="")
                     child_bone = met_armature.edit_bones[child_bone_name]
                     child_bone.parent = met_armature.edit_bones[new_parent_name]
                     child_bone.use_connect = True
@@ -974,9 +981,11 @@ class ExtractMetarig(bpy.types.Operator):
 
                 if bone:
                     if bone.parent:
-                        # FIXME: should use mapping to get parent bone name
+                        # DONE: should use mapping to get parent bone name
                         parent_name = bone.parent.name.replace('DEF-', '')
-                        met_armature.edit_bones[new_bone_name].parent = met_armature.edit_bones[parent_name]
+                        met_parent_name = src_to_met_map.get(parent_name)
+                        if met_parent_name:
+                            met_armature.edit_bones[new_bone_name].parent = met_armature.edit_bones[met_parent_name]
                     if ".raw_" in src_attr:
                         met_armature.edit_bones[new_bone_name].use_deform = bone.use_deform
                     elif bone.name.startswith('DEF-'):
@@ -985,15 +994,17 @@ class ExtractMetarig(bpy.types.Operator):
                     else:
                         bone.name = "DEF-{}".format(bone.name)
             except KeyError:
-                self.report({'WARNING'}, "bones not found in target, perhaps wrong preset?")
+                self.report({'WARNING'}, "parent bone [{}] not found in target, perhaps wrong preset?".format(parent_name))
                 continue
 
         bpy.ops.object.mode_set(mode='POSE')
         # now we can copy the stored rigify attrs
         for src_name, src_attr in additional_bones:
             src_meta = src_name[4:] if src_name.startswith('DEF-') else src_name
-            metarig.pose.bones[src_meta].rigify_type = src_attr
-            # TODO: should copy rigify options of specific types as well
+            src_meta = src_to_met_map.get(src_meta)
+            if src_meta:
+                metarig.pose.bones[src_meta].rigify_type = src_attr
+                # TODO: should copy rigify options of specific types as well
 
         if current_settings.left_leg.upleg_twist_02 or current_settings.left_leg.leg_twist_02:
             metarig.pose.bones['thigh.L']['rigify_parameters']['segments'] = 3

@@ -121,24 +121,25 @@ def copy_bone_constraints(bone_a, bone_b):
                 continue
 
 
-def copy_bone_to_arm(src_ob, trg_ob, bone_name, suffix='CP'):
-    """Create a new bone in trg_ob with the same head/tail as bone with the given name"""
+def copy_bone_to_arm(src_ob, trg_ob, src_bone_name, trg_bone_name="", suffix='CP'):
+    """Create a new bone (or align existing) in trg_ob with the same head/tail as bone with the given name"""
     try:
-        src_bone = src_ob.data.bones[bone_name]
+        src_bone = src_ob.data.bones[src_bone_name]
     except KeyError:
         return
 
-    new_name = '_'.join((bone_name, suffix)) if suffix else bone_name
+    trg_bone_name = src_bone_name if not trg_bone_name else trg_bone_name
+    trg_bone_name = '_'.join((trg_bone_name, suffix)) if suffix else trg_bone_name
 
     try:
-        new_bone = trg_ob.data.edit_bones[new_name]
+        trg_bone = trg_ob.data.edit_bones[trg_bone_name]
     except KeyError:
-        new_bone = trg_ob.data.edit_bones.new(new_name)
+        trg_bone = trg_ob.data.edit_bones.new(trg_bone_name)
 
-    new_bone.head = src_bone.head_local
-    new_bone.tail = src_bone.tail_local
+    trg_bone.head = src_bone.head_local
+    trg_bone.tail = src_bone.tail_local
 
-    return new_bone.name
+    return trg_bone.name
 
 
 def copy_bone(ob, bone_name, assign_name='', constraints=False, deform_bone='SAME'):

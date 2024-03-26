@@ -255,6 +255,9 @@ class HumanSkeleton:
         bone_map = dict()
 
         def bone_mapping(attr, limb, bone_name):
+            if not bone_name:
+                return
+
             target_limbs = getattr(target_skeleton, attr, None)
             if not target_limbs:
                 return
@@ -318,9 +321,9 @@ class HumanSkeleton:
             for finger, bone_names in src_fingers.items():
                 trg_bone_names = trg_fingers[finger]
 
-                assert len(bone_names) == len(trg_bone_names)
                 for bone, trg_bone in zip(bone_names, trg_bone_names):
-                    bone_map[bone] = trg_bone
+                    if bone and trg_bone:
+                        bone_map[bone] = trg_bone
 
         trg_fingers = target_skeleton.left_fingers
         fingers_mapping(self.left_fingers, trg_fingers)
