@@ -582,16 +582,9 @@ class ExtractMetarig(bpy.types.Operator):
         src_object = context.object
         src_armature = context.object.data
 
-        try:
-            from rigify import bl_info as rigify_bl_info
-            rigify_version = rigify_bl_info.get("version")
-        except:
-            rigify_version = None
-        if not rigify_version:
+        if not bone_mapping.get_rigify_version():
             self.report({'WARNING'}, 'Cannot detect Rigify version')
             return {'CANCELLED'}
-
-        print("Rigify version:", rigify_version)
 
         if self.rig_preset == "--Current--":
             current_settings = context.object.data.expykit_retarget
@@ -833,6 +826,8 @@ class ExtractMetarig(bpy.types.Operator):
                         palm_bone.roll = 0
 
             for met_bone_name, src_bone_name in zip(met_bone_names, src_bone_names):
+                if not src_bone_name:
+                    continue
                 try:
                     met_bone = met_armature.edit_bones[met_bone_name]
                     src_bone = src_armature.bones[src_bone_name]

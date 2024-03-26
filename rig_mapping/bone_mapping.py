@@ -23,6 +23,7 @@ rigify_face_bones = [
     'teeth.T', 'teeth.B', 'tongue', 'tongue.001', 'tongue.002',
 ]
 
+rigify_version = None
 
 class HumanLimb:
     def __str__(self):
@@ -470,20 +471,32 @@ class RigifySkeleton(HumanSkeleton):
 
 class RigifyMeta(HumanSkeleton):
     def __init__(self):
-        self.face = SimpleFace(
-            jaw='jaw',
-            left_eye='eye.L',
-            right_eye='eye.R'
-        )
+        if rigify_version >= (0, 5):
+            self.face = SimpleFace(
+                jaw='jaw',
+                left_eye='eye.L',
+                right_eye='eye.R'
+            )
 
-        self.spine = HumanSpine(
-            head='spine.006',
-            neck='spine.004',
-            spine2='spine.003',
-            spine1='spine.002',
-            spine='spine.001',
-            hips='spine'
-        )
+            self.spine = HumanSpine(
+                head='spine.006',
+                neck='spine.004',
+                spine2='spine.003',
+                spine1='spine.002',
+                spine='spine.001',
+                hips='spine'
+            )
+        else:
+            self.face = SimpleFace()
+
+            self.spine = HumanSpine(
+                head='head',
+                neck='neck',
+                spine2='chest',
+                spine1='spine',
+                spine='',
+                hips='hips'
+            )
 
         side = 'L'
         self.left_arm = HumanArm(shoulder="shoulder.{0}".format(side),
@@ -647,6 +660,17 @@ class UnrealSkeleton(HumanSkeleton):
             leg.leg_twist = "calf_twist_01" + side_letter
             setattr(self, side + "_leg", leg)
 
+
+def get_rigify_version():
+    global rigify_version
+    try:
+        from rigify import bl_info as rigify_bl_info
+        rigify_version = rigify_bl_info.get("version")
+    except:
+        rigify_version = None
+    return rigify_version
+
+get_rigify_version()
 
 # test
 if __name__ == "__main__":
