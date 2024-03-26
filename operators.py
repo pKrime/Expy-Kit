@@ -671,8 +671,8 @@ class ExtractMetarig(bpy.types.Operator):
                         break
                     continue
 
-                # in rigify 0.4, 0.5 it's partially implemented, but we set it ourselves (e.g. on first execute)
-                if ob.data.get("rig_object_name") and ob.data["rig_object_name"] == src_object.name:
+                # in rigify 0.4, 0.5 it's partially implemented, but we set it ourselves (rigify only reads it, never writes)
+                if ob.get("rig_object_name") and ob["rig_object_name"] == src_object.name:
                     metarig = ob
                     break
 
@@ -680,21 +680,6 @@ class ExtractMetarig(bpy.types.Operator):
             create_metarig = True
             met_armature = bpy.data.armatures.new('metarig')
             metarig = bpy.data.objects.new("metarig", met_armature)
-
-            # FIXME: maybe registering only if self.assign_metarig?
-            # register target rig according to rigify version
-            # rigify_target_rig begins in 0.6.1
-            if hasattr(metarig.data, "rigify_target_rig"):
-                metarig.data.rigify_target_rig = src_object
-
-            # rigify_rig_basename begins in 0.6.1, dies in 0.6.4, and resurrects in 0.6.6
-            elif hasattr(metarig.data, "rigify_rig_basename"):
-                metarig.data.rigify_rig_basename = src_object.name
-
-            else:
-                # in rigify 0.4, 0.5 it's partially implemented, but we set it ourselves as custom prop
-                metarig.data["rig_object_name"] = src_object.name
-
 
             if bpy.app.version < (2, 80):
                 context.scene.objects.link(metarig)
@@ -1030,7 +1015,7 @@ class ExtractMetarig(bpy.types.Operator):
 
             else:
                 # in rigify 0.4, 0.5 it's partially implemented, but we set it ourselves as custom prop
-                metarig.data["rig_object_name"] = src_object.name
+                metarig["rig_object_name"] = src_object.name
 
         metarig.parent = src_object.parent
 
