@@ -711,6 +711,19 @@ class ExtractMetarig(bpy.types.Operator):
         else:
             metarig.select_set(True)
             context.view_layer.objects.active = metarig
+
+        # in local view it will fail prior 2.80 but in 2.80 it won't add it to the view as well
+        if context.space_data.local_view is not None:
+            if bpy.app.version < (2, 80):
+                met_obj_base = next((base for base in context.scene.object_bases if base.object == metarig))
+                if met_obj_base:
+                    met_obj_base.layers_from_view(context.space_data)
+            else:
+                bpy.ops.view3d.localview(frame_selected=False)
+                src_object.select_set(True)
+                bpy.ops.view3d.localview(frame_selected=False)
+                src_object.select_set(False)
+
         bpy.ops.object.mode_set(mode='EDIT')
 
         if create_metarig:
