@@ -2,13 +2,12 @@ import bpy
 from bpy.props import StringProperty
 from bpy.props import FloatProperty
 from bpy.props import PointerProperty
-from bpy.props import EnumProperty
 from bpy.types import Context, Operator, Menu
 from bl_operators.presets import AddPresetBase
 
 from . import operators
 from . import preset_handler
-from . import properties
+from . import bone_utils
 from .utils import make_annotations, layout_split
 
 
@@ -497,17 +496,20 @@ class MirrorSettings(Operator):
         return abs(trg_head.z - src_head.z) < epsilon
 
     def _is_mirrored(self, src_bone, trg_bone):
-        if not self._is_mirrored_vec(src_bone.head_local, trg_bone.head_local):
-            return False
-        if not self._is_mirrored_vec(src_bone.tail_local, trg_bone.tail_local):
-            return False
-
-        return True
+        return (
+            self._is_mirrored_vec(src_bone.head_local, trg_bone.head_local)
+            and self._is_mirrored_vec(src_bone.tail_local, trg_bone.tail_local)
+            )
 
     def find_mirrored(self, arm_data, bone):
         # TODO: should be in bone_utils
-        # TODO: should select best among mirror candidates
-        return next((b for b in arm_data.bones if self._is_mirrored(bone, b)), None)
+        # DONE: should select best among mirror candidates
+        lookup_name = bone_utils.lrl_strip(bone)
+        return next((b for b in arm_data.bones if (
+                            lookup_name == bone_utils.lrl_strip(b)
+                            and self._is_mirrored(bone, b)
+                        )
+                    ), None)
 
     def execute(self, context):
         if not self.src_setting:

@@ -687,3 +687,13 @@ def relative_pose_direction(start_pose_bone, end_pose_bone, mat):
 
     direction = matmul(mat, direction)
     return direction.normalized()
+
+def lrl_strip(bone): # bone: str, Bone, PoseBone, EditBone
+    """Returns Left/Right agnostic name of the bone. Lower case."""
+    if not bone:
+        return ""
+    name = (bone if type(bone) is str else bone.name).lower()
+    for _ in ("right", "left", "rgt", "lft", "r", "l"):
+        _new = name.replace(_, "")
+        name = _new or name
+    return name
