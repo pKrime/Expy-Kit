@@ -2,6 +2,7 @@ import bpy
 from bpy.props import StringProperty
 from bpy.props import FloatProperty
 from bpy.props import PointerProperty
+from bpy.props import EnumProperty
 from bpy.types import Context, Operator, Menu
 from bl_operators.presets import AddPresetBase
 
