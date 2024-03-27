@@ -37,6 +37,11 @@ class BindingsMenu(bpy.types.Menu):
         row = layout.row()
         row.operator(operators.ConstrainToArmature.bl_idname)
 
+        if bpy.app.version < (2, 79):
+            # it's for those, who don't have panel binding button
+            row = layout.row()
+            row.operator(operators.ConstrainActiveToSelected.bl_idname)
+
         row = layout.row()
         row.operator(operators.ConstraintStatus.bl_idname)
 
@@ -583,17 +588,20 @@ if bpy.app.version >= (2, 79, 0):
             return context.mode == 'POSE' and context.scene.expykit_bind_to and context.object != context.scene.expykit_bind_to
 
         def execute(self, context: Context):
-            for ob in context.selected_objects:
-                ob.select_set(ob == context.object)
+            if bpy.app.version >= (2, 80):
+                for ob in context.selected_objects:
+                    ob.select_set(ob == context.object)
 
-            context.scene.expykit_bind_to.select_set(True)
-            context.view_layer.objects.active = context.scene.expykit_bind_to
+                context.scene.expykit_bind_to.select_set(True)
+                context.view_layer.objects.active = context.scene.expykit_bind_to
+            else:
+                for ob in context.selected_objects:
+                    ob.select = (ob == context.object)
+
+                context.scene.expykit_bind_to.select = True
+                context.scene.objects.active = context.scene.expykit_bind_to
+
             bpy.ops.object.mode_set(mode='POSE')
-
-            _ad = context.scene.expykit_bind_to.animation_data
-            if _ad and _ad.action:
-                # TODO: this should be in the constrain operator
-                bpy.ops.object.expykit_action_to_range()
 
             bpy.ops.armature.expykit_constrain_to_armature('INVOKE_DEFAULT', force_dialog=True)
 

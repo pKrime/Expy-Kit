@@ -1697,6 +1697,10 @@ class ConstrainToArmature(bpy.types.Operator):
 
         trg_ob = context.active_object
 
+        _ad = trg_ob.animation_data
+        if _ad and _ad.action:
+            bpy.ops.object.expykit_action_to_range()
+
         if self.trg_preset == '--':
             return {'FINISHED'}
         if self.src_preset == '--':
@@ -2081,6 +2085,36 @@ def validate_actions(action: bpy.types.Action, path_resolve: callable):
         except ValueError:
             return False  # Invalid.
     return True  # Valid.
+
+
+if bpy.app.version < (2, 79):
+    @make_annotations
+    class ConstrainActiveToSelected(bpy.types.Operator):
+        bl_idname = "armature.expykit_constrain_active"
+        bl_label = "Bind Active to Selected"
+        bl_description = "The same as above, but swaps the two first"
+        bl_options = {'REGISTER', 'UNDO'}
+
+        @classmethod
+        def poll(cls, context):
+            return (
+                len(context.selected_objects) == 2
+                and context.mode == 'POSE'
+                and all(map(lambda ob: ob.type == 'ARMATURE', context.selected_objects))
+                )
+
+        def execute(self, context):
+            trg_obj = next((ob for ob in context.selected_objects if ob != context.object))
+            if bpy.app.version >= (2, 80):
+                context.view_layer.objects.active = trg_obj
+            else:
+                context.scene.objects.active = trg_obj
+
+            bpy.ops.object.mode_set(mode='POSE')
+
+            bpy.ops.armature.expykit_constrain_to_armature('INVOKE_DEFAULT', force_dialog=True)
+
+            return {'FINISHED'}
 
 
 @make_annotations
@@ -2792,6 +2826,8 @@ def register_classes():
     bpy.utils.register_class(MergeHeadTails)
     bpy.utils.register_class(RevertDotBoneNames)
     bpy.utils.register_class(ConstrainToArmature)
+    if bpy.app.version < (2, 79):
+        bpy.utils.register_class(ConstrainActiveToSelected)
     bpy.utils.register_class(BakeConstrainedActions)
     bpy.utils.register_class(RenameActionsFromFbxFiles)
     bpy.utils.register_class(CreateTransformOffset)
@@ -2812,6 +2848,8 @@ def unregister_classes():
     bpy.utils.unregister_class(ExtractMetarig)
     bpy.utils.unregister_class(MergeHeadTails)
     bpy.utils.unregister_class(RevertDotBoneNames)
+    if bpy.app.version < (2, 79):
+        bpy.utils.unregister_class(ConstrainActiveToSelected)
     bpy.utils.unregister_class(ConstrainToArmature)
     bpy.utils.unregister_class(BakeConstrainedActions)
     bpy.utils.unregister_class(RenameActionsFromFbxFiles)
