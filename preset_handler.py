@@ -157,8 +157,14 @@ def reset_preset_names(settings):
     settings.right_arm.name = 'arm'
     settings.left_arm.name = 'arm'
 
+    settings.right_arm_ik.name = 'arm'
+    settings.left_arm_ik.name = 'arm'
+
     settings.right_leg.name = 'leg'
     settings.left_leg.name = 'leg'
+
+    settings.right_leg_ik.name = 'leg'
+    settings.left_leg_ik.name = 'leg'
 
     settings.right_fingers.name = 'fingers'
     settings.left_fingers.name = 'fingers'

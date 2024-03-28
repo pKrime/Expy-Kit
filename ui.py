@@ -384,6 +384,7 @@ class AddPresetArmatureRetarget(AddPresetBase, Operator):
 class ClearArmatureRetarget(Operator):
     bl_idname = "object.expy_kit_armature_clear"
     bl_label = "Clear Retarget Settings"
+    bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
     def poll(cls, context):
@@ -421,6 +422,7 @@ class ClearArmatureRetarget(Operator):
 
         skeleton.root = ''
         skeleton.deform_preset = '--'
+        preset_handler.reset_preset_names(skeleton)
 
         return {'FINISHED'}
 
@@ -760,11 +762,19 @@ class VIEW3D_PT_expy_retarget_fingers(RetargetBasePanel, bpy.types.Panel):
         ob = context.object
         layout = self.layout
 
+        row = layout.row()
+        row.prop(ob.data, "expykit_twist_on", text="Display palm bones")
+
         skeleton = ob.data.expykit_retarget
 
         sides = "right", "left"
         split = layout_split(layout)
-        finger_bones = ('a', 'b', 'c')
+
+        if ob.data.expykit_twist_on:
+            finger_bones = ('a', 'b', 'c', 'meta')
+        else:
+            finger_bones = ('a', 'b', 'c')
+
         fingers = ('thumb', 'index', 'middle', 'ring', 'pinky')
         m_props = []
         for side, group in zip(sides, [skeleton.right_fingers, skeleton.left_fingers]):
