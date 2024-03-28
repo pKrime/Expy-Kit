@@ -170,6 +170,36 @@ def reset_preset_names(settings):
     settings.left_fingers.name = 'fingers'
 
 
+def reset_skeleton(skeleton):
+    """Reset skeleton values to their defaults"""
+    for setting in (skeleton.right_arm, skeleton.left_arm, skeleton.spine, skeleton.right_leg,
+                    skeleton.left_leg, skeleton.right_arm_ik, skeleton.left_arm_ik,
+                    skeleton.right_leg_ik, skeleton.left_leg_ik,
+                    skeleton.face,
+                    ):
+        for k in setting.keys():
+            if k == 'name':
+                continue
+            try:
+                setattr(setting, k, '')
+            except TypeError:
+                continue
+
+    for settings in (skeleton.right_fingers, skeleton.left_fingers):
+        for setting in [getattr(settings, k) for k in settings.keys()]:
+            try:
+                for k in setting.keys():
+                    if k == 'name':
+                        continue
+                    setattr(setting, k, '')
+            except AttributeError:
+                continue
+
+    skeleton.root = ''
+    skeleton.deform_preset = '--'
+    reset_preset_names(skeleton)
+
+
 class PresetFinger:
     def __init__(self):
         self.a = ""

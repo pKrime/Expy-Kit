@@ -315,6 +315,9 @@ class ExecutePresetArmatureRetarget(Operator):
             self.report({'ERROR'}, "Unknown file type: %r" % ext)
             return {'CANCELLED'}
 
+        settings = context.object.data.expykit_retarget
+        preset_handler.reset_skeleton(settings)
+
         if hasattr(preset_class, "reset_cb"):
             preset_class.reset_cb(context)
 
@@ -338,7 +341,6 @@ class ExecutePresetArmatureRetarget(Operator):
 
         preset_handler.validate_preset(context.object.data)
 
-        settings = context.object.data.expykit_retarget
         preset_handler.reset_preset_names(settings)
 
         return {'FINISHED'}
@@ -396,34 +398,7 @@ class ClearArmatureRetarget(Operator):
         return True
 
     def execute(self, context):
-        skeleton = context.object.data.expykit_retarget
-        for setting in (skeleton.right_arm, skeleton.left_arm, skeleton.spine, skeleton.right_leg,
-                        skeleton.left_leg, skeleton.right_arm_ik, skeleton.left_arm_ik,
-                        skeleton.right_leg_ik, skeleton.left_leg_ik,
-                        skeleton.face,
-                        ):
-            for k in setting.keys():
-                if k == 'name':
-                    continue
-                try:
-                    setattr(setting, k, '')
-                except TypeError:
-                    continue
-
-        for settings in (skeleton.right_fingers, skeleton.left_fingers):
-            for setting in [getattr(settings, k) for k in settings.keys()]:
-                try:
-                    for k in setting.keys():
-                        if k == 'name':
-                            continue
-                        setattr(setting, k, '')
-                except AttributeError:
-                    continue
-
-        skeleton.root = ''
-        skeleton.deform_preset = '--'
-        preset_handler.reset_preset_names(skeleton)
-
+        preset_handler.reset_skeleton(context.object.data.expykit_retarget)
         return {'FINISHED'}
 
 
