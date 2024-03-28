@@ -517,31 +517,36 @@ class MirrorSettings(Operator):
         arm_data = context.object.data
         if 'fingers' in self.trg_setting:
             for finger_name in ('thumb', 'index', 'middle', 'ring', 'pinky'):
-                for attr_name in ('a', 'b', 'c'):
+                for attr_name in ('a', 'b', 'c', 'meta'):
                     bone_name = getattr(getattr(src_grp, finger_name), attr_name)
                     if not bone_name:
-                        continue
-                    m_bone = self.find_mirrored(arm_data,
+                        m_bone = None
+                    else:
+                        m_bone = self.find_mirrored(arm_data,
                                                 arm_data.bones[bone_name])
-                    if not m_bone:
-                        continue
-
-                    setattr(getattr(trg_grp, finger_name), attr_name, m_bone.name)
+                    if m_bone:
+                        setattr(getattr(trg_grp, finger_name), attr_name, m_bone.name)
+                    else:
+                        setattr(getattr(trg_grp, finger_name), attr_name, "")
 
             return {'FINISHED'}
 
-        for k, v in src_grp.items():
-            if not v:
+        for attr_name, bone_name in src_grp.items():
+            if attr_name == "name":
                 continue
 
-            try:
-                bone = arm_data.bones[v]
-            except KeyError:
-                continue
-
-            m_bone = self.find_mirrored(arm_data, bone)
+            if not bone_name:
+                m_bone = None
+            else:
+                try:
+                    m_bone = self.find_mirrored(arm_data,
+                                            arm_data.bones[bone_name])
+                except KeyError:
+                    m_bone = None
             if m_bone:
-                setattr(trg_grp, k, m_bone.name)
+                setattr(trg_grp, attr_name, m_bone.name)
+            else:
+                setattr(trg_grp, attr_name, "")
 
         return {'FINISHED'}
 
