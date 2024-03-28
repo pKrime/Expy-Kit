@@ -123,6 +123,10 @@ class RetargetSettings(RetargetBase, PropertyGroup):
 
     deform_preset = EnumProperty(items=preset_handler.iterate_presets, name="Deformation Bones")
 
+    last_used_preset = StringProperty(
+        name="Last used preset", default="", description="Preset from which the settings were loaded from (or saved to).",
+        options={'SKIP_SAVE','HIDDEN'}) # base name, not a full path
+
 
 def register_classes():
     bpy.utils.register_class(RetargetSpine)

@@ -4,7 +4,7 @@ from bpy.props import FloatProperty
 from bpy.props import PointerProperty
 from bpy.props import EnumProperty
 from bpy.types import Context, Operator, Menu
-from bl_operators.presets import AddPresetBase
+from bl_operators.presets import AddPresetBase, ExecutePreset
 
 from . import operators
 from . import preset_handler
@@ -283,10 +283,11 @@ class VIEW3D_PT_expy_rename_advanced(bpy.types.Panel):
 
 
 @make_annotations
-class ExecutePresetArmatureRetarget(Operator):
+class ExecutePresetArmatureRetarget(ExecutePreset):
     """Apply a Bone Retarget Preset"""
     bl_idname = "object.expy_kit_armature_preset_apply"
     bl_label = "Apply Bone Retarget Preset"
+    preset_menu = "VIEW3D_MT_retarget_presets"
 
     filepath = StringProperty(
         subtype='FILE_PATH',
@@ -299,51 +300,15 @@ class ExecutePresetArmatureRetarget(Operator):
     )
 
     def execute(self, context):
-        from os.path import basename, splitext
-        filepath = self.filepath
-
-        # change the menu title to the most recently chosen option
-        preset_class = VIEW3D_MT_retarget_presets
-        if bpy.app.version < (2, 93, 0):
-            preset_class.bl_label = bpy.path.display_name(basename(filepath))
-        else:
-            preset_class.bl_label = bpy.path.display_name(basename(filepath), title_case=False)
-
-        ext = splitext(filepath)[1].lower()
-
-        if ext not in {".py", ".xml"}:
-            self.report({'ERROR'}, "Unknown file type: %r" % ext)
-            return {'CANCELLED'}
-
-        settings = context.object.data.expykit_retarget
-        preset_handler.reset_skeleton(settings)
-
-        if hasattr(preset_class, "reset_cb"):
-            preset_class.reset_cb(context)
-
-        if ext == ".py":
-            if bpy.app.version < (2, 80):
-                bpy.ops.script.python_file_run(filepath=filepath)
-            else:
-                try:
-                    bpy.utils.execfile(filepath)
-                except Exception as ex:
-                    self.report({'ERROR'}, "Failed to execute the preset: " + repr(ex))
-
-        elif ext == ".xml":
-            import rna_xml
-            rna_xml.xml_file_run(context,
-                                 filepath,
-                                 preset_class.preset_xml_map)
-
-        if hasattr(preset_class, "post_cb"):
-            preset_class.post_cb(context)
-
-        preset_handler.validate_preset(context.object.data)
-
-        preset_handler.reset_preset_names(settings)
-
-        return {'FINISHED'}
+        # passing filepath via the menu, also super uses menu_idname vs preset_menu
+        self.menu_idname = self.preset_menu
+        preset_class = getattr(bpy.types, self.menu_idname)
+        preset_class.filepath = self.filepath
+        # in 2.7x there is no callbacks, so we call them manually
+        preset_class.reset_cb_va(context)
+        _ = super().execute(context)
+        preset_class.post_cb_va(context)
+        return _
 
 
 class AddPresetArmatureRetarget(AddPresetBase, Operator):
@@ -382,8 +347,33 @@ class AddPresetArmatureRetarget(AddPresetBase, Operator):
     # where to store the preset
     preset_subdir = preset_handler.PRESETS_SUBDIR
 
+    # this fires after preset saving (instance)
+    def post_cb(self, context):
+        if not self.remove_active:
+            # here we register the last used preset name
+            preset_class = getattr(bpy.types, self.preset_menu)
+            # it's already basename
+            context.object.data.expykit_retarget.last_used_preset = preset_class.filepath
+
+    def execute(self, context):
+        # passing filepath (basename, not full) via the menu
+        preset_class = getattr(bpy.types, self.preset_menu)
+        preset_class.filepath = self.as_filename(self.name) + ".py"
+        return super().execute(context)
+
+    def invoke(self, context, _event):
+        from os.path import splitext
+        self.filepath = context.object.data.expykit_retarget.last_used_preset
+        self.name = splitext(self.filepath)[0]
+        if not (self.remove_active or getattr(self, "remove_name", False)):
+            wm = context.window_manager
+            return wm.invoke_props_dialog(self)
+        else:
+            return self.execute(context)
+
 
 class ClearArmatureRetarget(Operator):
+    """Clear Retarget Settings of active skeleton"""
     bl_idname = "object.expy_kit_armature_clear"
     bl_label = "Clear Retarget Settings"
     bl_options = {'REGISTER', 'UNDO'}
@@ -557,6 +547,21 @@ class VIEW3D_MT_retarget_presets(Menu):
     preset_operator = ExecutePresetArmatureRetarget.bl_idname
     draw = Menu.draw_preset
 
+    # fires before executing a preset
+    @classmethod
+    def reset_cb_va(cls, context):
+        preset_handler.reset_skeleton(context.object.data.expykit_retarget)
+
+    # fires after executing a preset
+    @classmethod
+    def post_cb_va(cls, context):
+        from os.path import basename
+        # here we register the last used preset name
+        context.object.data.expykit_retarget.last_used_preset = basename(cls.filepath)
+        # and postprocess retarget settings
+        preset_handler.validate_preset(context.object.data)
+        preset_handler.reset_preset_names(context.object.data.expykit_retarget)
+
 
 # for blender < 2.79 we use the binding command in the pose mode specials menu instead
 if bpy.app.version >= (2, 79, 0):
@@ -665,10 +670,12 @@ class VIEW3D_PT_expy_retarget(RetargetBasePanel, bpy.types.Panel):
     bl_label = "Expy Mapping"
 
     def draw(self, context):
+        from os.path import splitext
         layout = self.layout
 
         split = layout_split(layout, factor=0.75)
-        split.menu(VIEW3D_MT_retarget_presets.__name__, text=VIEW3D_MT_retarget_presets.bl_label)
+        split.menu(VIEW3D_MT_retarget_presets.__name__,
+                   text=splitext(context.object.data.expykit_retarget.last_used_preset)[0])
         row = split.row(align=True)
         row.operator(AddPresetArmatureRetarget.bl_idname, text="+")
         row.operator(AddPresetArmatureRetarget.bl_idname, text="-").remove_active = True
