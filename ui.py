@@ -541,6 +541,65 @@ class MirrorSettings(Operator):
         return {'FINISHED'}
 
 
+@make_annotations
+class MenuItemOperator(Operator):
+    """operator for the string selector menu"""
+    bl_idname = "expy_kit.menu_item_setter"
+    bl_label = "dummy"
+    bl_options = {'INTERNAL'}
+
+    # python expression to find the target object
+    target_object = StringProperty(options={'SKIP_SAVE'})
+
+    # the property name to store the selection inside the target object
+    target_attr = StringProperty(options={'SKIP_SAVE'})
+
+    # current value to set
+    item_value = StringProperty(options={'SKIP_SAVE'})
+
+    menu_idname = StringProperty(
+            name="Menu ID Name",
+            description="ID name of the menu this was called from",
+            options={'SKIP_SAVE'},
+            )
+
+    def execute(self, context):
+        # change the menu title to the most recently chosen option
+        menu_class = getattr(bpy.types, self.menu_idname)
+        menu_class.bl_label = self.item_value
+        obj = eval(self.target_object)
+        setattr(obj, self.target_attr, self.item_value)
+        return {'FINISHED'}
+
+
+class VIEW3D_MT_DeformPreset(Menu):
+    """Retarget preset for deformation bones"""
+    bl_label = ""
+    item_operator = MenuItemOperator.bl_idname
+
+    target_object = "context.object.data.expykit_retarget"
+    target_attr = "deform_preset"
+
+    def draw(self, context):
+        items = list(preset_handler.iterate_presets(context.scene, context))
+
+        layout = self.layout
+        col = layout.column(align=True)
+
+        for (raw, display, _) in items:
+            row = col.row(align=True)
+            name = display or raw
+            props = row.operator(
+                self.item_operator,
+                text=name,
+                translate=False,
+            )
+            props.menu_idname = self.bl_idname
+            props.target_object = self.target_object
+            props.target_attr = self.target_attr
+            props.item_value = raw
+
+
 class VIEW3D_MT_retarget_presets(Menu):
     bl_label = "Retarget Presets"
     preset_subdir = AddPresetArmatureRetarget.preset_subdir
@@ -877,6 +936,7 @@ class VIEW3D_PT_expy_retarget_root(RetargetBasePanel, bpy.types.Panel):
     bl_label = "Root"
 
     def draw(self, context):
+        from os.path import splitext
         ob = context.object
         layout = self.layout
 
@@ -890,7 +950,8 @@ class VIEW3D_PT_expy_retarget_root(RetargetBasePanel, bpy.types.Panel):
 
         layout.separator()
         row = layout.row()
-        row.prop(skeleton, 'deform_preset')
+        row.label(text="Deformation Bones:")
+        row.menu(VIEW3D_MT_DeformPreset.__name__, text=splitext(skeleton.deform_preset)[0])
 
         row = layout.row()
         row.operator(ClearArmatureRetarget.bl_idname, text="Clear All")
@@ -909,6 +970,8 @@ def register_classes():
 
     bpy.utils.register_class(ClearArmatureRetarget)
     bpy.utils.register_class(VIEW3D_MT_retarget_presets)
+    bpy.utils.register_class(MenuItemOperator)
+    bpy.utils.register_class(VIEW3D_MT_DeformPreset)
     bpy.utils.register_class(ExecutePresetArmatureRetarget)
     bpy.utils.register_class(AddPresetArmatureRetarget)
 
@@ -949,7 +1012,10 @@ def register_classes():
     bpy.types.DOPESHEET_HT_header.append(action_header_buttons)
 
 
+
 def unregister_classes():
+    bpy.utils.unregister_class(VIEW3D_MT_DeformPreset)
+    bpy.utils.unregister_class(MenuItemOperator)
     bpy.utils.unregister_class(VIEW3D_MT_retarget_presets)
     bpy.utils.unregister_class(AddPresetArmatureRetarget)
     bpy.utils.unregister_class(ExecutePresetArmatureRetarget)
