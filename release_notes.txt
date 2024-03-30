@@ -1,7 +1,15 @@
 
 version 0.6
 
+- Now it's compatible with Blender from v2.76 on
 - "Rigify Game Friendly": fix twist reparent on right side
+- "Extract metarig" supports older rigify (from 0.4)
+- "Mirror Settings to the other side" - uses bone names to find mirrored candidates
+- "Mirror Settings to the other side" - copies also emptied slots
+- "Retarget presets" menu now shows last preset name used for the active armature
+- "Add a Bone Retarget Preset" button now reuses the last preset name used for the active armature
+- "Deformation Bones" preset name now doesn't change on preset directory files order change
+
 
 version 0.6
 
