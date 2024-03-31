@@ -496,8 +496,8 @@ class RigifyMeta(HumanSkeleton):
                 head='head',
                 neck='neck',
                 spine2='chest',
-                spine1='spine',
-                spine='',
+                spine1='',
+                spine='spine',
                 hips='hips'
             )
 
@@ -509,10 +509,10 @@ class RigifyMeta(HumanSkeleton):
 
         self.left_fingers = HumanFingers(
             thumb=["thumb.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
-            index=["f_index.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
-            middle=["f_middle.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
-            ring=["f_ring.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
-            pinky=["f_pinky.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
+            index=["f_index.{1:02d}.{0}".format(side, i) for i in range(1, 4)] + ["palm.01.{}".format(side)],
+            middle=["f_middle.{1:02d}.{0}".format(side, i) for i in range(1, 4)] + ["palm.02.{}".format(side)],
+            ring=["f_ring.{1:02d}.{0}".format(side, i) for i in range(1, 4)] + ["palm.03.{}".format(side)],
+            pinky=["f_pinky.{1:02d}.{0}".format(side, i) for i in range(1, 4)] + ["palm.04.{}".format(side)],
         )
 
         self.left_leg = HumanLeg(upleg="thigh.{0}".format(side),
@@ -528,10 +528,10 @@ class RigifyMeta(HumanSkeleton):
 
         self.right_fingers = HumanFingers(
             thumb=["thumb.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
-            index=["f_index.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
-            middle=["f_middle.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
-            ring=["f_ring.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
-            pinky=["f_pinky.{1:02d}.{0}".format(side, i) for i in range(1, 4)],
+            index=["f_index.{1:02d}.{0}".format(side, i) for i in range(1, 4)] + ["palm.01.{}".format(side)],
+            middle=["f_middle.{1:02d}.{0}".format(side, i) for i in range(1, 4)] + ["palm.02.{}".format(side)],
+            ring=["f_ring.{1:02d}.{0}".format(side, i) for i in range(1, 4)] + ["palm.03.{}".format(side)],
+            pinky=["f_pinky.{1:02d}.{0}".format(side, i) for i in range(1, 4)] + ["palm.04.{}".format(side)],
         )
 
         self.right_leg = HumanLeg(upleg="thigh.{0}".format(side),
