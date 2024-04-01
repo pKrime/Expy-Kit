@@ -717,6 +717,38 @@ class ExtractMetarig(bpy.types.Operator):
             from rigify.metarigs import human
             human.create(metarig)
 
+        def match_meta_spine(met_bone_group, src_bone_group, bone_attrs, axis=None):
+            # find existing bones
+            ms_bones = []
+            for bone_attr in bone_attrs:
+                met_bone_name = getattr(met_bone_group, bone_attr, None)
+                met_bone = met_armature.edit_bones.get(met_bone_name, None) if met_bone_name else None
+                src_bone_name = getattr(src_bone_group, bone_attr, None)
+                src_bone = src_armature.bones.get(src_bone_name, None) if src_bone_name else None
+                ms_bones.append((met_bone, src_bone))
+            # terminators must exist anyway
+            if not (ms_bones[0][0] and ms_bones[0][1] and ms_bones[-1][0] and ms_bones[-1][1]):
+                self.report({'ERROR'}, "First and last bone in the chain ({}..{}) must exist".format(bone_attrs[0], bone_attrs[-1]))
+                return
+
+            met_bones_to_kill = {ms[0] for ms in ms_bones if not ms[1]}
+
+            # place matched bones and set their rolls
+            for met_bone, src_bone in ((ms[0], ms[1]) for ms in ms_bones if ms[0] and ms[1]):
+
+                met_bone.head = src_bone.head_local
+                met_bone.tail = src_bone.tail_local
+
+                if axis:
+                    met_bone.roll = bone_utils.ebone_roll_to_vector(met_bone, axis)
+                else:
+                    src_x_axis = matmul(Vector((0.0, 0.0, 1.0)), src_bone.matrix_local.inverted().to_3x3())
+                    src_x_axis.normalize()
+                    met_bone.roll = bone_utils.ebone_roll_to_vector(met_bone, src_x_axis)
+
+            for met_bone in met_bones_to_kill:
+                met_bone.length = 0.0
+
         def match_meta_bone(met_bone_group, src_bone_group, bone_attr, axis=None):
             try:
                 met_bone = met_armature.edit_bones[getattr(met_bone_group, bone_attr)]
@@ -749,12 +781,13 @@ class ExtractMetarig(bpy.types.Operator):
 
             return met_bone
 
-        for bone_attr in ['hips', 'spine', 'spine1', 'spine2', 'neck', 'head']:
-            if self.forward_spine_roll:
-                align = Vector((0.0, -1.0, 0.0))
-            else:
-                align = None
-            match_meta_bone(met_skeleton.spine, src_skeleton.spine, bone_attr, axis=align)
+        if self.forward_spine_roll:
+            align = Vector((0.0, -1.0, 0.0))
+        else:
+            align = None
+        match_meta_spine(met_skeleton.spine, src_skeleton.spine,
+                         ('hips', 'spine', 'spine1', 'spine2', 'neck', 'head'),
+                         axis=align)
 
         for bone_attr in ['shoulder', 'arm', 'forearm', 'hand']:
             match_meta_bone(met_skeleton.right_arm, src_skeleton.right_arm, bone_attr)
@@ -1016,6 +1049,15 @@ class ExtractMetarig(bpy.types.Operator):
             else:
                 # in rigify 0.4, 0.5 it's partially implemented, but we set it ourselves as custom prop
                 metarig["rig_object_name"] = src_object.name
+        else:
+            if create_metarig:
+                if bone_mapping.rigify_version <= (0, 5):
+                    # help older rigify to avoid using hardcoded name 'rig'
+                    _name = metarig.name.replace("meta","")
+                    _name = _name.replace("Meta","")
+                    _name = _name.replace("META","")
+                    if _name != metarig.name:
+                        metarig["rig_object_name"] = _name
 
         metarig.parent = src_object.parent
 
