@@ -720,6 +720,32 @@ class ExtractMetarig(bpy.types.Operator):
             from rigify.metarigs import human
             human.create(metarig)
 
+        # measure some original meta proportions for later use
+        def get_body_proportions():
+            props = {}
+            bone_pairs = []
+            for attr in ("hips", "head", "neck", "spine2"):
+                try:
+                    met_bone = met_armature.edit_bones[getattr(met_skeleton.spine, attr)]
+                    src_bone = src_armature.bones[getattr(src_skeleton.spine, attr)]
+                except:
+                    continue
+                if met_bone and src_bone:
+                    bone_pairs.append((attr, met_bone, src_bone))
+                    if len(bone_pairs) > 1:
+                        break
+            if len(bone_pairs) < 2 or bone_pairs[0][0] != "hips":
+                return None
+
+            met_body_vector = bone_pairs[1][1].head - bone_pairs[0][1].head
+            src_body_vector = bone_pairs[1][2].head_local - bone_pairs[0][2].head_local
+
+            props["body_scale"] = src_body_vector.length / met_body_vector.length
+            props["hips_head"] = bone_pairs[0][1].head.copy()
+            return props
+
+        body_proportions = get_body_proportions()
+
         def match_meta_spine(met_bone_group, src_bone_group, bone_attrs, axis=None):
             # find existing bones
             ms_bones = []
@@ -958,17 +984,28 @@ class ExtractMetarig(bpy.types.Operator):
                 except KeyError:
                     pass
                 else:
-                    pelvis_bone.head = spine_bone.head
-                    pelvis_bone.tail.z = spine_bone.tail.z
+                    offset = spine_bone.head - pelvis_bone.head
+                    pelvis_bone.translate(offset)
+                    if body_proportions:
+                        pelvis_bone.length *= body_proportions["body_scale"]
 
                 try:
-                    spine_bone = met_armature.edit_bones[met_skeleton.spine.spine2]
+                    if body_proportions:
+                        spine_bone = met_armature.edit_bones[met_skeleton.spine.hips]
+                    else:
+                        spine_bone = met_armature.edit_bones[met_skeleton.spine.spine2]
                     breast_bone = met_armature.edit_bones['breast.' + side]
                 except KeyError:
                     pass
                 else:
-                    breast_bone.head.z = spine_bone.head.z
-                    breast_bone.tail.z = spine_bone.head.z
+                    if body_proportions:
+                        offset0 = (breast_bone.head - body_proportions["hips_head"])
+                        offset = (offset0 * body_proportions["body_scale"] - offset0 +
+                                  (spine_bone.head - body_proportions["hips_head"]))
+                    else:
+                        offset = spine_bone.head - breast_bone.head
+                        offset.x = 0.0
+                    breast_bone.translate(offset)
 
         if self.no_face:
             for bone_name in rigify_face_bones:
