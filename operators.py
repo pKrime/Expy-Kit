@@ -843,22 +843,29 @@ class ExtractMetarig(bpy.types.Operator):
                 print(bone_attr, "not found in", src_armature)
                 return
 
+            # handle palm bones
             if 'thumb' not in bone_attr:
+                # check if it's already mapped in 'meta' limb
                 try:
-                    met_bone = met_armature.edit_bones[met_bone_names[0]]
-                    src_bone = src_armature.bones.get(src_bone_names[0], None)
-                except KeyError:
+                    met_bone = met_armature.edit_bones[met_bone_names[3]]
+                    src_bone = src_armature.bones.get(src_bone_names[3])
+                except Exception:
                     pass
-                else:
-                    if src_bone:
-                        palm_bone = met_bone.parent
+                if not met_bone or not src_bone:
+                    try:
+                        met_bone = met_armature.edit_bones[met_bone_names[0]]
+                        src_bone = src_armature.bones.get(src_bone_names[0], None)
+                    except KeyError:
+                        pass
+                    else:
+                        if src_bone:
+                            palm_bone = met_bone.parent
+                            palm_bone.tail = src_bone.head_local
+                            hand_bone = palm_bone.parent
+                            palm_bone.head = hand_bone.head * 0.75 + src_bone.head_local * 0.25
+                            palm_bone.roll = 0
 
-                        palm_bone.tail = src_bone.head_local
-                        hand_bone = palm_bone.parent
-                        palm_bone.head = hand_bone.head * 0.75 + src_bone.head_local * 0.25
-                        palm_bone.roll = 0
-
-            for met_bone_name, src_bone_name in zip(met_bone_names, src_bone_names):
+            for i, (met_bone_name, src_bone_name) in enumerate(zip(met_bone_names, src_bone_names)):
                 if not src_bone_name:
                     continue
                 try:
@@ -872,7 +879,17 @@ class ExtractMetarig(bpy.types.Operator):
                 try:
                     met_bone.tail = src_bone.children[0].head_local
                 except IndexError:
-                    bone_utils.align_to_closer_axis(src_bone, met_bone)
+                    try:
+                        if i < 2:
+                            src_bone_next = src_armature.bones[src_bone_names[i + 1]]
+                        elif i == 3: # palm
+                            src_bone_next = src_armature.bones[src_bone_names[0]]
+                        else:
+                            raise KeyError()
+                    except KeyError:
+                        bone_utils.align_to_closer_axis(src_bone, met_bone)
+                    else:
+                        met_bone.tail = src_bone_next.head_local
 
                 met_bone.roll = 0.0
 
@@ -890,8 +907,7 @@ class ExtractMetarig(bpy.types.Operator):
                     offset_fingers /= 100
 
                 if met_bone.parent.name in met_bone_names and met_bone.children:
-                    met_bone.head += offset_fingers
-                    met_bone.tail += offset_fingers
+                    met_bone.translate(offset_fingers)
 
         for bone_attr in ['thumb', 'index', 'middle', 'ring', 'pinky']:
             match_meta_fingers(met_skeleton.right_fingers, src_skeleton.right_fingers, bone_attr)
