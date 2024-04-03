@@ -692,6 +692,9 @@ class ExtractMetarig(bpy.types.Operator):
         bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.select_all(action='DESELECT')
 
+        # getting real z_axes for src rest pose
+        src_z_axes = bone_utils.get_rest_z_axes(src_object, context)
+
         if bpy.app.version < (2, 80):
             metarig.select = True
             context.scene.objects.active = metarig
@@ -742,9 +745,8 @@ class ExtractMetarig(bpy.types.Operator):
                 if axis:
                     met_bone.roll = bone_utils.ebone_roll_to_vector(met_bone, axis)
                 else:
-                    src_x_axis = matmul(Vector((0.0, 0.0, 1.0)), src_bone.matrix_local.inverted().to_3x3())
-                    src_x_axis.normalize()
-                    met_bone.roll = bone_utils.ebone_roll_to_vector(met_bone, src_x_axis)
+                    src_z_axis = src_z_axes[src_bone.name]
+                    met_bone.align_roll(src_z_axis)
 
             for met_bone in met_bones_to_kill:
                 met_bone.length = 0.0
@@ -775,9 +777,8 @@ class ExtractMetarig(bpy.types.Operator):
             if axis:
                 met_bone.roll = bone_utils.ebone_roll_to_vector(met_bone, axis)
             else:
-                src_x_axis = matmul(Vector((0.0, 0.0, 1.0)), src_bone.matrix_local.inverted().to_3x3())
-                src_x_axis.normalize()
-                met_bone.roll = bone_utils.ebone_roll_to_vector(met_bone, src_x_axis)
+                src_z_axis = src_z_axes[src_bone.name]
+                met_bone.align_roll(src_z_axis)
 
             return met_bone
 
@@ -863,7 +864,9 @@ class ExtractMetarig(bpy.types.Operator):
                             palm_bone.tail = src_bone.head_local
                             hand_bone = palm_bone.parent
                             palm_bone.head = hand_bone.head * 0.75 + src_bone.head_local * 0.25
-                            palm_bone.roll = 0
+                            # not a big deal to match palm's roll with the proximal's
+                            src_z_axis = src_z_axes[src_bone.name]
+                            palm_bone.align_roll(src_z_axis)
 
             for i, (met_bone_name, src_bone_name) in enumerate(zip(met_bone_names, src_bone_names)):
                 if not src_bone_name:
@@ -891,14 +894,8 @@ class ExtractMetarig(bpy.types.Operator):
                     else:
                         met_bone.tail = src_bone_next.head_local
 
-                met_bone.roll = 0.0
-
-                src_z_axis = matmul(Vector((0.0, 0.0, 1.0)), src_bone.matrix_local.to_3x3())
-
-                inv_rot = met_bone.matrix.to_3x3().inverted()
-                trg_z_axis = matmul(src_z_axis, inv_rot)
-                dot_z = (matmul(met_bone.z_axis, met_bone.matrix.inverted())).dot(trg_z_axis)
-                met_bone.roll = dot_z * pi
+                src_z_axis = src_z_axes[src_bone.name]
+                met_bone.align_roll(src_z_axis)
 
                 offset_fingers = matmul(Vector(self.offset_fingers), src_bone.matrix_local.to_3x3())
                 if met_bone.head.x < 0:  # Right side
@@ -956,7 +953,7 @@ class ExtractMetarig(bpy.types.Operator):
                 heel_bone.tail.x = heel_tail
 
                 try:
-                    spine_bone = met_armature.edit_bones['spine']
+                    spine_bone = met_armature.edit_bones[met_skeleton.spine.hips]
                     pelvis_bone = met_armature.edit_bones['pelvis.' + side]
                 except KeyError:
                     pass
@@ -965,7 +962,7 @@ class ExtractMetarig(bpy.types.Operator):
                     pelvis_bone.tail.z = spine_bone.tail.z
 
                 try:
-                    spine_bone = met_armature.edit_bones['spine.003']
+                    spine_bone = met_armature.edit_bones[met_skeleton.spine.spine2]
                     breast_bone = met_armature.edit_bones['breast.' + side]
                 except KeyError:
                     pass

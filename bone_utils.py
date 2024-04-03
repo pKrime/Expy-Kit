@@ -697,3 +697,24 @@ def lrl_strip(bone): # bone: str, Bone, PoseBone, EditBone
         _new = name.replace(_, "")
         name = _new or name
     return name
+
+def get_rest_z_axes(obj, context):
+    """returns {pbone.name : z_axis} for obj's rest pose"""
+    axes = {}
+    old_mode = obj.data.pose_position
+    if old_mode != 'REST':
+        obj.data.pose_position = 'REST'
+        if bpy.app.version < (2, 80):
+            context.scene.update()
+        else:
+            context.view_layer.update()
+    for pb in obj.pose.bones:
+        axes[pb.name] = pb.z_axis
+    if old_mode != 'REST':
+        obj.data.pose_position = old_mode
+        if bpy.app.version < (2, 80):
+            context.scene.update()
+        else:
+            context.view_layer.update()
+    return axes
+
