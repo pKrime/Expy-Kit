@@ -427,48 +427,91 @@ class DazGenesis8(HumanSkeleton):
 
 class RigifySkeleton(HumanSkeleton):
     def __init__(self):
-        self.face = SimpleFace(
-            jaw='DEF-jaw',
-            left_eye='DEF-eye.L',
-            right_eye='DEF-eye.R'
-        )
+        if rigify_version >= (0, 5):
+            self.face = SimpleFace(
+                jaw='DEF-jaw',
+                left_eye='DEF-eye.L',
+                right_eye='DEF-eye.R'
+            )
 
-        self.spine = HumanSpine(
-            head='DEF-spine.006',
-            neck='DEF-spine.004',
-            spine2='DEF-spine.003',
-            spine1='DEF-spine.002',
-            spine='DEF-spine.001',
-            hips='DEF-spine'
-        )
+            self.spine = HumanSpine(
+                head='DEF-spine.006',
+                neck='DEF-spine.004',
+                spine2='DEF-spine.003',
+                spine1='DEF-spine.002',
+                spine='DEF-spine.001',
+                hips='DEF-spine'
+            )
+        else:
+            self.face = SimpleFace()
+
+            self.spine = HumanSpine(
+                head='DEF-head',
+                neck='DEF-neck',
+                spine2='DEF-chest',
+                spine1='',
+                spine='DEF-spine',
+                hips='DEF-hips'
+            )
+
+
         self.root = 'root'
 
         for side, side_letter in zip(('left', 'right'), ('L', 'R')):
-            arm = HumanArm(shoulder="DEF-shoulder.{0}".format(side_letter),
-                           arm="DEF-upper_arm.{0}".format(side_letter),
-                           forearm="DEF-forearm.{0}".format(side_letter),
-                           hand="DEF-hand.{0}".format(side_letter))
+            if rigify_version >= (0, 5):
+                arm = HumanArm(shoulder="DEF-shoulder.{0}".format(side_letter),
+                               arm="DEF-upper_arm.{0}".format(side_letter),
+                               forearm="DEF-forearm.{0}".format(side_letter),
+                               hand="DEF-hand.{0}".format(side_letter))
 
-            arm.arm_twist = arm.arm + ".001"
-            arm.forearm_twist = arm.forearm + ".001"
+                arm.arm_twist = arm.arm + ".001"
+                arm.forearm_twist = arm.forearm + ".001"
+            else:
+                arm = HumanArm(shoulder="DEF-shoulder.{0}".format(side_letter),
+                               arm="DEF-upper_arm.01.{0}".format(side_letter),
+                               forearm="DEF-forearm.01.{0}".format(side_letter),
+                               hand="DEF-hand.{0}".format(side_letter))
+
+                arm.arm_twist = arm.arm.replace("01", "02")
+                arm.forearm_twist = arm.forearm.replace("01", "02")
+
             setattr(self, side + "_arm", arm)
 
-            fingers = HumanFingers(
-                thumb=["DEF-thumb.{1:02d}.{0}".format(side_letter, i) for i in range(1, 4)],
-                index=["DEF-f_index.{1:02d}.{0}".format(side_letter, i) for i in range(1, 4)],
-                middle=["DEF-f_middle.{1:02d}.{0}".format(side_letter, i) for i in range(1, 4)],
-                ring=["DEF-f_ring.{1:02d}.{0}".format(side_letter, i) for i in range(1, 4)],
-                pinky=["DEF-f_pinky.{1:02d}.{0}".format(side_letter, i) for i in range(1, 4)],
-            )
+            if rigify_version >= (0, 5):
+                fingers = HumanFingers(
+                    thumb=["DEF-thumb.{1:02d}.{0}".format(side_letter, i) for i in range(1, 4)],
+                    index=["DEF-f_index.{1:02d}.{0}".format(side_letter, i) for i in range(1, 4)] + ["DEF-palm.01.{}".format(side_letter)],
+                    middle=["DEF-f_middle.{1:02d}.{0}".format(side_letter, i) for i in range(1, 4)] + ["DEF-palm.02.{}".format(side_letter)],
+                    ring=["DEF-f_ring.{1:02d}.{0}".format(side_letter, i) for i in range(1, 4)] + ["DEF-palm.03.{}".format(side_letter)],
+                    pinky=["DEF-f_pinky.{1:02d}.{0}".format(side_letter, i) for i in range(1, 4)] + ["DEF-palm.04.{}".format(side_letter)],
+                )
+            else:
+                fingers = HumanFingers(
+                    thumb=["DEF-thumb.01.{0}.01".format(side_letter)] + ["DEF-thumb.{1:02d}.{0}".format(side_letter, i) for i in range(2, 4)],
+                    index=["DEF-f_index.01.{0}.01".format(side_letter)] + ["DEF-f_index.{1:02d}.{0}".format(side_letter, i) for i in range(2, 4)] + ["DEF-palm.01.{}".format(side_letter)],
+                    middle=["DEF-f_middle.01.{0}.01".format(side_letter)] + ["DEF-f_middle.{1:02d}.{0}".format(side_letter, i) for i in range(2, 4)] + ["DEF-palm.02.{}".format(side_letter)],
+                    ring=["DEF-f_ring.01.{0}.01".format(side_letter)] + ["DEF-f_ring.{1:02d}.{0}".format(side_letter, i) for i in range(2, 4)] + ["DEF-palm.03.{}".format(side_letter)],
+                    pinky=["DEF-f_pinky.01.{0}.01".format(side_letter)] + ["DEF-f_pinky.{1:02d}.{0}".format(side_letter, i) for i in range(2, 4)] + ["DEF-palm.04.{}".format(side_letter)],
+                )
             setattr(self, side + "_fingers", fingers)
 
-            leg = HumanLeg(upleg="DEF-thigh.{0}".format(side_letter),
-                           leg="DEF-shin.{0}".format(side_letter),
-                           foot="DEF-foot.{0}".format(side_letter),
-                           toe="DEF-toe.{0}".format(side_letter))
+            if rigify_version >= (0, 5):
+                leg = HumanLeg(upleg="DEF-thigh.{0}".format(side_letter),
+                               leg="DEF-shin.{0}".format(side_letter),
+                               foot="DEF-foot.{0}".format(side_letter),
+                               toe="DEF-toe.{0}".format(side_letter))
 
-            leg.upleg_twist = leg.upleg + ".001"
-            leg.leg_twist = leg.leg + ".001"
+                leg.upleg_twist = leg.upleg + ".001"
+                leg.leg_twist = leg.leg + ".001"
+            else:
+                leg = HumanLeg(upleg="DEF-thigh.01.{0}".format(side_letter),
+                               leg="DEF-shin.01.{0}".format(side_letter),
+                               foot="DEF-foot.{0}".format(side_letter),
+                               toe="DEF-toe.{0}".format(side_letter))
+
+                leg.upleg_twist = leg.upleg.replace("01","02")
+                leg.leg_twist = leg.leg.replace("01","02")
+
             setattr(self, side + "_leg", leg)
 
 

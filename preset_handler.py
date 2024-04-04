@@ -93,6 +93,7 @@ def validate_preset(armature_data, separator=':'):
 
 
 def set_preset_skel(preset, validate=True):
+    """reads given preset into the active armature's settings"""
     if not preset:
         return
     if not preset.endswith(".py"):
@@ -102,25 +103,30 @@ def set_preset_skel(preset, validate=True):
     if not os.path.isfile(preset_path):
         return
 
+    settings = bpy.context.active_object.data.expykit_retarget
+
     if hasattr(importlib.util, "module_from_spec"):
         spec = importlib.util.spec_from_file_location("sel_preset", preset_path)
         preset_mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(preset_mod)
 
         if validate:
-            validate_preset(bpy.context.active_object.data)
+            validate_preset(settings.id_data)
 
         mapping = get_settings_skel(preset_mod.skeleton)
     else:
         # python <3.5. using a crutch
-        mapping = get_preset_skel(preset, bpy.context.active_object.data.expykit_retarget)
+        mapping = get_preset_skel(preset, settings=settings, validate=False)
 
         if validate:
-            validate_preset(bpy.context.active_object.data)
+            validate_preset(settings.id_data)
 
+        reset_preset_names(settings)
     return mapping
 
-def get_preset_skel(preset, settings=None):
+
+def get_preset_skel(preset, settings=None, validate=True):
+    """reads given preset into the given settings"""
     if not preset:
         return
     if not preset.endswith(".py"):
@@ -132,6 +138,7 @@ def get_preset_skel(preset, settings=None):
 
     # run preset on current settings if there are any, otherwise create Preset settings
     # the attributes of 'skeleton' are set in the preset
+    _new_skeleton = settings is None
     skeleton = settings if settings else PresetSkeleton()
 
     # HACKISH: executing the preset would apply it to the current armature (target).
@@ -143,11 +150,12 @@ def get_preset_skel(preset, settings=None):
     code.body.pop(0)  # remove line 'skeleton = bpy.context.object.data.expykit_retarget' from preset
     eval(compile(code, '', 'exec'))
 
-    if settings:
+    if settings and validate:
         validate_preset(settings.id_data)
 
     mapping = HumanSkeleton(preset=skeleton)
-    del skeleton
+    if _new_skeleton:
+        del skeleton
 
     return mapping
 
@@ -228,6 +236,7 @@ class PresetSkeleton:
         self.root = ""
 
     def copy(self, settings):
+        """self <- settings"""
         for group in ('spine', 'left_arm', 'left_arm_ik', 'right_arm', 'right_arm_ik',
                       'right_leg', 'right_leg_ik', 'left_leg', 'left_leg_ik', 'face'):
             setting = getattr(self, group)

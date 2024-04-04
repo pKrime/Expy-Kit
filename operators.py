@@ -513,7 +513,8 @@ class ExtractMetarig(bpy.types.Operator):
                           default=True)
 
     rigify_names = BoolProperty(name='Use rigify names',
-                               default=True)
+                               default=True,
+                               description="Rename source rig bones to match Rigify Deform preset")
 
     assign_metarig = BoolProperty(name='Assign metarig',
                                  default=True,
@@ -523,7 +524,7 @@ class ExtractMetarig(bpy.types.Operator):
                                      description='Spine Z will face the Y axis')
 
     apply_transforms = BoolProperty(name='Apply Transform', default=True,
-                                   description='Apply current transforms before extraction')
+                                   description='Apply current source transforms before extraction')
 
     def draw(self, context):
         layout = self.layout
@@ -598,6 +599,8 @@ class ExtractMetarig(bpy.types.Operator):
                 src_settings = preset_handler.PresetSkeleton()
                 src_settings.copy(current_settings)
                 src_skeleton = preset_handler.get_settings_skel(src_settings)
+        elif self.rig_preset == "--":
+            src_skeleton = None
         else:
             src_skeleton = preset_handler.set_preset_skel(self.rig_preset)
             current_settings = context.object.data.expykit_retarget
@@ -618,14 +621,16 @@ class ExtractMetarig(bpy.types.Operator):
 
         met_skeleton = bone_mapping.RigifyMeta()
 
-        src_to_met_map = src_skeleton.conversion_map(met_skeleton)
-
         if self.rigify_names:
             # check if doesn't contain rigify deform bones already
-            bones_needed = met_skeleton.spine.hips, met_skeleton.spine.spine
+            bones_needed = met_skeleton.spine.hips, met_skeleton.spine.spine, met_skeleton.spine.spine1
             if not [b for b in bones_needed if b in src_armature.bones]:
                 # Converted settings should not be validated yet, as bones have not been renamed
-                src_skeleton, trg_skeleton = ConvertBoneNaming.convert_settings(current_settings, 'Rigify_Deform.py', validate=False)
+                if bone_mapping.rigify_version < (0, 5):
+                    _preset_name = 'Rigify_Deform_0_4.py'
+                else:
+                    _preset_name = 'Rigify_Deform.py'
+                src_skeleton, trg_skeleton = ConvertBoneNaming.convert_settings(current_settings, _preset_name, validate=False)
                 ConvertBoneNaming.rename_bones(context, src_skeleton, trg_skeleton, skip_ik=True)
                 src_skeleton = bone_mapping.RigifySkeleton()
 
@@ -640,7 +645,7 @@ class ExtractMetarig(bpy.types.Operator):
                         # supercopy def bones start with DEF-
                         bone_name = getattr(src_skeleton.face, name_attr)
 
-                        if not bone_name.startswith('DEF-'):
+                        if bone_name and not bone_name.startswith('DEF-'):
                             new_name = "DEF-{}".format(bone_name)
                             try:
                                 context.object.data.bones[bone_name].name = new_name
@@ -649,6 +654,7 @@ class ExtractMetarig(bpy.types.Operator):
                             else:
                                 setattr(src_skeleton.face, name_attr, new_name)
 
+        src_to_met_map = src_skeleton.conversion_map(met_skeleton)
 
         # bones that have rigify attr will be copied when the metarig is in edit mode
         additional_bones = [(b.name, b.rigify_type) for b in src_object.pose.bones if b.rigify_type]
@@ -689,11 +695,11 @@ class ExtractMetarig(bpy.types.Operator):
             met_armature = metarig.data
             create_metarig = False
 
-        bpy.ops.object.mode_set(mode='OBJECT')
-        bpy.ops.object.select_all(action='DESELECT')
-
         # getting real z_axes for src rest pose
         src_z_axes = bone_utils.get_rest_z_axes(src_object, context)
+
+        bpy.ops.object.mode_set(mode='OBJECT')
+        bpy.ops.object.select_all(action='DESELECT')
 
         if bpy.app.version < (2, 80):
             metarig.select = True
@@ -760,7 +766,7 @@ class ExtractMetarig(bpy.types.Operator):
                 self.report({'ERROR'}, "First and last bone in the chain ({}..{}) must exist".format(bone_attrs[0], bone_attrs[-1]))
                 return
 
-            met_bones_to_kill = {ms[0] for ms in ms_bones if not ms[1]}
+            met_bones_to_kill = {ms[0] for ms in ms_bones if ms[0] and not ms[1]}
 
             # place matched bones and set their rolls
             for met_bone, src_bone in ((ms[0], ms[1]) for ms in ms_bones if ms[0] and ms[1]):
