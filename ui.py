@@ -357,6 +357,9 @@ class AddPresetArmatureRetarget(AddPresetBase, Operator):
             # it's already basename
             context.object.data.expykit_retarget.last_used_preset = preset_class.filepath
 
+    def as_filename(self, name):
+        return AddPresetBase.as_filename(name).title()
+
     def execute(self, context):
         # passing filepath (basename, not full) via the menu
         preset_class = getattr(bpy.types, self.preset_menu)
