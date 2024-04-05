@@ -44,7 +44,8 @@ class RetargetArm(RetargetBase, PropertyGroup):
     forearm_twist_02 = StringProperty(name="forearm_twist_02")
     hand = StringProperty(name="hand")
 
-    name = StringProperty(default='arm')
+    name = StringProperty(default='arm', options={'HIDDEN'},
+                          get=lambda s:"arm", set=lambda a,b:None)
 
 
 @make_annotations
@@ -58,7 +59,8 @@ class RetargetLeg(RetargetBase, PropertyGroup):
     foot = StringProperty(name="foot")
     toe = StringProperty(name="toe")
 
-    name = StringProperty(default='leg')
+    name = StringProperty(default='leg', options={'HIDDEN'},
+                          get=lambda s:"leg", set=lambda a,b:None)
 
 
 @make_annotations
@@ -77,7 +79,8 @@ class RetargetFingers(RetargetBase, PropertyGroup):
     ring = PointerProperty(type=RetargetFinger)
     pinky = PointerProperty(type=RetargetFinger)
 
-    name = StringProperty(default='fingers')
+    name = StringProperty(default='fingers', options={'HIDDEN'},
+                          get=lambda s:"fingers", set=lambda a,b:None)
 
 
 @make_annotations
@@ -124,7 +127,7 @@ class RetargetSettings(RetargetBase, PropertyGroup):
     deform_preset = StringProperty(name="Deformation Bones", subtype='FILE_NAME', default="--")
 
     last_used_preset = StringProperty(
-        name="Last used preset", default="", description="Preset from which the settings were loaded from (or saved to).",
+        name="Last used preset", description="Preset from which the settings were loaded from (or saved to).",
         options={'SKIP_SAVE','HIDDEN'}) # base name, not a full path
 
 

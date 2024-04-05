@@ -72,6 +72,8 @@ def validate_preset(armature_data, separator=':'):
 
         trg_setting = getattr(settings, group)
         for k, v in trg_setting.items():
+            if k == "name":
+                continue
             try:
                 if v not in armature_data.bones:
                     with_prefix = prefix + v
@@ -121,7 +123,6 @@ def set_preset_skel(preset, validate=True):
         if validate:
             validate_preset(settings.id_data)
 
-        reset_preset_names(settings)
     return mapping
 
 
@@ -160,24 +161,6 @@ def get_preset_skel(preset, settings=None, validate=True):
     return mapping
 
 
-def reset_preset_names(settings):
-    "Reset preset names used by scripts"
-    settings.right_arm.name = 'arm'
-    settings.left_arm.name = 'arm'
-
-    settings.right_arm_ik.name = 'arm'
-    settings.left_arm_ik.name = 'arm'
-
-    settings.right_leg.name = 'leg'
-    settings.left_leg.name = 'leg'
-
-    settings.right_leg_ik.name = 'leg'
-    settings.left_leg_ik.name = 'leg'
-
-    settings.right_fingers.name = 'fingers'
-    settings.left_fingers.name = 'fingers'
-
-
 def reset_skeleton(skeleton):
     """Reset skeleton values to their defaults"""
     for setting in (skeleton.right_arm, skeleton.left_arm, skeleton.spine, skeleton.right_leg,
@@ -205,7 +188,6 @@ def reset_skeleton(skeleton):
 
     skeleton.root = ''
     skeleton.deform_preset = '--'
-    reset_preset_names(skeleton)
 
 
 class PresetFinger:

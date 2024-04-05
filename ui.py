@@ -624,7 +624,6 @@ class VIEW3D_MT_retarget_presets(Menu):
         context.object.data.expykit_retarget.last_used_preset = basename(cls.filepath)
         # and postprocess retarget settings
         preset_handler.validate_preset(context.object.data)
-        preset_handler.reset_preset_names(context.object.data.expykit_retarget)
 
 
 # for blender < 2.79 we use the binding command in the pose mode specials menu instead
