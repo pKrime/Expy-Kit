@@ -288,15 +288,16 @@ class ExecutePresetArmatureRetarget(ExecutePreset):
     bl_idname = "object.expy_kit_armature_preset_apply"
     bl_label = "Apply Bone Retarget Preset"
     preset_menu = "VIEW3D_MT_retarget_presets"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     filepath = StringProperty(
         subtype='FILE_PATH',
-        options={'SKIP_SAVE'},
+        options={'SKIP_SAVE', 'HIDDEN'},
     )
     menu_idname = StringProperty(
         name="Menu ID Name",
         description="ID name of the menu this was called from",
-        options={'SKIP_SAVE'},
+        options={'SKIP_SAVE', 'HIDDEN'},
     )
 
     def execute(self, context):
@@ -316,6 +317,7 @@ class AddPresetArmatureRetarget(AddPresetBase, Operator):
     bl_idname = "object.expy_kit_armature_preset_add"
     bl_label = "Add Bone Retarget Preset"
     preset_menu = "VIEW3D_MT_retarget_presets"
+    bl_options = {'INTERNAL'}
 
     # variable used for all preset values
     preset_defines = [
@@ -545,22 +547,22 @@ class MirrorSettings(Operator):
 class MenuItemOperator(Operator):
     """operator for the string selector menu"""
     bl_idname = "expy_kit.menu_item_setter"
-    bl_label = "dummy"
-    bl_options = {'INTERNAL'}
+    bl_label = "Set preset name"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     # python expression to find the target object
-    target_object = StringProperty(options={'SKIP_SAVE'})
+    target_object = StringProperty(options={'SKIP_SAVE', 'HIDDEN'})
 
     # the property name to store the selection inside the target object
-    target_attr = StringProperty(options={'SKIP_SAVE'})
+    target_attr = StringProperty(options={'SKIP_SAVE', 'HIDDEN'})
 
     # current value to set
-    item_value = StringProperty(options={'SKIP_SAVE'})
+    item_value = StringProperty(options={'SKIP_SAVE', 'HIDDEN'})
 
     menu_idname = StringProperty(
             name="Menu ID Name",
             description="ID name of the menu this was called from",
-            options={'SKIP_SAVE'},
+            options={'SKIP_SAVE', 'HIDDEN'},
             )
 
     def execute(self, context):
