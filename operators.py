@@ -830,13 +830,13 @@ class ExtractMetarig(bpy.types.Operator):
             match_meta_bone(met_skeleton.right_leg, src_skeleton.right_leg, bone_attr)
             match_meta_bone(met_skeleton.left_leg, src_skeleton.left_leg, bone_attr)
 
-        rigify_face_bones = bone_mapping.rigify_face_bones
+        rigify_face_bones = set(bone_mapping.rigify_face_bones)
         for bone_attr in ['left_eye', 'right_eye', 'jaw']:
             met_bone = match_meta_bone(met_skeleton.face, src_skeleton.face, bone_attr)
             if met_bone:
                 try:
                     rigify_face_bones.remove(met_skeleton.face[bone_attr])
-                except ValueError:
+                except:
                     pass
 
                 if src_skeleton.face.super_copy:
@@ -1021,6 +1021,9 @@ class ExtractMetarig(bpy.types.Operator):
                     continue
 
                 met_armature.edit_bones.remove(face_bone)
+        else:
+            #TODO: position face bones with body_proportions
+            pass
 
         for src_name, src_attr in additional_bones:
             # find target bone name by src_name

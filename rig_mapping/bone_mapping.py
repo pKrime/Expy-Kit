@@ -1,6 +1,6 @@
 
 
-rigify_face_bones = [
+rigify_face_bones = (
     'face', 'nose', 'nose.001', 'nose.002', 'nose.003', 'nose.004',
     'lip.T.L', 'lip.T.L.001', 'lip.B.L', 'lip.B.L.001',
     'jaw', 'chin', 'chin.001',
@@ -21,7 +21,7 @@ rigify_face_bones = [
     'cheek.T.L', 'cheek.T.L.001', 'cheek.T.R', 'cheek.T.R.001',
     'nose.L', 'nose.L.001', 'nose.R', 'nose.R.001',
     'teeth.T', 'teeth.B', 'tongue', 'tongue.001', 'tongue.002',
-]
+)
 
 rigify_version = None
 
