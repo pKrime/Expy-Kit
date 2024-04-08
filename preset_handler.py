@@ -190,6 +190,27 @@ def reset_skeleton(skeleton):
     skeleton.deform_preset = '--'
 
 
+def iterate_filled_props(value, prefix="skeleton"):
+    """yields only filled non-default skeleton's properties with their paths (path, value)"""
+    if isinstance(value, bpy.types.PropertyGroup):
+        for sub_value_attr, sub_prop in value.bl_rna.properties.items():
+            if (sub_value_attr in ("rna_type", "name") or sub_prop.is_hidden):
+                continue
+            sub_value = getattr(value, sub_value_attr)
+            if hasattr(sub_prop, "default") and sub_prop.default == sub_value:
+                continue
+            yield from iterate_filled_props(sub_value, prefix="%s.%s" % (prefix, sub_value_attr))
+    else:
+        # convert thin wrapped sequences
+        # to simple lists to repr()
+        try:
+            value = value[:]
+        except BaseException:
+            pass
+
+        yield (prefix, value)
+
+
 class PresetFinger:
     def __init__(self):
         self.a = ""

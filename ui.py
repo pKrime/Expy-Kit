@@ -325,7 +325,8 @@ class AddPresetArmatureRetarget(AddPresetBase, Operator):
     ]
 
     # properties to store in the preset
-    preset_values = [
+    preset_values = []
+    ordered_preset_attrs = (
         "skeleton.face",
 
         "skeleton.spine",
@@ -344,7 +345,7 @@ class AddPresetArmatureRetarget(AddPresetBase, Operator):
         "skeleton.left_leg_ik",
 
         "skeleton.deform_preset"
-    ]
+    )
 
     # where to store the preset
     preset_subdir = preset_handler.PRESETS_SUBDIR
@@ -361,6 +362,16 @@ class AddPresetArmatureRetarget(AddPresetBase, Operator):
         return AddPresetBase.as_filename(name).title()
 
     def execute(self, context):
+        # filter only filled values
+        locs = locals().copy()
+        for rna_path in self.preset_defines:
+            exec(rna_path, globals(), locs)
+        skeleton = locs["skeleton"]
+        self.preset_values = []
+        filled_preset_attrs = tuple((p for (p, _) in preset_handler.iterate_filled_props(skeleton, "skeleton")))
+        for rna_ordered in self.ordered_preset_attrs:
+            self.preset_values.extend((rna_filled for rna_filled in filled_preset_attrs if rna_filled.startswith(rna_ordered)))
+
         # passing filepath (basename, not full) via the menu
         preset_class = getattr(bpy.types, self.preset_menu)
         preset_class.filepath = self.as_filename(self.name) + ".py"
