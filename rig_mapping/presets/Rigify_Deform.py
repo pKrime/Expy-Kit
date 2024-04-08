@@ -2,8 +2,8 @@ import bpy
 skeleton = bpy.context.object.data.expykit_retarget
 
 skeleton.face.jaw = 'DEF-jaw'
-skeleton.face.left_eye = 'DEF-eye.L' if 'DEF-eye.L' in bpy.context.object.data.bones else 'eye.L'
-skeleton.face.right_eye = 'DEF-eye.R' if 'DEF-eye.R' in bpy.context.object.data.bones else 'eye.R'
+skeleton.face.left_eye = 'DEF-eye.L'
+skeleton.face.right_eye = 'DEF-eye.R'
 
 skeleton.spine.name = ''
 skeleton.spine.head = 'DEF-spine.006'
