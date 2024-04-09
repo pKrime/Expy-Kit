@@ -237,7 +237,11 @@ def reset_skeleton(skeleton):
 def iterate_filled_props(value, prefix="skeleton"):
     """yields only filled non-default skeleton's properties with their paths (path, value)"""
     if isinstance(value, bpy.types.PropertyGroup):
-        for sub_value_attr, sub_prop in value.bl_rna.properties.items():
+        if hasattr(value, "_order"):
+            _items = ((k, value.bl_rna.properties[k]) for k in value._order)
+        else:
+            _items = value.bl_rna.properties.items()
+        for sub_value_attr, sub_prop in _items:
             if (sub_value_attr in ("rna_type", "name") or sub_prop.is_hidden):
                 continue
             sub_value = getattr(value, sub_value_attr)

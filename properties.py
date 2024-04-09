@@ -25,6 +25,8 @@ class RetargetBase():
 
 @make_annotations
 class RetargetSpine(RetargetBase, PropertyGroup):
+    _order = ("head", "neck", "spine2", "spine1", "spine", "hips")
+
     head = StringProperty(name="head")
     neck = StringProperty(name="neck")
     spine2 = StringProperty(name="spine2")
@@ -35,6 +37,9 @@ class RetargetSpine(RetargetBase, PropertyGroup):
 
 @make_annotations
 class RetargetArm(RetargetBase, PropertyGroup):
+    _order = ("shoulder", "arm", "arm_twist", "arm_twist_02", "forearm", "forearm_twist",
+              "forearm_twist_02", "hand")
+
     shoulder = StringProperty(name="shoulder")
     arm = StringProperty(name="arm")
     arm_twist = StringProperty(name="arm_twist")
@@ -50,6 +55,9 @@ class RetargetArm(RetargetBase, PropertyGroup):
 
 @make_annotations
 class RetargetLeg(RetargetBase, PropertyGroup):
+    _order = ("upleg", "upleg_twist", "upleg_twist_02", "leg", "leg_twist", "leg_twist_02",
+              "foot", "toe")
+
     upleg = StringProperty(name="upleg")
     upleg_twist = StringProperty(name="upleg_twist")
     upleg_twist_02 = StringProperty(name="upleg_twist_02")
@@ -65,6 +73,8 @@ class RetargetLeg(RetargetBase, PropertyGroup):
 
 @make_annotations
 class RetargetFinger(RetargetBase, PropertyGroup):
+    _order = ("meta", "a", "b", "c")
+
     meta = StringProperty(name="meta")
     a = StringProperty(name="A")
     b = StringProperty(name="B")
@@ -73,6 +83,8 @@ class RetargetFinger(RetargetBase, PropertyGroup):
 
 @make_annotations
 class RetargetFingers(RetargetBase, PropertyGroup):
+    _order = ("thumb", "index", "middle", "ring", "pinky")
+
     thumb = PointerProperty(type=RetargetFinger)
     index = PointerProperty(type=RetargetFinger)
     middle = PointerProperty(type=RetargetFinger)
@@ -85,6 +97,8 @@ class RetargetFingers(RetargetBase, PropertyGroup):
 
 @make_annotations
 class RetargetFaceSimple(RetargetBase, PropertyGroup):
+    _order = ("jaw", "right_eye", "left_eye", "right_upLid", "left_upLid", "super_copy")
+
     jaw = StringProperty(name="jaw")
     left_eye = StringProperty(name="left_eye")
     right_eye = StringProperty(name="right_eye")
@@ -97,6 +111,14 @@ class RetargetFaceSimple(RetargetBase, PropertyGroup):
 
 @make_annotations
 class RetargetSettings(RetargetBase, PropertyGroup):
+    _order = ("face", "spine",
+              "right_arm", "left_arm",
+              "right_leg", "left_leg",
+              "right_fingers", "left_fingers",
+              "right_arm_ik", "left_arm_ik",
+              "right_leg_ik", "left_leg_ik",
+              "root", "deform_preset")
+
     face = PointerProperty(type=RetargetFaceSimple)
     spine = PointerProperty(type=RetargetSpine)
 
@@ -115,6 +137,12 @@ class RetargetSettings(RetargetBase, PropertyGroup):
 
     root = StringProperty(name="root")
 
+    deform_preset = StringProperty(name="Deformation Bones", subtype='FILE_NAME', default="--")
+
+    last_used_preset = StringProperty(
+        name="Last used preset", description="Preset from which the settings were loaded from (or saved to).",
+        options={'SKIP_SAVE','HIDDEN'}) # base name, not a full path
+
     def has_settings(self):
         for setting in (self.spine, self.left_arm, self.left_arm_ik, self.left_fingers,
                         self.right_arm, self.right_arm_ik, self.right_fingers,
@@ -123,12 +151,6 @@ class RetargetSettings(RetargetBase, PropertyGroup):
                 return True
 
         return False
-
-    deform_preset = StringProperty(name="Deformation Bones", subtype='FILE_NAME', default="--")
-
-    last_used_preset = StringProperty(
-        name="Last used preset", description="Preset from which the settings were loaded from (or saved to).",
-        options={'SKIP_SAVE','HIDDEN'}) # base name, not a full path
 
 
 def register_classes():
