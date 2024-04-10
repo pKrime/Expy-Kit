@@ -3,7 +3,7 @@ from mathutils import Vector
 from mathutils import Matrix
 from mathutils import Quaternion
 from math import pi
-from .utils import matmul
+from .version_compatibility import matmul
 
 
 def is_pose_bone_all_locked(pose_bone) -> bool:

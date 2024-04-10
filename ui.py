@@ -9,7 +9,7 @@ from bl_operators.presets import AddPresetBase, ExecutePreset
 from . import operators
 from . import preset_handler
 from . import bone_utils
-from .utils import make_annotations, layout_split
+from .version_compatibility import make_annotations, layout_split
 
 
 def menu_header(layout):

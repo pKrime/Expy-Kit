@@ -18,7 +18,7 @@ from .rig_mapping import bone_mapping
 from . import preset_handler
 from . import bone_utils
 from . import fbx_helper
-from .utils import make_annotations, matmul, get_preferences, layout_split
+from .version_compatibility import make_annotations, matmul, get_preferences, layout_split
 
 from mathutils import Vector
 from mathutils import Matrix

@@ -6,7 +6,7 @@ from bpy.props import BoolProperty
 from bpy.props import EnumProperty
 
 from . import preset_handler
-from .utils import make_annotations
+from .version_compatibility import make_annotations
 
 
 class RetargetBase():
