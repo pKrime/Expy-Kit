@@ -1,16 +1,11 @@
 import bpy
 skeleton = bpy.context.object.data.expykit_retarget
 
-skeleton.face.jaw = 'jaw'
-skeleton.face.right_eye = 'eye.R'
-skeleton.face.left_eye = 'eye.L'
-
-skeleton.spine.head = 'spine.006'
-skeleton.spine.neck = 'spine.004'
-skeleton.spine.spine2 = 'spine.003'
-skeleton.spine.spine1 = 'spine.002'
-skeleton.spine.spine = 'spine.001'
-skeleton.spine.hips = 'spine'
+skeleton.spine.head = 'head'
+skeleton.spine.neck = 'neck'
+skeleton.spine.spine2 = 'chest'
+skeleton.spine.spine = 'spine'
+skeleton.spine.hips = 'hips'
 
 skeleton.right_arm.shoulder = 'shoulder.R'
 skeleton.right_arm.arm = 'upper_arm.R'
