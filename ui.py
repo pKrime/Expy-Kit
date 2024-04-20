@@ -154,7 +154,7 @@ class ActionMakeActive(bpy.types.Operator):
 
     def execute(self, context):
         ob = context.object
-        to_rename = [a for a in bpy.data.actions if len(a.expykit_name_candidates) > 1 and operators.validate_actions(a, ob.path_resolve)]
+        to_rename = [a for a in bpy.data.actions if len(a.expykit_name_candidates) > 1 and operators.validate_action(a, ob.path_resolve)]
 
         if len(to_rename) == 0:
             return {'CANCELLED'}
@@ -238,12 +238,12 @@ class VIEW3D_PT_expy_rename_candidates(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
 
-        to_rename = [a for a in bpy.data.actions if len(a.expykit_name_candidates) > 1 and operators.validate_actions(a, context.object.path_resolve)]
+        to_rename = [a for a in bpy.data.actions if len(a.expykit_name_candidates) > 1 and operators.validate_action(a, context.object.path_resolve)]
 
         row = layout.row()
         row.operator(ActionMakeActive.bl_idname, text="Next of {} actions to rename".format(len(to_rename)))
 
-        action = context.object.animation_data.action
+        action = context.object and context.object.animation_data and context.object.animation_data.action
         if not action:
             return
 
