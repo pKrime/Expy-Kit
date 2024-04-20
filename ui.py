@@ -152,7 +152,7 @@ class ActionMakeActive(bpy.types.Operator):
     def poll(cls, context):
         return context.mode == 'POSE'
 
-    def execute(self, context: Context):
+    def execute(self, context):
         ob = context.object
         to_rename = [a for a in bpy.data.actions if len(a.expykit_name_candidates) > 1 and operators.validate_actions(a, ob.path_resolve)]
 
@@ -625,7 +625,7 @@ if bpy.app.version >= (2, 79, 0):
         def poll(cls, context):
             return context.mode == 'POSE' and context.scene.expykit_bind_to and context.object != context.scene.expykit_bind_to
 
-        def execute(self, context: Context):
+        def execute(self, context):
             if bpy.app.version >= (2, 80):
                 for ob in context.selected_objects:
                     ob.select_set(ob == context.object)

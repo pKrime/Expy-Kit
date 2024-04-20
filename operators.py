@@ -1238,7 +1238,7 @@ class MergeHeadTails(bpy.types.Operator):
         return {'FINISHED'}
 
 
-def mute_fcurves(obj: bpy.types.Object, channel_name: str):
+def mute_fcurves(obj, channel_name): # :Object, :str
     action = obj.animation_data.action
     if not action:
         return
@@ -2176,7 +2176,7 @@ class ConstrainToArmature(bpy.types.Operator):
         return {'FINISHED'}
 
 
-def validate_actions(action: bpy.types.Action, path_resolve: callable):
+def validate_actions(action, path_resolve): # :Action, :callable
     for fc in action.fcurves:
         data_path = fc.data_path
         if fc.array_index:
@@ -2270,7 +2270,7 @@ class BakeConstrainedActions(bpy.types.Operator):
     def poll(cls, context):
         return context.mode == 'POSE'
 
-    def get_trg_ob(self, ob: bpy.types.Object) -> bpy.types.Object:
+    def get_trg_ob(self, ob): # -> bpy.types.Object:
         for pb in bone_utils.get_constrained_controls(armature_object=ob, use_deform=not self.exclude_deform):
             for constr in pb.constraints:
                 try:
