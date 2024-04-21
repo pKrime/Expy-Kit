@@ -2218,6 +2218,12 @@ if bpy.app.version < (2, 79):
             return {'FINISHED'}
 
 
+def action_base_name(name):
+    "after last separator, or the whole one if empty"
+    result = name.split("|")[-1]
+    return result if result else name
+
+
 @make_annotations
 class BakeConstrainedActions(bpy.types.Operator):
     bl_idname = "armature.expykit_bake_constrained_actions"
@@ -2232,6 +2238,8 @@ class BakeConstrainedActions(bpy.types.Operator):
                                 default=True)
 
     exclude_deform = BoolProperty(name="Exclude deform bones", default=True)
+
+    add_to_nla = BoolProperty(name="Stash to NLA stack", default=False, description="Stash new actions as NLA strips.")
 
     do_bake = BoolProperty(name="Bake and Exit", description="Bake driven motion and exit",
                           default=False, options={'SKIP_SAVE'})
@@ -2261,6 +2269,10 @@ class BakeConstrainedActions(bpy.types.Operator):
         row = layout_split(column, factor=0.30, align=True)
         row.label(text="")
         row.prop(self, "exclude_deform")
+
+        row = layout_split(column, factor=0.30, align=True)
+        row.label(text="")
+        row.prop(self, "add_to_nla")
 
         row = layout_split(column, factor=0.30, align=True)
         row.label(text="")
@@ -2304,6 +2316,7 @@ class BakeConstrainedActions(bpy.types.Operator):
                     constr_bone_names.append(pb.name)
 
             old_actions = set(bpy.data.actions)
+            old_cnt = len(old_actions)
 
             for action in list(bpy.data.actions):  # convert to list beforehand to avoid picking new actions
                 if not validate_action(action, trg_ob.path_resolve):
@@ -2334,6 +2347,14 @@ class BakeConstrainedActions(bpy.types.Operator):
                 new_action.name = new_name
                 print("Baked action: {}".format(new_action.name))
 
+                if self.add_to_nla:
+                    if not ob.animation_data:
+                        ob.animation_data_create()
+                    nla_track = ob.animation_data.nla_tracks.new()
+                    nla_track.lock = nla_track.mute = True
+                    nla_track.name = action_base_name(new_action.name)
+                    nla_track.strips.new(nla_track.name, fr_start, new_action)
+
                 if self.clear_users_old:
                     action.user_clear()
 
@@ -2345,6 +2366,8 @@ class BakeConstrainedActions(bpy.types.Operator):
                     continue
                 for constr in reversed(pbone.constraints):
                     pbone.constraints.remove(constr)
+
+        self.report({'INFO'}, "Were baked {} new actions".format(len(bpy.data.actions) - old_cnt))
 
         return {'FINISHED'}
 
