@@ -9,7 +9,7 @@ from bl_operators.presets import AddPresetBase, ExecutePreset
 from . import operators
 from . import preset_handler
 from . import bone_utils
-from .utils import make_annotations, layout_split
+from .version_compatibility import make_annotations, layout_split
 
 
 def menu_header(layout):
@@ -152,9 +152,9 @@ class ActionMakeActive(bpy.types.Operator):
     def poll(cls, context):
         return context.mode == 'POSE'
 
-    def execute(self, context: Context):
+    def execute(self, context):
         ob = context.object
-        to_rename = [a for a in bpy.data.actions if len(a.expykit_name_candidates) > 1 and operators.validate_actions(a, ob.path_resolve)]
+        to_rename = [a for a in bpy.data.actions if len(a.expykit_name_candidates) > 1 and operators.validate_action(a, ob.path_resolve)]
 
         if len(to_rename) == 0:
             return {'CANCELLED'}
@@ -238,12 +238,12 @@ class VIEW3D_PT_expy_rename_candidates(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
 
-        to_rename = [a for a in bpy.data.actions if len(a.expykit_name_candidates) > 1 and operators.validate_actions(a, context.object.path_resolve)]
+        to_rename = [a for a in bpy.data.actions if len(a.expykit_name_candidates) > 1 and operators.validate_action(a, context.object.path_resolve)]
 
         row = layout.row()
         row.operator(ActionMakeActive.bl_idname, text="Next of {} actions to rename".format(len(to_rename)))
 
-        action = context.object.animation_data.action
+        action = context.object and context.object.animation_data and context.object.animation_data.action
         if not action:
             return
 
@@ -625,7 +625,7 @@ if bpy.app.version >= (2, 79, 0):
         def poll(cls, context):
             return context.mode == 'POSE' and context.scene.expykit_bind_to and context.object != context.scene.expykit_bind_to
 
-        def execute(self, context: Context):
+        def execute(self, context):
             if bpy.app.version >= (2, 80):
                 for ob in context.selected_objects:
                     ob.select_set(ob == context.object)

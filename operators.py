@@ -18,7 +18,7 @@ from .rig_mapping import bone_mapping
 from . import preset_handler
 from . import bone_utils
 from . import fbx_helper
-from .utils import make_annotations, matmul, get_preferences, layout_split
+from .version_compatibility import make_annotations, matmul, get_preferences, layout_split
 
 from mathutils import Vector
 from mathutils import Matrix
@@ -296,7 +296,7 @@ class ConvertBoneNaming(bpy.types.Operator):
 
         if all((src_skeleton, trg_skeleton, src_skeleton != trg_skeleton)):
             if self.anim_tracks:
-                actions = [action for action in bpy.data.actions if validate_actions(action, context.object.path_resolve)]
+                actions = [action for action in bpy.data.actions if validate_action(action, context.object.path_resolve)]
             else:
                 actions = []
 
@@ -474,7 +474,7 @@ class CreateTransformOffset(bpy.types.Operator):
             path_resolve = arm_ob.path_resolve
 
             for action in bpy.data.actions:
-                if not validate_actions(action, path_resolve):
+                if not validate_action(action, path_resolve):
                     continue
 
                 for fc in action.fcurves:
@@ -1238,7 +1238,7 @@ class MergeHeadTails(bpy.types.Operator):
         return {'FINISHED'}
 
 
-def mute_fcurves(obj: bpy.types.Object, channel_name: str):
+def mute_fcurves(obj, channel_name): # :Object, :str
     action = obj.animation_data.action
     if not action:
         return
@@ -2176,7 +2176,7 @@ class ConstrainToArmature(bpy.types.Operator):
         return {'FINISHED'}
 
 
-def validate_actions(action: bpy.types.Action, path_resolve: callable):
+def validate_action(action, path_resolve): # :Action, :callable
     for fc in action.fcurves:
         data_path = fc.data_path
         if fc.array_index:
@@ -2218,6 +2218,12 @@ if bpy.app.version < (2, 79):
             return {'FINISHED'}
 
 
+def action_base_name(name):
+    "after last separator, or the whole one if empty"
+    result = name.split("|")[-1]
+    return result if result else name
+
+
 @make_annotations
 class BakeConstrainedActions(bpy.types.Operator):
     bl_idname = "armature.expykit_bake_constrained_actions"
@@ -2232,6 +2238,8 @@ class BakeConstrainedActions(bpy.types.Operator):
                                 default=True)
 
     exclude_deform = BoolProperty(name="Exclude deform bones", default=True)
+
+    add_to_nla = BoolProperty(name="Stash to NLA stack", default=False, description="Stash new actions as NLA strips.")
 
     do_bake = BoolProperty(name="Bake and Exit", description="Bake driven motion and exit",
                           default=False, options={'SKIP_SAVE'})
@@ -2264,13 +2272,17 @@ class BakeConstrainedActions(bpy.types.Operator):
 
         row = layout_split(column, factor=0.30, align=True)
         row.label(text="")
+        row.prop(self, "add_to_nla")
+
+        row = layout_split(column, factor=0.30, align=True)
+        row.label(text="")
         row.prop(self, "do_bake", toggle=True)
 
     @classmethod
     def poll(cls, context):
         return context.mode == 'POSE'
 
-    def get_trg_ob(self, ob: bpy.types.Object) -> bpy.types.Object:
+    def get_trg_ob(self, ob): # -> bpy.types.Object:
         for pb in bone_utils.get_constrained_controls(armature_object=ob, use_deform=not self.exclude_deform):
             for constr in pb.constraints:
                 try:
@@ -2303,8 +2315,11 @@ class BakeConstrainedActions(bpy.types.Operator):
                     pb.bone.select = True
                     constr_bone_names.append(pb.name)
 
+            old_actions = set(bpy.data.actions)
+            old_cnt = len(old_actions)
+
             for action in list(bpy.data.actions):  # convert to list beforehand to avoid picking new actions
-                if not validate_actions(action, trg_ob.path_resolve):
+                if not validate_action(action, trg_ob.path_resolve):
                     continue
 
                 trg_ob.animation_data.action = action
@@ -2313,18 +2328,32 @@ class BakeConstrainedActions(bpy.types.Operator):
                                  bake_types={'POSE'}, only_selected=True,
                                  visual_keying=True, clear_constraints=False)
 
-                if not ob.animation_data:
+                trg_ob.animation_data.action = None
+
+                new_action = next(a for a in bpy.data.actions if a not in old_actions)
+                old_actions.add(new_action)
+
+                if not new_action:
                     self.report({'WARNING'}, "failed to bake {}".format(action.name))
                     continue
 
-                ob.animation_data.action.use_fake_user = self.fake_user_new
+                new_action.use_fake_user = self.fake_user_new
 
                 if trg_ob.name in action.name:
                     new_name = action.name.replace(trg_ob.name, ob.name)
                 else:
                     new_name = "{}|{}".format(ob.name, action.name)
 
-                ob.animation_data.action.name = new_name
+                new_action.name = new_name
+                print("Baked action: {}".format(new_action.name))
+
+                if self.add_to_nla:
+                    if not ob.animation_data:
+                        ob.animation_data_create()
+                    nla_track = ob.animation_data.nla_tracks.new()
+                    nla_track.lock = nla_track.mute = True
+                    nla_track.name = action_base_name(new_action.name)
+                    nla_track.strips.new(nla_track.name, fr_start, new_action)
 
                 if self.clear_users_old:
                     action.user_clear()
@@ -2337,6 +2366,8 @@ class BakeConstrainedActions(bpy.types.Operator):
                     continue
                 for constr in reversed(pbone.constraints):
                     pbone.constraints.remove(constr)
+
+        self.report({'INFO'}, "Were baked {} new actions".format(len(bpy.data.actions) - old_cnt))
 
         return {'FINISHED'}
 
@@ -2890,7 +2921,7 @@ class RenameActionsFromFbxFiles(bpy.types.Operator, ImportHelper):
             if skip_action:
                 continue
 
-            if not validate_actions(action, path_resolve):
+            if not validate_action(action, path_resolve):
                 continue
 
             start, end = action.frame_range

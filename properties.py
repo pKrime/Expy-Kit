@@ -6,16 +6,22 @@ from bpy.props import BoolProperty
 from bpy.props import EnumProperty
 
 from . import preset_handler
-from .utils import make_annotations
+from .version_compatibility import make_annotations
 
 
 class RetargetBase():
     def has_settings(self):
-        for k in self.keys():
-            if k == 'name':
+        if hasattr(self, "_order"):
+            _items = ((k, self.bl_rna.properties[k]) for k in self._order)
+        else:
+            _items = self.bl_rna.properties.items()
+        for sub_value_attr, sub_prop in _items:
+            if (sub_value_attr in ("rna_type", "name") or sub_prop.is_hidden):
                 continue
-            v = getattr(self, k, None)
+            v = getattr(self, sub_value_attr)
             if v:
+                if hasattr(sub_prop, "default") and sub_prop.default == v:
+                    continue
                 if hasattr(v, "has_settings"):
                     if not v.has_settings():
                         continue
@@ -143,14 +149,15 @@ class RetargetSettings(RetargetBase, PropertyGroup):
         name="Last used preset", description="Preset from which the settings were loaded from (or saved to).",
         options={'SKIP_SAVE','HIDDEN'}) # base name, not a full path
 
-    def has_settings(self):
-        for setting in (self.spine, self.left_arm, self.left_arm_ik, self.left_fingers,
-                        self.right_arm, self.right_arm_ik, self.right_fingers,
-                        self.left_leg, self.left_leg_ik, self.right_leg, self.right_leg_ik):
-            if setting.has_settings():
-                return True
-
-        return False
+    #TODO: if face, root, etc is *really* excluded from has_settings just uncomment this override here
+    # def has_settings(self):
+    #     for setting in (self.spine, self.left_arm, self.left_arm_ik, self.left_fingers,
+    #                     self.right_arm, self.right_arm_ik, self.right_fingers,
+    #                     self.left_leg, self.left_leg_ik, self.right_leg, self.right_leg_ik):
+    #         if setting.has_settings():
+    #             return True
+    #
+    #     return False
 
 
 def register_classes():
