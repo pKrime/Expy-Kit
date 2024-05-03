@@ -1,6 +1,5 @@
 from math import pi
 import os
-import typing
 
 import bpy
 from bpy.props import BoolProperty
@@ -19,10 +18,10 @@ from .rig_mapping import bone_mapping
 from . import preset_handler
 from . import bone_utils
 from . import fbx_helper
+from .version_compatibility import make_annotations, matmul, get_preferences, layout_split
 
 from mathutils import Vector
 from mathutils import Matrix
-
 
 CONSTR_STATUS = (
     ('enable', "Enable", "Enable All Constraints"),
@@ -35,20 +34,21 @@ CONSTR_TYPES = bpy.types.PoseBoneConstraints.bl_rna.functions['new'].parameters[
 CONSTR_TYPES.append('ALL_TYPES')
 
 
+@make_annotations
 class ConstraintStatus(bpy.types.Operator):
     """Disable/Enable bone constraints."""
     bl_idname = "object.expykit_set_constraints_status"
     bl_label = "Enable/disable constraints"
     bl_options = {'REGISTER', 'UNDO'}
 
-    set_status: EnumProperty(items=CONSTR_STATUS,
+    set_status = EnumProperty(items=CONSTR_STATUS,
                              name="Status",
                              default='enable')
 
-    selected_only: BoolProperty(name="Only Selected",
+    selected_only = BoolProperty(name="Only Selected",
                                 default=False)
-    
-    constr_type: EnumProperty(items=[(ct, ct.replace('_', ' ').title(), ct) for ct in CONSTR_TYPES],
+
+    constr_type = EnumProperty(items=[(ct, ct.replace('_', ' ').title(), ct) for ct in CONSTR_TYPES],
                               name="Constraint Type",
                               default='ALL_TYPES')
 
@@ -83,21 +83,22 @@ class ConstraintStatus(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@make_annotations
 class SelectConstrainedControls(bpy.types.Operator):
     bl_idname = "armature.expykit_select_constrained_ctrls"
     bl_label = "Select constrained controls"
     bl_description = "Select bone controls with constraints or animations"
     bl_options = {'REGISTER', 'UNDO'}
 
-    select_type: EnumProperty(items=[
+    select_type = EnumProperty(items=[
         ('constr', "Constrained", "Select constrained controls"),
         ('anim', "Animated", "Select animated controls"),
     ],
         name="Select if",
         default='constr')
-    
-    skip_deform: BoolProperty(name="Skip Deform Bones", default=True)
-    has_shape: BoolProperty(name="Only Control shapes", default=True)
+
+    skip_deform = BoolProperty(name="Skip Deform Bones", default=True)
+    has_shape = BoolProperty(name="Only Control shapes", default=True)
 
     @classmethod
     def poll(cls, context):
@@ -136,17 +137,18 @@ class SelectConstrainedControls(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@make_annotations
 class RevertDotBoneNames(bpy.types.Operator):
     """Reverts dots in bones that have renamed by Unreal Engine"""
     bl_idname = "object.expykit_dot_bone_names"
     bl_label = "Revert dots in Names (from UE4 renaming)"
     bl_options = {'REGISTER', 'UNDO'}
 
-    sideletters_only: BoolProperty(name="Only Side Letters",
+    sideletters_only = BoolProperty(name="Only Side Letters",
                                    description="i.e. '_L' to '.L'",
                                    default=True)
 
-    selected_only: BoolProperty(name="Only Selected",
+    selected_only = BoolProperty(name="Only Selected",
                                 default=False)
 
     @classmethod
@@ -174,39 +176,40 @@ class RevertDotBoneNames(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@make_annotations
 class ConvertBoneNaming(bpy.types.Operator):
     """Convert Bone Names between Naming Convention"""
     bl_idname = "object.expykit_convert_bone_names"
     bl_label = "Convert Bone Names"
     bl_options = {'REGISTER', 'UNDO'}
 
-    src_preset: EnumProperty(items=preset_handler.iterate_presets_with_current,
+    src_preset = EnumProperty(items=preset_handler.iterate_presets_with_current,
                              name="Source Preset",
                              )
 
-    trg_preset: EnumProperty(items=preset_handler.iterate_presets,
+    trg_preset = EnumProperty(items=preset_handler.iterate_presets,
                              name="Target Preset",
                              )
 
-    strip_prefix: BoolProperty(
+    strip_prefix = BoolProperty(
         name="Strip Prefix",
         description="Remove prefix when found",
         default=True
     )
 
-    anim_tracks: BoolProperty(
+    anim_tracks = BoolProperty(
         name="Convert Animations",
         description="Convert Animation Tracks",
         default=True
     )
 
-    replace_existing: BoolProperty(
+    replace_existing = BoolProperty(
         name="Take Over Existing Names",
         description='Bones already named after Target Preset will get ".001" suffix',
         default=True
     )
 
-    prefix_separator: StringProperty(
+    prefix_separator = StringProperty(
         name="Prefix Separator",
         description="Separator between prefix and name, i.e: MyCharacter:head",
         default=":"
@@ -270,9 +273,9 @@ class ConvertBoneNaming(bpy.types.Operator):
                 pre_existing_bone = context.object.data.bones.get(trg_name, None)
                 if pre_existing_bone:
                     pre_existing_name = pre_existing_bone.name
-                    pre_existing_bone.name = f"{trg_name}.001"
+                    pre_existing_bone.name = "{}.001".format(trg_name)
                     additional_bones[pre_existing_name] = pre_existing_bone.name
-                                          
+
             src_bone.name = trg_name
 
         bone_names_map.update(additional_bones)
@@ -293,7 +296,7 @@ class ConvertBoneNaming(bpy.types.Operator):
 
         if all((src_skeleton, trg_skeleton, src_skeleton != trg_skeleton)):
             if self.anim_tracks:
-                actions = [action for action in bpy.data.actions if validate_actions(action, context.object.path_resolve)]
+                actions = [action for action in bpy.data.actions if validate_action(action, context.object.path_resolve)]
             else:
                 actions = []
 
@@ -349,17 +352,18 @@ class ConvertBoneNaming(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@make_annotations
 class CreateTransformOffset(bpy.types.Operator):
     """Scale the Character and setup an Empty to preserve final transform"""
     bl_idname = "object.expykit_create_offset"
     bl_label = "Create Scale Offset"
     bl_options = {'REGISTER', 'UNDO'}
 
-    container_name: StringProperty(name="Name", description="Name of the transform container", default="EMP-Offset")
-    container_scale: FloatProperty(name="Scale", description="Scale of the transform container", default=0.01)
-    fix_animations: BoolProperty(name="Fix Animations", description="Apply Offset to character animations", default=True)
-    fix_constraints: BoolProperty(name="Fix Constraints", description="Apply Offset to character constraints", default=True)
-    do_parent: BoolProperty(name="Execute and Exit", description="Parent to the new offset and exit",
+    container_name = StringProperty(name="Name", description="Name of the transform container", default="EMP-Offset")
+    container_scale = FloatProperty(name="Scale", description="Scale of the transform container", default=0.01)
+    fix_animations = BoolProperty(name="Fix Animations", description="Apply Offset to character animations", default=True)
+    fix_constraints = BoolProperty(name="Fix Constraints", description="Apply Offset to character constraints", default=True)
+    do_parent = BoolProperty(name="Execute and Exit", description="Parent to the new offset and exit",
                             default=False, options={'SKIP_SAVE'})
 
     _allowed_modes = ['OBJECT', 'POSE']
@@ -381,23 +385,23 @@ class CreateTransformOffset(bpy.types.Operator):
         layout = self.layout
         column = layout.column()
 
-        row = column.split(factor=0.2, align=True)
+        row = layout_split(column, factor=0.2, align=True)
         row.label(text="Name")
         row.prop(self, 'container_name', text="")
 
-        row = column.split(factor=0.2, align=True)
+        row = layout_split(column, factor=0.2, align=True)
         row.label(text="Scale")
         row.prop(self, "container_scale", text="")
 
-        row = column.split(factor=0.2, align=True)
+        row = layout_split(column, factor=0.2, align=True)
         row.label(text="")
         row.prop(self, "fix_animations")
 
-        row = column.split(factor=0.2, align=True)
+        row = layout_split(column, factor=0.2, align=True)
         row.label(text="")
         row.prop(self, "fix_constraints")
 
-        row = column.split(factor=0.2, align=True)
+        row = layout_split(column, factor=0.2, align=True)
         row.label(text="")
         row.prop(self, "do_parent", toggle=True)
 
@@ -470,7 +474,7 @@ class CreateTransformOffset(bpy.types.Operator):
             path_resolve = arm_ob.path_resolve
 
             for action in bpy.data.actions:
-                if not validate_actions(action, path_resolve):
+                if not validate_action(action, path_resolve):
                     continue
 
                 for fc in action.fcurves:
@@ -485,6 +489,7 @@ class CreateTransformOffset(bpy.types.Operator):
         return {'FINISHED'}
 
 
+@make_annotations
 class ExtractMetarig(bpy.types.Operator):
     """Create Metarig from current object"""
     bl_idname = "object.expykit_extract_metarig"
@@ -492,33 +497,34 @@ class ExtractMetarig(bpy.types.Operator):
     bl_description = "Create Metarig from current object"
     bl_options = {'REGISTER', 'UNDO'}
 
-    rig_preset: EnumProperty(items=preset_handler.iterate_presets_with_current,
+    rig_preset = EnumProperty(items=preset_handler.iterate_presets_with_current,
                              name="Rig Type",
                              )
 
-    offset_knee: FloatProperty(name='Offset Knee',
+    offset_knee = FloatProperty(name='Offset Knee',
                                default=0.0)
 
-    offset_elbow: FloatProperty(name='Offset Elbow',
+    offset_elbow = FloatProperty(name='Offset Elbow',
                                 default=0.0)
 
-    offset_fingers: FloatVectorProperty(name='Offset Fingers')
+    offset_fingers = FloatVectorProperty(name='Offset Fingers')
 
-    no_face: BoolProperty(name='No face bones',
+    no_face = BoolProperty(name='No face bones',
                           default=True)
 
-    rigify_names: BoolProperty(name='Use rigify names',
-                               default=True)
+    rigify_names = BoolProperty(name='Use rigify names',
+                               default=True,
+                               description="Rename source rig bones to match Rigify Deform preset")
 
-    assign_metarig: BoolProperty(name='Assign metarig',
+    assign_metarig = BoolProperty(name='Assign metarig',
                                  default=True,
                                  description='Rigify will generate to the active object')
 
-    forward_spine_roll: BoolProperty(name='Align spine frontally', default=True,
+    forward_spine_roll = BoolProperty(name='Align spine frontally', default=True,
                                      description='Spine Z will face the Y axis')
 
-    apply_transforms: BoolProperty(name='Apply Transform', default=True,
-                                   description='Apply current transforms before extraction')
+    apply_transforms = BoolProperty(name='Apply Transform', default=True,
+                                   description='Apply current source transforms before extraction')
 
     def draw(self, context):
         layout = self.layout
@@ -528,35 +534,35 @@ class ExtractMetarig(bpy.types.Operator):
         row = column.row()
         row.prop(self, 'rig_preset', text="Rig Type")
 
-        row = column.split(factor=0.5, align=True)
+        row = layout_split(column, factor=0.5, align=True)
         row.label(text="Offset Knee")
         row.prop(self, 'offset_knee', text='')
 
-        row = column.split(factor=0.5, align=True)
+        row = layout_split(column, factor=0.5, align=True)
         row.label(text="Offset Elbow")
         row.prop(self, 'offset_elbow', text='')
 
-        row = column.split(factor=0.5, align=True)
+        row = layout_split(column, factor=0.5, align=True)
         row.label(text="Offset Fingers")
         row.prop(self, 'offset_fingers', text='')
 
-        row = column.split(factor=0.5, align=True)
+        row = layout_split(column, factor=0.5, align=True)
         row.label(text="No Face Bones")
         row.prop(self, 'no_face', text='')
 
-        row = column.split(factor=0.5, align=True)
+        row = layout_split(column, factor=0.5, align=True)
         row.label(text="Use Rigify Names")
         row.prop(self, 'rigify_names', text='')
 
-        row = column.split(factor=0.5, align=True)
+        row = layout_split(column, factor=0.5, align=True)
         row.label(text="Assign Metarig")
         row.prop(self, 'assign_metarig', text='')
 
-        row = column.split(factor=0.5, align=True)
+        row = layout_split(column, factor=0.5, align=True)
         row.label(text="Align spine frontally")
         row.prop(self, 'forward_spine_roll', text='')
 
-        row = column.split(factor=0.5, align=True)
+        row = layout_split(column, factor=0.5, align=True)
         row.label(text="Apply Transform")
         row.prop(self, 'apply_transforms', text='')
 
@@ -564,7 +570,7 @@ class ExtractMetarig(bpy.types.Operator):
     def poll(cls, context):
         if not context.object:
             return False
-        if 'rigify' not in context.preferences.addons:
+        if 'rigify' not in get_preferences(context).addons:
             return False
         if context.mode != 'POSE':
             return False
@@ -576,6 +582,10 @@ class ExtractMetarig(bpy.types.Operator):
     def execute(self, context):
         src_object = context.object
         src_armature = context.object.data
+
+        if not bone_mapping.get_rigify_version():
+            self.report({'WARNING'}, 'Cannot detect Rigify version')
+            return {'CANCELLED'}
 
         if self.rig_preset == "--Current--":
             current_settings = context.object.data.expykit_retarget
@@ -589,6 +599,8 @@ class ExtractMetarig(bpy.types.Operator):
                 src_settings = preset_handler.PresetSkeleton()
                 src_settings.copy(current_settings)
                 src_skeleton = preset_handler.get_settings_skel(src_settings)
+        elif self.rig_preset == "--":
+            src_skeleton = None
         else:
             src_skeleton = preset_handler.set_preset_skel(self.rig_preset)
             current_settings = context.object.data.expykit_retarget
@@ -611,10 +623,14 @@ class ExtractMetarig(bpy.types.Operator):
 
         if self.rigify_names:
             # check if doesn't contain rigify deform bones already
-            bones_needed = met_skeleton.spine.hips, met_skeleton.spine.spine
+            bones_needed = met_skeleton.spine.hips, met_skeleton.spine.spine, met_skeleton.spine.spine1
             if not [b for b in bones_needed if b in src_armature.bones]:
                 # Converted settings should not be validated yet, as bones have not been renamed
-                src_skeleton, trg_skeleton = ConvertBoneNaming.convert_settings(current_settings, 'Rigify_Deform.py', validate=False)
+                if bone_mapping.rigify_version < (0, 5):
+                    _preset_name = 'Rigify_Deform_0_4.py'
+                else:
+                    _preset_name = 'Rigify_Deform.py'
+                src_skeleton, trg_skeleton = ConvertBoneNaming.convert_settings(current_settings, _preset_name, validate=False)
                 ConvertBoneNaming.rename_bones(context, src_skeleton, trg_skeleton, skip_ik=True)
                 src_skeleton = bone_mapping.RigifySkeleton()
 
@@ -629,8 +645,8 @@ class ExtractMetarig(bpy.types.Operator):
                         # supercopy def bones start with DEF-
                         bone_name = getattr(src_skeleton.face, name_attr)
 
-                        if not bone_name.startswith('DEF-'):
-                            new_name = f"DEF-{bone_name}"
+                        if bone_name and not bone_name.startswith('DEF-'):
+                            new_name = "DEF-{}".format(bone_name)
                             try:
                                 context.object.data.bones[bone_name].name = new_name
                             except KeyError:
@@ -638,40 +654,134 @@ class ExtractMetarig(bpy.types.Operator):
                             else:
                                 setattr(src_skeleton.face, name_attr, new_name)
 
+        src_to_met_map = src_skeleton.conversion_map(met_skeleton)
 
         # bones that have rigify attr will be copied when the metarig is in edit mode
         additional_bones = [(b.name, b.rigify_type) for b in src_object.pose.bones if b.rigify_type]
 
-        try:
-            metarig = next(ob for ob in bpy.data.objects if ob.type == 'ARMATURE' and ob.data.rigify_target_rig == src_object)
-        except AttributeError:
-            self.report({'WARNING'}, 'Rigify Add-On not enabled')
-            return {'CANCELLED'}
-        except StopIteration:
+        # look if there is a metarig for this rig already
+        metarig = None
+        for ob in bpy.data.objects:
+            if ob.type == 'ARMATURE':
+                # rigify from (0, 6, 1) has it as object ref
+                if hasattr(ob.data, "rigify_target_rig") and ob.data.rigify_target_rig:
+                    if ob.data.rigify_target_rig == src_object:
+                        metarig = ob
+                        break
+                    continue
+
+                # some versions from 0.6.1 have it
+                if hasattr(ob.data, "rigify_rig_basename") and ob.data.rigify_rig_basename:
+                    if ob.data.rigify_rig_basename == src_object.name:
+                        metarig = ob
+                        break
+                    continue
+
+                # in rigify 0.4, 0.5 it's partially implemented, but we set it ourselves (rigify only reads it, never writes)
+                if ob.get("rig_object_name") and ob["rig_object_name"] == src_object.name:
+                    metarig = ob
+                    break
+
+        if not metarig:
             create_metarig = True
             met_armature = bpy.data.armatures.new('metarig')
             metarig = bpy.data.objects.new("metarig", met_armature)
-            try:
-                metarig.data.rigify_rig_basename = src_object.name
-            except AttributeError:
-                # removed in rigify 0.6.4
-                pass
 
-            context.collection.objects.link(metarig)
+            if bpy.app.version < (2, 80):
+                context.scene.objects.link(metarig)
+            else:
+                context.collection.objects.link(metarig)
         else:
             met_armature = metarig.data
             create_metarig = False
 
+        # getting real z_axes for src rest pose
+        src_z_axes = bone_utils.get_rest_z_axes(src_object, context)
+
         bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.select_all(action='DESELECT')
 
-        metarig.select_set(True)
-        context.view_layer.objects.active = metarig
+        if bpy.app.version < (2, 80):
+            metarig.select = True
+            context.scene.objects.active = metarig
+        else:
+            metarig.select_set(True)
+            context.view_layer.objects.active = metarig
+
+        # in local view it will fail prior 2.80 but in 2.80 it won't add it to the view as well
+        if context.space_data.local_view is not None:
+            if bpy.app.version < (2, 80):
+                met_obj_base = next((base for base in context.scene.object_bases if base.object == metarig))
+                if met_obj_base:
+                    met_obj_base.layers_from_view(context.space_data)
+            else:
+                bpy.ops.view3d.localview(frame_selected=False)
+                src_object.select_set(True)
+                bpy.ops.view3d.localview(frame_selected=False)
+                src_object.select_set(False)
+
         bpy.ops.object.mode_set(mode='EDIT')
 
         if create_metarig:
             from rigify.metarigs import human
             human.create(metarig)
+
+        # measure some original meta proportions for later use
+        def get_body_proportions():
+            props = {}
+            bone_pairs = []
+            for attr in ("hips", "head", "neck", "spine2"):
+                try:
+                    met_bone = met_armature.edit_bones[getattr(met_skeleton.spine, attr)]
+                    src_bone = src_armature.bones[getattr(src_skeleton.spine, attr)]
+                except:
+                    continue
+                if met_bone and src_bone:
+                    bone_pairs.append((attr, met_bone, src_bone))
+                    if len(bone_pairs) > 1:
+                        break
+            if len(bone_pairs) < 2 or bone_pairs[0][0] != "hips":
+                return None
+
+            met_body_vector = bone_pairs[1][1].head - bone_pairs[0][1].head
+            src_body_vector = bone_pairs[1][2].head_local - bone_pairs[0][2].head_local
+
+            props["body_scale"] = src_body_vector.length / met_body_vector.length
+            props["hips_head"] = bone_pairs[0][1].head.copy()
+            return props
+
+        body_proportions = get_body_proportions()
+
+        def match_meta_spine(met_bone_group, src_bone_group, bone_attrs, axis=None):
+            # find existing bones
+            ms_bones = []
+            for bone_attr in bone_attrs:
+                met_bone_name = getattr(met_bone_group, bone_attr, None)
+                met_bone = met_armature.edit_bones.get(met_bone_name, None) if met_bone_name else None
+                src_bone_name = getattr(src_bone_group, bone_attr, None)
+                src_bone = src_armature.bones.get(src_bone_name, None) if src_bone_name else None
+                ms_bones.append((met_bone, src_bone))
+            # terminators must exist anyway
+            if not (ms_bones[0][0] and ms_bones[0][1] and ms_bones[-1][0] and ms_bones[-1][1]):
+                self.report({'ERROR'}, "First and last bone in the chain ({}..{}) must exist".format(bone_attrs[0], bone_attrs[-1]))
+                return
+
+            met_bones_to_kill = {ms[0] for ms in ms_bones if ms[0] and not ms[1]}
+
+            # place matched bones and set their rolls
+            for met_bone, src_bone in ((ms[0], ms[1]) for ms in ms_bones if ms[0] and ms[1]):
+
+                met_bone.head = src_bone.head_local
+                met_bone.tail = src_bone.tail_local
+
+                if axis:
+                    met_bone.roll = bone_utils.ebone_roll_to_vector(met_bone, axis)
+                else:
+                    src_z_axis = src_z_axes[src_bone.name]
+                    met_bone.align_roll(src_z_axis)
+
+            for met_bone in met_bones_to_kill:
+                met_bone.length = 0.0
 
         def match_meta_bone(met_bone_group, src_bone_group, bone_attr, axis=None):
             try:
@@ -682,7 +792,7 @@ class ExtractMetarig(bpy.types.Operator):
                 return
 
             if not src_bone:
-                self.report({'WARNING'}, f"{bone_attr}, {src_bone_name} not found in {src_armature}")
+                self.report({'WARNING'}, "{}, {} not found in {}".format(bone_attr, src_bone_name, src_armature))
                 return
 
             met_bone.head = src_bone.head_local
@@ -693,24 +803,24 @@ class ExtractMetarig(bpy.types.Operator):
                 parent_dir = met_bone.parent.vector.normalized()
 
                 if bone_dir.dot(parent_dir) < -0.6:
-                    self.report({'WARNING'}, f"{met_bone.name} is not aligned with its parent")
+                    self.report({'WARNING'}, "{} is not aligned with its parent".format(met_bone.name))
                     # TODO
 
             if axis:
                 met_bone.roll = bone_utils.ebone_roll_to_vector(met_bone, axis)
             else:
-                src_x_axis = Vector((0.0, 0.0, 1.0)) @ src_bone.matrix_local.inverted().to_3x3()
-                src_x_axis.normalize()
-                met_bone.roll = bone_utils.ebone_roll_to_vector(met_bone, src_x_axis)
+                src_z_axis = src_z_axes[src_bone.name]
+                met_bone.align_roll(src_z_axis)
 
             return met_bone
 
-        for bone_attr in ['hips', 'spine', 'spine1', 'spine2', 'neck', 'head']:
-            if self.forward_spine_roll:
-                align = Vector((0.0, -1.0, 0.0))
-            else:
-                align = None
-            match_meta_bone(met_skeleton.spine, src_skeleton.spine, bone_attr, axis=align)
+        if self.forward_spine_roll:
+            align = Vector((0.0, -1.0, 0.0))
+        else:
+            align = None
+        match_meta_spine(met_skeleton.spine, src_skeleton.spine,
+                         ('hips', 'spine', 'spine1', 'spine2', 'neck', 'head'),
+                         axis=align)
 
         for bone_attr in ['shoulder', 'arm', 'forearm', 'hand']:
             match_meta_bone(met_skeleton.right_arm, src_skeleton.right_arm, bone_attr)
@@ -720,13 +830,13 @@ class ExtractMetarig(bpy.types.Operator):
             match_meta_bone(met_skeleton.right_leg, src_skeleton.right_leg, bone_attr)
             match_meta_bone(met_skeleton.left_leg, src_skeleton.left_leg, bone_attr)
 
-        rigify_face_bones = bone_mapping.rigify_face_bones
+        rigify_face_bones = set(bone_mapping.rigify_face_bones)
         for bone_attr in ['left_eye', 'right_eye', 'jaw']:
             met_bone = match_meta_bone(met_skeleton.face, src_skeleton.face, bone_attr)
             if met_bone:
                 try:
                     rigify_face_bones.remove(met_skeleton.face[bone_attr])
-                except ValueError:
+                except:
                     pass
 
                 if src_skeleton.face.super_copy:
@@ -766,22 +876,33 @@ class ExtractMetarig(bpy.types.Operator):
                 print(bone_attr, "not found in", src_armature)
                 return
 
+            # handle palm bones
             if 'thumb' not in bone_attr:
+                # check if it's already mapped in 'meta' limb
                 try:
-                    met_bone = met_armature.edit_bones[met_bone_names[0]]
-                    src_bone = src_armature.bones.get(src_bone_names[0], None)
-                except KeyError:
+                    met_bone = met_armature.edit_bones[met_bone_names[3]]
+                    src_bone = src_armature.bones.get(src_bone_names[3])
+                except Exception:
                     pass
-                else:
-                    if src_bone:
-                        palm_bone = met_bone.parent
+                if not met_bone or not src_bone:
+                    try:
+                        met_bone = met_armature.edit_bones[met_bone_names[0]]
+                        src_bone = src_armature.bones.get(src_bone_names[0], None)
+                    except KeyError:
+                        pass
+                    else:
+                        if src_bone:
+                            palm_bone = met_bone.parent
+                            palm_bone.tail = src_bone.head_local
+                            hand_bone = palm_bone.parent
+                            palm_bone.head = hand_bone.head * 0.75 + src_bone.head_local * 0.25
+                            # not a big deal to match palm's roll with the proximal's
+                            src_z_axis = src_z_axes[src_bone.name]
+                            palm_bone.align_roll(src_z_axis)
 
-                        palm_bone.tail = src_bone.head_local
-                        hand_bone = palm_bone.parent
-                        palm_bone.head = hand_bone.head * 0.75 + src_bone.head_local * 0.25
-                        palm_bone.roll = 0
-
-            for met_bone_name, src_bone_name in zip(met_bone_names, src_bone_names):
+            for i, (met_bone_name, src_bone_name) in enumerate(zip(met_bone_names, src_bone_names)):
+                if not src_bone_name:
+                    continue
                 try:
                     met_bone = met_armature.edit_bones[met_bone_name]
                     src_bone = src_armature.bones[src_bone_name]
@@ -793,26 +914,29 @@ class ExtractMetarig(bpy.types.Operator):
                 try:
                     met_bone.tail = src_bone.children[0].head_local
                 except IndexError:
-                    bone_utils.align_to_closer_axis(src_bone, met_bone)
+                    try:
+                        if i < 2:
+                            src_bone_next = src_armature.bones[src_bone_names[i + 1]]
+                        elif i == 3: # palm
+                            src_bone_next = src_armature.bones[src_bone_names[0]]
+                        else:
+                            raise KeyError()
+                    except KeyError:
+                        bone_utils.align_to_closer_axis(src_bone, met_bone)
+                    else:
+                        met_bone.tail = src_bone_next.head_local
 
-                met_bone.roll = 0.0
+                src_z_axis = src_z_axes[src_bone.name]
+                met_bone.align_roll(src_z_axis)
 
-                src_z_axis = Vector((0.0, 0.0, 1.0)) @ src_bone.matrix_local.to_3x3()
-
-                inv_rot = met_bone.matrix.to_3x3().inverted()
-                trg_z_axis = src_z_axis @ inv_rot
-                dot_z = (met_bone.z_axis @ met_bone.matrix.inverted()).dot(trg_z_axis)
-                met_bone.roll = dot_z * pi
-
-                offset_fingers = Vector(self.offset_fingers) @ src_bone.matrix_local.to_3x3()
+                offset_fingers = matmul(Vector(self.offset_fingers), src_bone.matrix_local.to_3x3())
                 if met_bone.head.x < 0:  # Right side
                     offset_fingers /= -100
                 else:
                     offset_fingers /= 100
 
                 if met_bone.parent.name in met_bone_names and met_bone.children:
-                    met_bone.head += offset_fingers
-                    met_bone.tail += offset_fingers
+                    met_bone.translate(offset_fingers)
 
         for bone_attr in ['thumb', 'index', 'middle', 'ring', 'pinky']:
             match_meta_fingers(met_skeleton.right_fingers, src_skeleton.right_fingers, bone_attr)
@@ -861,22 +985,33 @@ class ExtractMetarig(bpy.types.Operator):
                 heel_bone.tail.x = heel_tail
 
                 try:
-                    spine_bone = met_armature.edit_bones['spine']
+                    spine_bone = met_armature.edit_bones[met_skeleton.spine.hips]
                     pelvis_bone = met_armature.edit_bones['pelvis.' + side]
                 except KeyError:
                     pass
                 else:
-                    pelvis_bone.head = spine_bone.head
-                    pelvis_bone.tail.z = spine_bone.tail.z
+                    offset = spine_bone.head - pelvis_bone.head
+                    pelvis_bone.translate(offset)
+                    if body_proportions:
+                        pelvis_bone.length *= body_proportions["body_scale"]
 
                 try:
-                    spine_bone = met_armature.edit_bones['spine.003']
+                    if body_proportions:
+                        spine_bone = met_armature.edit_bones[met_skeleton.spine.hips]
+                    else:
+                        spine_bone = met_armature.edit_bones[met_skeleton.spine.spine2]
                     breast_bone = met_armature.edit_bones['breast.' + side]
                 except KeyError:
                     pass
                 else:
-                    breast_bone.head.z = spine_bone.head.z
-                    breast_bone.tail.z = spine_bone.head.z
+                    if body_proportions:
+                        offset0 = (breast_bone.head - body_proportions["hips_head"])
+                        offset = (offset0 * body_proportions["body_scale"] - offset0 +
+                                  (spine_bone.head - body_proportions["hips_head"]))
+                    else:
+                        offset = spine_bone.head - breast_bone.head
+                        offset.x = 0.0
+                    breast_bone.translate(offset)
 
         if self.no_face:
             for bone_name in rigify_face_bones:
@@ -886,9 +1021,17 @@ class ExtractMetarig(bpy.types.Operator):
                     continue
 
                 met_armature.edit_bones.remove(face_bone)
+        else:
+            #TODO: position face bones with body_proportions
+            pass
 
         for src_name, src_attr in additional_bones:
-            new_bone_name = bone_utils.copy_bone_to_arm(src_object, metarig, src_name, suffix="")
+            # find target bone name by src_name
+            met_bone_name = src_to_met_map.get(src_name)
+            if not met_bone_name:
+                continue
+
+            new_bone_name = bone_utils.copy_bone_to_arm(src_object, metarig, src_name, trg_bone_name=met_bone_name, suffix="")
 
             if 'chain' in src_attr:  # TODO: also fingers
                 # working around weird bug: sometimes src_armature.bones causes KeyError even if the bone is there
@@ -902,54 +1045,78 @@ class ExtractMetarig(bpy.types.Operator):
                     except IndexError:
                         break
 
-                    child_bone_name = bone_utils.copy_bone_to_arm(src_object, metarig, bone.name, suffix="")
+                    child_bone_name = bone_utils.copy_bone_to_arm(src_object, metarig, bone.name, trg_bone_name=src_to_met_map.get(bone.name), suffix="")
                     child_bone = met_armature.edit_bones[child_bone_name]
                     child_bone.parent = met_armature.edit_bones[new_parent_name]
                     child_bone.use_connect = True
 
-                    bone.name = f"DEF-{bone.name}"
+                    bone.name = "DEF-{}".format(bone.name)
                     new_parent_name = child_bone_name
 
             try:
                 bone = next((b for b in src_armature.bones if b.name == src_name), None)
-                
+
                 if bone:
                     if bone.parent:
-                        # FIXME: should use mapping to get parent bone name
+                        # DONE: should use mapping to get parent bone name
                         parent_name = bone.parent.name.replace('DEF-', '')
-                        met_armature.edit_bones[new_bone_name].parent = met_armature.edit_bones[parent_name]
+                        met_parent_name = src_to_met_map.get(parent_name)
+                        if met_parent_name:
+                            met_armature.edit_bones[new_bone_name].parent = met_armature.edit_bones[met_parent_name]
                     if ".raw_" in src_attr:
                         met_armature.edit_bones[new_bone_name].use_deform = bone.use_deform
                     elif bone.name.startswith('DEF-'):
                         # already a DEF, need to strip that from metarig bone instead
                         met_armature.edit_bones[new_bone_name].name = new_bone_name.replace("DEF-", '')
                     else:
-                        bone.name = f'DEF-{bone.name}'
+                        bone.name = "DEF-{}".format(bone.name)
             except KeyError:
-                self.report({'WARNING'}, "bones not found in target, perhaps wrong preset?")
+                self.report({'WARNING'}, "parent bone [{}] not found in target, perhaps wrong preset?".format(parent_name))
                 continue
 
         bpy.ops.object.mode_set(mode='POSE')
         # now we can copy the stored rigify attrs
         for src_name, src_attr in additional_bones:
             src_meta = src_name[4:] if src_name.startswith('DEF-') else src_name
-            metarig.pose.bones[src_meta].rigify_type = src_attr
-            # TODO: should copy rigify options of specific types as well
+            src_meta = src_to_met_map.get(src_meta)
+            if src_meta:
+                metarig.pose.bones[src_meta].rigify_type = src_attr
+                # TODO: should copy rigify options of specific types as well
 
         if current_settings.left_leg.upleg_twist_02 or current_settings.left_leg.leg_twist_02:
             metarig.pose.bones['thigh.L']['rigify_parameters']['segments'] = 3
 
         if current_settings.right_leg.upleg_twist_02 or current_settings.right_leg.leg_twist_02:
             metarig.pose.bones['thigh.R']['rigify_parameters']['segments'] = 3
-        
+
         if current_settings.left_arm.arm_twist_02 or current_settings.left_arm.forearm_twist_02:
             metarig.pose.bones['upper_arm.L']['rigify_parameters']['segments'] = 3
-        
+
         if current_settings.right_arm.arm_twist_02 or current_settings.right_arm.forearm_twist_02:
             metarig.pose.bones['upper_arm.R']['rigify_parameters']['segments'] = 3
 
         if self.assign_metarig:
-            met_armature.rigify_target_rig = src_object
+            # register target rig according to rigify version
+            # rigify_target_rig begins in 0.6.1
+            if hasattr(metarig.data, "rigify_target_rig"):
+                metarig.data.rigify_target_rig = src_object
+
+            # rigify_rig_basename begins in 0.6.1, dies in 0.6.4, and resurrects in 0.6.6
+            elif hasattr(metarig.data, "rigify_rig_basename"):
+                metarig.data.rigify_rig_basename = src_object.name
+
+            else:
+                # in rigify 0.4, 0.5 it's partially implemented, but we set it ourselves as custom prop
+                metarig["rig_object_name"] = src_object.name
+        else:
+            if create_metarig:
+                if bone_mapping.rigify_version <= (0, 5):
+                    # help older rigify to avoid using hardcoded name 'rig'
+                    _name = metarig.name.replace("meta","")
+                    _name = _name.replace("Meta","")
+                    _name = _name.replace("META","")
+                    if _name != metarig.name:
+                        metarig["rig_object_name"] = _name
 
         metarig.parent = src_object.parent
 
@@ -997,15 +1164,21 @@ class ActionRangeToScene(bpy.types.Operator):
                     if area.type == 'DOPESHEET_EDITOR':
                         for region in area.regions:
                             if region.type == 'WINDOW':
-                                with context.temp_override(window=window,
-                                                           area=area,
-                                                           region=region):
-                                    bpy.ops.action.view_all()
+                                _ovr = {"window" : window,
+                                        "area" : area,
+                                        "region" : region
+                                        }
+                                if bpy.app.version < (3, 2):
+                                    bpy.ops.action.view_all(_ovr)
+                                else:
+                                    with context.temp_override(**_ovr):
+                                        bpy.ops.action.view_all()
                                 break
                         break
         return {'FINISHED'}
 
 
+@make_annotations
 class MergeHeadTails(bpy.types.Operator):
     """Connect head/tails when closer than given max distance"""
     bl_idname = "armature.expykit_merge_head_tails"
@@ -1013,19 +1186,19 @@ class MergeHeadTails(bpy.types.Operator):
     bl_description = "Connect head/tails when closer than given max distance"
     bl_options = {'REGISTER', 'UNDO'}
 
-    at_child_head: BoolProperty(
+    at_child_head = BoolProperty(
         name="Match at child head",
         description="Bring parent's tail to match child head when possible",
         default=True
     )
 
-    min_distance: FloatProperty(
+    min_distance = FloatProperty(
         name="Distance",
         description="Max Distance for merging",
         default=0.0
     )
 
-    selected_only: BoolProperty(name="Only Selected",
+    selected_only = BoolProperty(name="Only Selected",
                                 default=False)
 
     @classmethod
@@ -1065,18 +1238,18 @@ class MergeHeadTails(bpy.types.Operator):
         return {'FINISHED'}
 
 
-def mute_fcurves(obj: bpy.types.Object, channel_name: str):
+def mute_fcurves(obj, channel_name): # :Object, :str
     action = obj.animation_data.action
     if not action:
         return
-    
+
     for fc in action.fcurves:
         if fc.data_path == channel_name:
             fc.mute = True
 
 def limit_scale(obj):
     constr = obj.constraints.new('LIMIT_SCALE')
-    
+
     constr.owner_space = 'LOCAL'
     constr.min_x = obj.scale[0]
     constr.min_y = obj.scale[1]
@@ -1095,6 +1268,7 @@ def limit_scale(obj):
     constr.use_max_z = True
 
 
+@make_annotations
 class ConvertGameFriendly(bpy.types.Operator):
     """Convert Rigify (0.5) rigs to a Game Friendly hierarchy"""
     bl_idname = "armature.expykit_convert_gamefriendly"
@@ -1102,37 +1276,37 @@ class ConvertGameFriendly(bpy.types.Operator):
     bl_description = "Make the rigify deformation bones a one root rig"
     bl_options = {'REGISTER', 'UNDO'}
 
-    keep_backup: BoolProperty(
+    keep_backup = BoolProperty(
         name="Backup",
         description="Keep copy of datablock",
         default=True
     )
-    rename: StringProperty(
+    rename = StringProperty(
         name="Rename",
         description="Rename rig to 'Armature'",
         default="Armature"
     )
-    eye_bones: BoolProperty(
+    eye_bones = BoolProperty(
         name="Keep eye bones",
         description="Activate 'deform' for eye bones",
         default=True
     )
-    limit_scale: BoolProperty(
+    limit_scale = BoolProperty(
         name="Limit Spine Scale",
         description="Limit scale on the spine deform bones",
         default=True
     )
-    disable_bendy: BoolProperty(
+    disable_bendy = BoolProperty(
         name="Disable B-Bones",
         description="Disable Bendy-Bones",
         default=True
     )
-    fix_tail: BoolProperty(
+    fix_tail = BoolProperty(
         name="Invert Tail",
         description="Reverse the tail direction so that it spawns from hip",
         default=True
     )
-    reparent_twist: BoolProperty(
+    reparent_twist = BoolProperty(
         name="Dispossess Twist Bones",
         description="Rearrange Twist Hierarchy in limbs for in game IK",
         default=True
@@ -1190,7 +1364,7 @@ class ConvertGameFriendly(bpy.types.Operator):
             leg_bones = ("DEF-thigh", "DEF-shin", "DEF-foot")
             for side in ".L", ".R":
                 for bone_names in list(arm_bones), list(leg_bones):
-                    parent_bone = ob.data.edit_bones[bone_names.pop(0) + side] 
+                    parent_bone = ob.data.edit_bones[bone_names.pop(0) + side]
                     for bone in bone_names:
                         e_bone = ob.data.edit_bones[bone + side]
                         e_bone.use_connect = False
@@ -1207,46 +1381,47 @@ class ConvertGameFriendly(bpy.types.Operator):
                 bone.bbone_segments = 1
                 # TODO: disable bbone drivers
 
-        self.report({'INFO'}, f'{num_reparents} bones were re-parented')
+        self.report({'INFO'}, "{} bones were re-parented".format(num_reparents))
         return {'FINISHED'}
 
 
+@make_annotations
 class ConstrainToArmature(bpy.types.Operator):
     bl_idname = "armature.expykit_constrain_to_armature"
     bl_label = "Bind to Active Armature"
     bl_description = "Constrain bones of selected armatures to active armature"
     bl_options = {'REGISTER', 'UNDO'}
 
-    src_preset: EnumProperty(items=preset_handler.iterate_presets_with_current,
+    src_preset = EnumProperty(items=preset_handler.iterate_presets_with_current,
                              name="To Bind",
                              options={'SKIP_SAVE'}
                              )
 
-    trg_preset: EnumProperty(items=preset_handler.iterate_presets_with_current,
+    trg_preset = EnumProperty(items=preset_handler.iterate_presets_with_current,
                              name="Bind To",
                              options={'SKIP_SAVE'}
                              )
-    
-    only_selected: BoolProperty(name="Only Selected", default=False, description="Bind only selected bones")
-    
-    bind_by_name: BoolProperty(name="Bind bones by name", default=True)
-    name_prefix: StringProperty(name="Add prefix to name", default="")
-    name_replace: StringProperty(name="Replace in name", default="")
-    name_replace_with: StringProperty(name="Replace in name with", default="")
-    name_suffix: StringProperty(name="Add suffix to name", default="")
+
+    only_selected = BoolProperty(name="Only Selected", default=False, description="Bind only selected bones")
+
+    bind_by_name = BoolProperty(name="Bind bones by name", default=True)
+    name_prefix = StringProperty(name="Add prefix to name", default="")
+    name_replace = StringProperty(name="Replace in name", default="")
+    name_replace_with = StringProperty(name="Replace in name with", default="")
+    name_suffix = StringProperty(name="Add suffix to name", default="")
 
     if bpy.app.version[0] < 4:
-        ret_bones_layer: IntProperty(name="Layer",
+        ret_bones_layer = IntProperty(name="Layer",
                                     min=0, max=29, default=24,
                                     description="Armature Layer to use for connection bones")
         use_legacy_index = True
     else:
-        ret_bones_collection: StringProperty(name="Layer",
+        ret_bones_collection = StringProperty(name="Layer",
                                              default="Retarget Bones",
                                              description="Armature collection to use for connection bones")
         use_legacy_index = False
 
-    match_transform: EnumProperty(items=[
+    match_transform = EnumProperty(items=[
         ('None', "- None -", "Don't match any transform"),
         ('Bone', "Bones Offset", "Account for difference between control and deform rest pose (Requires similar proportions and Y bone-axis)"),
         ('Pose', "Current Pose is target Rest Pose", "Armature was posed manually to match rest pose of target"),
@@ -1254,22 +1429,22 @@ class ConstrainToArmature(bpy.types.Operator):
     ],
         name="Match Transform",
         default='None')
-    
-    match_object_transform: BoolProperty(name="Match Object Transform", default=True)
 
-    math_look_at: BoolProperty(name="Fix direction",
+    match_object_transform = BoolProperty(name="Match Object Transform", default=True)
+
+    math_look_at = BoolProperty(name="Fix direction",
                                description="Correct chain direction based on mid limb (Useful for IK)",
                                default=False)
-    
-    copy_IK_roll_hands: BoolProperty(name="Hands IK Roll",
+
+    copy_IK_roll_hands = BoolProperty(name="Hands IK Roll",
                             description="USe IK target roll from source armature (Useful for IK)",
                             default=False)
-    
-    copy_IK_roll_feet: BoolProperty(name="Feet IK Roll",
+
+    copy_IK_roll_feet = BoolProperty(name="Feet IK Roll",
                             description="USe IK target roll from source armature (Useful for IK)",
                             default=False)
-    
-    fit_target_scale: EnumProperty(name="Fit height",
+
+    fit_target_scale = EnumProperty(name="Fit height",
                                    items=(('--', '- None -', 'None'),
                                           ('head', 'head', 'head'),
                                           ('neck', 'neck', 'neck'),
@@ -1280,9 +1455,9 @@ class ConstrainToArmature(bpy.types.Operator):
                                           ),
                                     default='--',
                                     description="Fit height of the target Armature at selected bone")
-    adjust_location: BoolProperty(default=True, name="Adjust location to new scale")
+    adjust_location = BoolProperty(default=True, name="Adjust location to new scale")
 
-    constrain_root: EnumProperty(items=[
+    constrain_root = EnumProperty(items=[
         ('None', "No Root", "Don't constrain root bone"),
         ('Bone', "Bone", "Constrain root to bone"),
         ('Object', "Object", "Constrain root to object")
@@ -1290,15 +1465,15 @@ class ConstrainToArmature(bpy.types.Operator):
         name="Constrain Root",
         default='None')
 
-    loc_constraints: BoolProperty(name="Copy Location",
+    loc_constraints = BoolProperty(name="Copy Location",
                                   description="Use Location Constraint when binding",
                                   default=False)
-    
-    rot_constraints: BoolProperty(name="Copy Rotation",
+
+    rot_constraints = BoolProperty(name="Copy Rotation",
                                   description="Use Rotation Constraint when binding",
                                   default=True)
-    
-    constraint_policy: EnumProperty(items=[
+
+    constraint_policy = EnumProperty(items=[
         ('skip', "Skip Existing Constraints", "Skip Bones that are constrained already"),
         ('disable', "Disable Existing Constraints", "Disable existing binding constraints and add new ones"),
         ('remove', "Delete Existing Constraints", "Delete existing binding constraints")
@@ -1308,53 +1483,53 @@ class ConstrainToArmature(bpy.types.Operator):
         default='skip'
         )
 
-    bind_floating: BoolProperty(name="Bind Floating",
+    bind_floating = BoolProperty(name="Bind Floating",
                                 description="Always bind unparented bones Location and Rotation",
                                 default=True)
 
-    root_motion_bone: StringProperty(name="Root Motion",
+    root_motion_bone = StringProperty(name="Root Motion",
                                      description="Constrain Root bone to Hip motion",
                                      default="")
 
-    root_cp_loc_x: BoolProperty(name="Root Copy Loc X", description="Copy Root X Location", default=False)
-    root_cp_loc_y: BoolProperty(name="Root Copy Loc y", description="Copy Root Y Location", default=True)
-    root_cp_loc_z: BoolProperty(name="Root Copy Loc Z", description="Copy Root Z Location", default=False)
+    root_cp_loc_x = BoolProperty(name="Root Copy Loc X", description="Copy Root X Location", default=False)
+    root_cp_loc_y = BoolProperty(name="Root Copy Loc y", description="Copy Root Y Location", default=True)
+    root_cp_loc_z = BoolProperty(name="Root Copy Loc Z", description="Copy Root Z Location", default=False)
 
-    root_use_loc_min_x: BoolProperty(name="Use Root Min X", description="Minimum Root X", default=False)
-    root_use_loc_min_y: BoolProperty(name="Use Root Min Y", description="Minimum Root Y", default=False)
-    root_use_loc_min_z: BoolProperty(name="Use Root Min Z", description="Minimum Root Z", default=True)
+    root_use_loc_min_x = BoolProperty(name="Use Root Min X", description="Minimum Root X", default=False)
+    root_use_loc_min_y = BoolProperty(name="Use Root Min Y", description="Minimum Root Y", default=False)
+    root_use_loc_min_z = BoolProperty(name="Use Root Min Z", description="Minimum Root Z", default=True)
 
-    root_loc_min_x: FloatProperty(name="Root Min X", description="Minimum Root X", default=0.0)
-    root_loc_min_y: FloatProperty(name="Root Min Y", description="Minimum Root Y", default=0.0)
-    root_loc_min_z: FloatProperty(name="Root Min Z", description="Minimum Root Z", default=0.0)
+    root_loc_min_x = FloatProperty(name="Root Min X", description="Minimum Root X", default=0.0)
+    root_loc_min_y = FloatProperty(name="Root Min Y", description="Minimum Root Y", default=0.0)
+    root_loc_min_z = FloatProperty(name="Root Min Z", description="Minimum Root Z", default=0.0)
 
-    root_use_loc_max_x: BoolProperty(name="Use Root Max X", description="Maximum Root X", default=False)
-    root_use_loc_max_y: BoolProperty(name="Use Root Max Y", description="Maximum Root Y", default=False)
-    root_use_loc_max_z: BoolProperty(name="Use Root Max Z", description="Maximum Root Z", default=False)
+    root_use_loc_max_x = BoolProperty(name="Use Root Max X", description="Maximum Root X", default=False)
+    root_use_loc_max_y = BoolProperty(name="Use Root Max Y", description="Maximum Root Y", default=False)
+    root_use_loc_max_z = BoolProperty(name="Use Root Max Z", description="Maximum Root Z", default=False)
 
-    root_loc_max_x: FloatProperty(name="Root Max X", description="Maximum Root X", default=0.0)
-    root_loc_max_y: FloatProperty(name="Root Max Y", description="Maximum Root Y", default=0.0)
-    root_loc_max_z: FloatProperty(name="Root Max Z", description="Maximum Root Z", default=0.0)
+    root_loc_max_x = FloatProperty(name="Root Max X", description="Maximum Root X", default=0.0)
+    root_loc_max_y = FloatProperty(name="Root Max Y", description="Maximum Root Y", default=0.0)
+    root_loc_max_z = FloatProperty(name="Root Max Z", description="Maximum Root Z", default=0.0)
 
-    root_cp_rot_x: BoolProperty(name="Root Copy Rot X", description="Copy Root X Rotation", default=False)
-    root_cp_rot_y: BoolProperty(name="Root Copy Rot y", description="Copy Root Y Rotation", default=False)
-    root_cp_rot_z: BoolProperty(name="Root Copy Rot Z", description="Copy Root Z Rotation", default=False)
+    root_cp_rot_x = BoolProperty(name="Root Copy Rot X", description="Copy Root X Rotation", default=False)
+    root_cp_rot_y = BoolProperty(name="Root Copy Rot y", description="Copy Root Y Rotation", default=False)
+    root_cp_rot_z = BoolProperty(name="Root Copy Rot Z", description="Copy Root Z Rotation", default=False)
 
-    no_finger_loc: BoolProperty(default=False, name="No Finger Location")
+    no_finger_loc = BoolProperty(default=False, name="No Finger Location")
 
-    prefix_separator: StringProperty(
+    prefix_separator = StringProperty(
         name="Prefix Separator",
         description="Separator between prefix and name, i.e: MyCharacter:head",
         default=":"
     )
 
-    force_dialog: BoolProperty(default=False, options={'HIDDEN', 'SKIP_SAVE'})
-    
+    force_dialog = BoolProperty(default=False, options={'HIDDEN', 'SKIP_SAVE'})
+
     _autovars_unset = True
     _constrained_root = None
 
     _prop_indent = 0.15
-    
+
     @property
     def _bind_constraints(self):
         constrs = []
@@ -1389,7 +1564,7 @@ class ConstrainToArmature(bpy.types.Operator):
         if self.force_dialog:
             return context.window_manager.invoke_props_dialog(self)
 
-        return self.execute(context)        
+        return self.execute(context)
 
     def draw(self, context):
         layout = self.layout
@@ -1397,7 +1572,7 @@ class ConstrainToArmature(bpy.types.Operator):
 
         row = column.row()
         row.prop(self, 'src_preset', text="To Bind")
-    
+
         row = column.row()
         row.prop(self, 'trg_preset', text="Bind To")
 
@@ -1408,7 +1583,7 @@ class ConstrainToArmature(bpy.types.Operator):
         row = column.row()
         row.label(text='Conversion')
 
-        row = column.split(factor=self._prop_indent, align=True)
+        row = layout_split(column, factor=self._prop_indent, align=True)
         row.separator()
         col = row.column()
         col.prop(self, 'match_transform', text='')
@@ -1429,18 +1604,18 @@ class ConstrainToArmature(bpy.types.Operator):
         row.label(text='Constraints')
 
         row = column.row()
-        row = column.split(factor=self._prop_indent, align=True)
+        row = layout_split(column, factor=self._prop_indent, align=True)
         row.separator()
 
         constr_col = row.column()
-        
+
         copy_loc_row = constr_col.row()
         copy_loc_row.prop(self, 'loc_constraints')
         if self.loc_constraints:
             copy_loc_row.prop(self, 'no_finger_loc', text="Except Fingers")
         else:
             copy_loc_row.prop(self, 'bind_floating', text="Only Floating")
-        
+
         copy_rot_row = constr_col.row()
         copy_rot_row.prop(self, 'rot_constraints')
         copy_rot_row.prop(self, 'math_look_at')
@@ -1449,15 +1624,15 @@ class ConstrainToArmature(bpy.types.Operator):
         ik_aim_row.prop(self, 'copy_IK_roll_hands')
         ik_aim_row.prop(self, 'copy_IK_roll_feet')
 
-        row = column.split(factor=self._prop_indent, align=True)
+        row = layout_split(column, factor=self._prop_indent, align=True)
         constr_col.prop(self, 'constraint_policy', text='')
-        
+
         column.separator()
         row = column.row()
         row.label(text="Affect Bones")
-        
+
         row = column.row()
-        row = column.split(factor=self._prop_indent, align=True)
+        row = layout_split(column, factor=self._prop_indent, align=True)
         row.separator()
         col = row.column()
         col.prop(self, 'only_selected')
@@ -1483,12 +1658,12 @@ class ConstrainToArmature(bpy.types.Operator):
         column.separator()
         row = column.row()
         row.label(text="Root Animation")
-        row = column.split(factor=self._prop_indent, align=True)
+        row = layout_split(column, factor=self._prop_indent, align=True)
         row.separator()
         row.prop(self, 'constrain_root', text="")
 
         if self.constrain_root != 'None':
-            row = column.split(factor=self._prop_indent, align=True)
+            row = layout_split(column, factor=self._prop_indent, align=True)
             row.label(text="")
             row.prop_search(self, 'root_motion_bone',
                             context.active_object.data,
@@ -1562,7 +1737,7 @@ class ConstrainToArmature(bpy.types.Operator):
 
         column.separator()
         if self.use_legacy_index:
-            row = column.split(factor=self._prop_indent, align=True)
+            row = layout_split(column, factor=self._prop_indent, align=True)
             row.separator()
             row.prop(self, 'ret_bones_layer')
         else:
@@ -1607,7 +1782,7 @@ class ConstrainToArmature(bpy.types.Operator):
             limit_scale.min_x = 1.0
             limit_scale.min_y = 1.0
             limit_scale.min_z = 1.0
-            
+
             limit_scale.max_x = 1.0
             limit_scale.max_y = 1.0
             limit_scale.max_z = 1.0
@@ -1622,6 +1797,10 @@ class ConstrainToArmature(bpy.types.Operator):
         self.force_dialog = False
 
         trg_ob = context.active_object
+
+        _ad = trg_ob.animation_data
+        if _ad and _ad.action:
+            bpy.ops.object.expykit_action_to_range()
 
         if self.trg_preset == '--':
             return {'FINISHED'}
@@ -1648,14 +1827,14 @@ class ConstrainToArmature(bpy.types.Operator):
                 pass
             else:
                 fit_scale = True
-                trg_height = (trg_ob.matrix_world @ trg_bone.bone.head_local)
+                trg_height = matmul(trg_ob.matrix_world, trg_bone.bone.head_local)
 
         for ob in context.selected_objects:
             if ob == trg_ob:
                 continue
 
             src_settings = ob.data.expykit_retarget
-            if self.src_preset == '--Current--' and ob.data.expykit_retarget.has_settings():    
+            if self.src_preset == '--Current--' and ob.data.expykit_retarget.has_settings():
                 if not src_settings.has_settings():
                     return {'FINISHED'}
                 src_skeleton = preset_handler.get_settings_skel(src_settings)
@@ -1665,24 +1844,24 @@ class ConstrainToArmature(bpy.types.Operator):
                     return {'FINISHED'}
 
             if fit_scale:
-                ob_height = (ob.matrix_world @ ob.pose.bones[getattr(src_skeleton.spine, self.fit_target_scale)].bone.head_local)
+                ob_height = matmul(ob.matrix_world, ob.pose.bones[getattr(src_skeleton.spine, self.fit_target_scale)].bone.head_local)
                 height_ratio = ob_height[2] / trg_height[2]
-                
+
                 mute_fcurves(trg_ob, 'scale')
                 trg_ob.scale *= height_ratio
                 limit_scale(trg_ob)
 
                 if self.adjust_location:
                     # scale location animation to avoid offset
-                    trg_action = trg_ob.animation_data.action
-                    for fc in trg_action.fcurves:
-                        data_path = fc.data_path
+                    if trg_ob.animation_data and trg_ob.animation_data.action:
+                        for fc in trg_ob.animation_data.action.fcurves:
+                            data_path = fc.data_path
 
-                        if not data_path.endswith('location'):
-                            continue
+                            if not data_path.endswith('location'):
+                                continue
 
-                        for kf in fc.keyframe_points:
-                            kf.co[1] /= height_ratio
+                            for kf in fc.keyframe_points:
+                                kf.co[1] /= height_ratio
 
             bone_names_map = src_skeleton.conversion_map(trg_skeleton)
             def_skeleton = preset_handler.get_preset_skel(src_settings.deform_preset)
@@ -1713,7 +1892,7 @@ class ConstrainToArmature(bpy.types.Operator):
                 self._constrained_root = None
             elif self.constrain_root == 'Bone':
                 bone_names_map[src_skeleton.root] = self.root_motion_bone
-            
+
             if self.only_selected:
                 b_names = list(bone_names_map.keys())
                 for b_name in b_names:
@@ -1729,7 +1908,7 @@ class ConstrainToArmature(bpy.types.Operator):
 
             # hacky, but will do it: keep target armature in place during binding
             limit_constraints = self._add_limit_constraintss(trg_ob)
-            
+
             if not self.use_legacy_index:
                 try:
                     ret_collection = trg_ob.data.collections[self.ret_bones_collection]
@@ -1767,7 +1946,7 @@ class ConstrainToArmature(bpy.types.Operator):
                     if is_object_root:
                         new_parent = None
                     else:
-                        self.report({'WARNING'}, f"{trg_name} not found in target")
+                        self.report({'WARNING'}, "{} not found in target".format(trg_name))
                         continue
 
                 new_bone = trg_ob.data.edit_bones[new_bone_name]
@@ -1796,7 +1975,7 @@ class ConstrainToArmature(bpy.types.Operator):
                         new_bone.transform(ob.matrix_world)
                     # counter target transform
                     new_bone.transform(trg_ob.matrix_world.inverted())
-                    
+
                     # align target temporarily
                     trg_roll = trg_ed_bone.roll
                     trg_ed_bone.roll = bone_utils.ebone_roll_to_vector(trg_ed_bone, def_bone.z_axis)
@@ -1821,7 +2000,7 @@ class ConstrainToArmature(bpy.types.Operator):
                         new_bone.transform(ob.matrix_world)
                 else:
                     src_bone = ob.data.bones[src_name]
-                    src_z_axis_neg = Vector((0.0, 0.0, 1.0)) @ src_bone.matrix_local.inverted().to_3x3()
+                    src_z_axis_neg = matmul(Vector((0.0, 0.0, 1.0)), src_bone.matrix_local.inverted().to_3x3())
                     src_z_axis_neg.normalize()
 
                     new_bone.roll = bone_utils.ebone_roll_to_vector(new_bone, src_z_axis_neg)
@@ -1888,14 +2067,14 @@ class ConstrainToArmature(bpy.types.Operator):
                             for coll in look_bone.collections:
                                 coll.unissign(look_bone)
                             ret_collection.assign(look_bone)
-                            
+
             for constr in limit_constraints:
                 trg_ob.constraints.remove(constr)
 
             bpy.ops.object.mode_set(mode='POSE')
 
             for src_name, trg_name in look_ats.items():
-                ret_bone = trg_ob.pose.bones[f'{src_name}_{cp_suffix}']
+                ret_bone = trg_ob.pose.bones["{}_{}".format(src_name, cp_suffix)]
                 constr = ret_bone.constraints.new(type='LOCKED_TRACK')
 
                 constr.head_tail = 1.0
@@ -1922,8 +2101,8 @@ class ConstrainToArmature(bpy.types.Operator):
 
                 if self._bone_bound_already(src_pbone):
                     if self.constraint_policy == 'skip':
-                       continue
-                    
+                        continue
+
                     if self.constraint_policy == 'disable':
                         for constr in src_pbone.constraints:
                             if constr.type in self._bind_constraints:
@@ -1945,7 +2124,7 @@ class ConstrainToArmature(bpy.types.Operator):
                     constr = src_pbone.constraints.new(type=constr_type)
                     constr.target = trg_ob
 
-                    subtarget_name = f'{src_name}_{cp_suffix}'
+                    subtarget_name = "{}_{}".format(src_name, cp_suffix)
                     if subtarget_name in trg_ob.data.bones:
                         constr.subtarget = subtarget_name
 
@@ -1997,7 +2176,7 @@ class ConstrainToArmature(bpy.types.Operator):
         return {'FINISHED'}
 
 
-def validate_actions(action: bpy.types.Action, path_resolve: callable):
+def validate_action(action, path_resolve): # :Action, :callable
     for fc in action.fcurves:
         data_path = fc.data_path
         if fc.array_index:
@@ -2009,21 +2188,60 @@ def validate_actions(action: bpy.types.Action, path_resolve: callable):
     return True  # Valid.
 
 
+if bpy.app.version < (2, 79):
+    @make_annotations
+    class ConstrainActiveToSelected(bpy.types.Operator):
+        bl_idname = "armature.expykit_constrain_active"
+        bl_label = "Bind Active to Selected"
+        bl_description = "The same as above, but swaps the two first"
+        bl_options = {'REGISTER', 'UNDO'}
+
+        @classmethod
+        def poll(cls, context):
+            return (
+                len(context.selected_objects) == 2
+                and context.mode == 'POSE'
+                and all(map(lambda ob: ob.type == 'ARMATURE', context.selected_objects))
+                )
+
+        def execute(self, context):
+            trg_obj = next((ob for ob in context.selected_objects if ob != context.object))
+            if bpy.app.version >= (2, 80):
+                context.view_layer.objects.active = trg_obj
+            else:
+                context.scene.objects.active = trg_obj
+
+            bpy.ops.object.mode_set(mode='POSE')
+
+            bpy.ops.armature.expykit_constrain_to_armature('INVOKE_DEFAULT', force_dialog=True)
+
+            return {'FINISHED'}
+
+
+def action_base_name(name):
+    "after last separator, or the whole one if empty"
+    result = name.split("|")[-1]
+    return result if result else name
+
+
+@make_annotations
 class BakeConstrainedActions(bpy.types.Operator):
     bl_idname = "armature.expykit_bake_constrained_actions"
     bl_label = "Bake Constrained Actions"
     bl_description = "Bake Actions constrained from another Armature. No need to select two armatures"
     bl_options = {'REGISTER', 'UNDO'}
 
-    clear_users_old: BoolProperty(name="Clear original Action Users",
+    clear_users_old = BoolProperty(name="Clear original Action Users",
                                   default=True)
 
-    fake_user_new: BoolProperty(name="Save New Action User",
+    fake_user_new = BoolProperty(name="Save New Action User",
                                 default=True)
-    
-    exclude_deform: BoolProperty(name="Exclude deform bones", default=True)
 
-    do_bake: BoolProperty(name="Bake and Exit", description="Bake driven motion and exit",
+    exclude_deform = BoolProperty(name="Exclude deform bones", default=True)
+
+    add_to_nla = BoolProperty(name="Stash to NLA stack", default=False, description="Stash new actions as NLA strips.")
+
+    do_bake = BoolProperty(name="Bake and Exit", description="Bake driven motion and exit",
                           default=False, options={'SKIP_SAVE'})
 
     def draw(self, context):
@@ -2035,24 +2253,28 @@ class BakeConstrainedActions(bpy.types.Operator):
             if not trg_ob:
                 continue
 
-            column.label(text=f"Baking from {trg_ob.name} to {to_bake.name}")
+            column.label(text="Baking from {} to {}".format(trg_ob.name, to_bake.name))
 
         if len(context.selected_objects) > 1:
             column.label(text="No need to select two Armatures anymore", icon='ERROR')
 
-        row = column.split(factor=0.30, align=True)
+        row = layout_split(column, factor=0.30, align=True)
         row.label(text="")
         row.prop(self, "clear_users_old")
 
-        row = column.split(factor=0.30, align=True)
+        row = layout_split(column, factor=0.30, align=True)
         row.label(text="")
         row.prop(self, "fake_user_new")
 
-        row = column.split(factor=0.30, align=True)
+        row = layout_split(column, factor=0.30, align=True)
         row.label(text="")
         row.prop(self, "exclude_deform")
 
-        row = column.split(factor=0.30, align=True)
+        row = layout_split(column, factor=0.30, align=True)
+        row.label(text="")
+        row.prop(self, "add_to_nla")
+
+        row = layout_split(column, factor=0.30, align=True)
         row.label(text="")
         row.prop(self, "do_bake", toggle=True)
 
@@ -2060,7 +2282,7 @@ class BakeConstrainedActions(bpy.types.Operator):
     def poll(cls, context):
         return context.mode == 'POSE'
 
-    def get_trg_ob(self, ob: bpy.types.Object) -> bpy.types.Object:
+    def get_trg_ob(self, ob): # -> bpy.types.Object:
         for pb in bone_utils.get_constrained_controls(armature_object=ob, use_deform=not self.exclude_deform):
             for constr in pb.constraints:
                 try:
@@ -2077,7 +2299,10 @@ class BakeConstrainedActions(bpy.types.Operator):
 
         sel_obs = list(context.selected_objects)
         for ob in sel_obs:
-            ob.select_set(False)
+            if bpy.app.version < (2, 80):
+                ob.select = False
+            else:
+                ob.select_set(False)
 
             trg_ob = self.get_trg_ob(ob)
             if not trg_ob:
@@ -2085,13 +2310,16 @@ class BakeConstrainedActions(bpy.types.Operator):
 
             constr_bone_names = []
             for pb in bone_utils.get_constrained_controls(ob, unselect=True, use_deform=not self.exclude_deform):
-                
+
                 if pb.name + "_RET" in trg_ob.data.bones:
                     pb.bone.select = True
                     constr_bone_names.append(pb.name)
 
+            old_actions = set(bpy.data.actions)
+            old_cnt = len(old_actions)
+
             for action in list(bpy.data.actions):  # convert to list beforehand to avoid picking new actions
-                if not validate_actions(action, trg_ob.path_resolve):
+                if not validate_action(action, trg_ob.path_resolve):
                     continue
 
                 trg_ob.animation_data.action = action
@@ -2100,18 +2328,32 @@ class BakeConstrainedActions(bpy.types.Operator):
                                  bake_types={'POSE'}, only_selected=True,
                                  visual_keying=True, clear_constraints=False)
 
-                if not ob.animation_data:
-                    self.report({'WARNING'}, f"failed to bake {action.name}")
+                trg_ob.animation_data.action = None
+
+                new_action = next(a for a in bpy.data.actions if a not in old_actions)
+                old_actions.add(new_action)
+
+                if not new_action:
+                    self.report({'WARNING'}, "failed to bake {}".format(action.name))
                     continue
-                
-                ob.animation_data.action.use_fake_user = self.fake_user_new
-                
+
+                new_action.use_fake_user = self.fake_user_new
+
                 if trg_ob.name in action.name:
                     new_name = action.name.replace(trg_ob.name, ob.name)
                 else:
-                    new_name = f"{ob.name}|{action.name}"
+                    new_name = "{}|{}".format(ob.name, action.name)
 
-                ob.animation_data.action.name = new_name
+                new_action.name = new_name
+                print("Baked action: {}".format(new_action.name))
+
+                if self.add_to_nla:
+                    if not ob.animation_data:
+                        ob.animation_data_create()
+                    nla_track = ob.animation_data.nla_tracks.new()
+                    nla_track.lock = nla_track.mute = True
+                    nla_track.name = action_base_name(new_action.name)
+                    nla_track.strips.new(nla_track.name, fr_start, new_action)
 
                 if self.clear_users_old:
                     action.user_clear()
@@ -2124,6 +2366,8 @@ class BakeConstrainedActions(bpy.types.Operator):
                     continue
                 for constr in reversed(pbone.constraints):
                     pbone.constraints.remove(constr)
+
+        self.report({'INFO'}, "Were baked {} new actions".format(len(bpy.data.actions) - old_cnt))
 
         return {'FINISHED'}
 
@@ -2160,7 +2404,7 @@ def get_rot_ani_path(to_animate):
         return 'rotation_quaternion', 4
     if to_animate.rotation_mode == 'AXIS_ANGLE':
         return 'rotation_axis_angle', 4
-    
+
     return 'rotation_euler', 3
 
 
@@ -2172,63 +2416,64 @@ def add_loc_rot_key(bone, frame, options):
         bone.keyframe_insert(mode, index=i, frame=frame, options=options)
 
 
+@make_annotations
 class AddRootMotion(bpy.types.Operator):
     bl_idname = "armature.expykit_add_rootmotion"
     bl_label = "Transfer Root Motion"
     bl_description = "Bring Motion to Root Bone"
     bl_options = {'REGISTER', 'UNDO'}
 
-    rig_preset: EnumProperty(items=preset_handler.iterate_presets,
+    rig_preset = EnumProperty(items=preset_handler.iterate_presets,
                              name="Target Preset")
 
-    motion_bone: StringProperty(name="Motion",
+    motion_bone = StringProperty(name="Motion",
                                 description="Constrain Root bone to Hip motion",
                                 default="")
 
-    root_motion_bone: StringProperty(name="Root Motion",
+    root_motion_bone = StringProperty(name="Root Motion",
                                      description="Constrain Root bone to Hip motion",
                                      default="")
 
-    new_anim_suffix: StringProperty(name="Suffix",
+    new_anim_suffix = StringProperty(name="Suffix",
                                     default="_RM",
                                     description="Suffix of the duplicate animation, leave empty to overwrite")
 
-    obj_or_bone: EnumProperty(items=[
+    obj_or_bone = EnumProperty(items=[
         ('object', "Object", "Transfer Root Motion To Object"),
         ('bone', "Bone", "Transfer Root Motion To Bone")],
                               name="Object/Bone", default='bone')
 
-    keep_offset: BoolProperty(name="Keep Offset", default=True)
-    offset_type: EnumProperty(items=[
+    keep_offset = BoolProperty(name="Keep Offset", default=True)
+    offset_type = EnumProperty(items=[
         ('start', "Action Start", "Offset to Start Pose"),
         ('end', "Action End", "Offset to Match End Pose"),
         ('rest', "Rest Pose", "Offset to Match Rest Pose")],
                               name="Offset",
                               default='rest')
 
-    root_cp_loc_x: BoolProperty(name="Root Copy Loc X", description="Copy Root X Location", default=False)
-    root_cp_loc_y: BoolProperty(name="Root Copy Loc y", description="Copy Root Y Location", default=True)
-    root_cp_loc_z: BoolProperty(name="Root Copy Loc Z", description="Copy Root Z Location", default=False)
+    root_cp_loc_x = BoolProperty(name="Root Copy Loc X", description="Copy Root X Location", default=False)
+    root_cp_loc_y = BoolProperty(name="Root Copy Loc y", description="Copy Root Y Location", default=True)
+    root_cp_loc_z = BoolProperty(name="Root Copy Loc Z", description="Copy Root Z Location", default=False)
 
-    root_use_loc_min_x: BoolProperty(name="Use Root Min X", description="Minimum Root X", default=False)
-    root_use_loc_min_y: BoolProperty(name="Use Root Min Y", description="Minimum Root Y", default=False)
-    root_use_loc_min_z: BoolProperty(name="Use Root Min Z", description="Minimum Root Z", default=True)
+    root_use_loc_min_x = BoolProperty(name="Use Root Min X", description="Minimum Root X", default=False)
+    root_use_loc_min_y = BoolProperty(name="Use Root Min Y", description="Minimum Root Y", default=False)
+    root_use_loc_min_z = BoolProperty(name="Use Root Min Z", description="Minimum Root Z", default=True)
 
-    root_loc_min_x: FloatProperty(name="Root Min X", description="Minimum Root X", default=0.0)
-    root_loc_min_y: FloatProperty(name="Root Min Y", description="Minimum Root Y", default=0.0)
-    root_loc_min_z: FloatProperty(name="Root Min Z", description="Minimum Root Z", default=0.0)
+    root_loc_min_x = FloatProperty(name="Root Min X", description="Minimum Root X", default=0.0)
+    root_loc_min_y = FloatProperty(name="Root Min Y", description="Minimum Root Y", default=0.0)
+    root_loc_min_z = FloatProperty(name="Root Min Z", description="Minimum Root Z", default=0.0)
 
-    root_use_loc_max_x: BoolProperty(name="Use Root Max X", description="Maximum Root X", default=False)
-    root_use_loc_max_y: BoolProperty(name="Use Root Max Y", description="Maximum Root Y", default=False)
-    root_use_loc_max_z: BoolProperty(name="Use Root Max Z", description="Maximum Root Z", default=False)
+    root_use_loc_max_x = BoolProperty(name="Use Root Max X", description="Maximum Root X", default=False)
+    root_use_loc_max_y = BoolProperty(name="Use Root Max Y", description="Maximum Root Y", default=False)
+    root_use_loc_max_z = BoolProperty(name="Use Root Max Z", description="Maximum Root Z", default=False)
 
-    root_loc_max_x: FloatProperty(name="Root Max X", description="Maximum Root X", default=0.0)
-    root_loc_max_y: FloatProperty(name="Root Max Y", description="Maximum Root Y", default=0.0)
-    root_loc_max_z: FloatProperty(name="Root Max Z", description="Maximum Root Z", default=0.0)
+    root_loc_max_x = FloatProperty(name="Root Max X", description="Maximum Root X", default=0.0)
+    root_loc_max_y = FloatProperty(name="Root Max Y", description="Maximum Root Y", default=0.0)
+    root_loc_max_z = FloatProperty(name="Root Max Z", description="Maximum Root Z", default=0.0)
 
-    root_cp_rot_x: BoolProperty(name="Root Copy Rot X", description="Copy Root X Rotation", default=True)
-    root_cp_rot_y: BoolProperty(name="Root Copy Rot y", description="Copy Root Y Rotation", default=True)
-    root_cp_rot_z: BoolProperty(name="Root Copy Rot Z", description="Copy Root Z Rotation", default=False)
+    root_cp_rot_x = BoolProperty(name="Root Copy Rot X", description="Copy Root X Rotation", default=True)
+    root_cp_rot_y = BoolProperty(name="Root Copy Rot y", description="Copy Root Y Rotation", default=True)
+    root_cp_rot_z = BoolProperty(name="Root Copy Rot Z", description="Copy Root Z Rotation", default=False)
 
     _armature = None
     _prop_indent = 0.15
@@ -2255,23 +2500,23 @@ class AddRootMotion(bpy.types.Operator):
             row = column.row()
             row.prop(self, 'rig_preset', text="Rig Type:")
 
-        row = column.split(factor=self._prop_indent, align=True)
+        row = layout_split(column, factor=self._prop_indent, align=True)
         row.label(text="From")
         row.prop_search(self, 'motion_bone',
                         context.active_object.data,
                         "bones", text="")
 
-        split = column.split(factor=self._prop_indent, align=True)
+        split = layout_split(column, factor=self._prop_indent, align=True)
         split.label(text="To")
 
         col = split.column()
         col.prop(self, 'obj_or_bone', expand=True)
-        
+
         col.prop_search(self, 'root_motion_bone',
                         context.active_object.data,
                         "bones", text="")
 
-        row = column.split(factor=self._prop_indent, align=True)
+        row = layout_split(column, factor=self._prop_indent, align=True)
         row.label(text="Suffix:")
         row.prop(self, 'new_anim_suffix', text="")
 
@@ -2351,7 +2596,7 @@ class AddRootMotion(bpy.types.Operator):
 
         if not self.motion_bone:
             self.motion_bone = rig_settings.spine.hips
-        
+
         return(bool(self.motion_bone))
 
     def invoke(self, context, event):
@@ -2360,7 +2605,7 @@ class AddRootMotion(bpy.types.Operator):
         self._rootbo_transfs = []
         self._hip_bone_transfs = []
         self._all_floating_mats = []
-        
+
         self._stored_motion_bone = ""
         self._stored_motion_type = self.obj_or_bone
         self._transforms_stored = False
@@ -2374,7 +2619,7 @@ class AddRootMotion(bpy.types.Operator):
     def _get_floating_bones(self, context):
         arm_ob = context.active_object
         skeleton = preset_handler.get_settings_skel(arm_ob.data.expykit_retarget)
-        
+
         # TODO: check controls with animation curves instead
         def consider_bone(b_name):
             if b_name == self.root_motion_bone:
@@ -2394,7 +2639,7 @@ class AddRootMotion(bpy.types.Operator):
     def _store_transforms(self, context):
         self._clear_cache()
         arm_ob = context.active_object
-        
+
         root_bone = arm_ob.pose.bones[self.root_motion_bone]
         hip_bone = arm_ob.pose.bones[self.motion_bone]
         floating_bones = self._get_floating_bones(context)
@@ -2411,7 +2656,7 @@ class AddRootMotion(bpy.types.Operator):
             arm_ob.data.pose_position = 'REST'
 
         start_mat_inverse = hip_bone.matrix.inverted()
-        
+
         context.scene.frame_set(start)
         arm_ob.data.pose_position = current_position
 
@@ -2420,7 +2665,7 @@ class AddRootMotion(bpy.types.Operator):
 
             self._all_floating_mats.append(list([b.matrix.copy() for b in floating_bones]))
             self._hip_bone_transfs.append(hip_bone.matrix.copy())
-            self._rootmo_transfs.append(hip_bone.matrix @ start_mat_inverse)
+            self._rootmo_transfs.append(matmul(hip_bone.matrix, start_mat_inverse))
 
             if self.obj_or_bone == 'object' and root_bone:
                 self._rootbo_transfs.append(root_bone.matrix.copy())
@@ -2452,13 +2697,13 @@ class AddRootMotion(bpy.types.Operator):
             action_dupli = armature.animation_data.action.copy()
 
             action_name = armature.animation_data.action.name
-            action_dupli.name = f'{action_name}{self.new_anim_suffix}'
+            action_dupli.name = "{}{}".format(action_name, self.new_anim_suffix)
             action_dupli.use_fake_user = armature.animation_data.action.use_fake_user
             armature.animation_data.action = action_dupli
 
         if self._cache_dirty():
             self._store_transforms(context)
-            
+
         if not self._transforms_stored:
             self.report({'WARNING'}, "No transforms stored")
 
@@ -2469,7 +2714,7 @@ class AddRootMotion(bpy.types.Operator):
     def _get_start_end(context):
         action = context.active_object.animation_data.action
         start, end = action.frame_range
-        
+
         return int(start), int(end)
 
     def action_offs(self, context):
@@ -2507,9 +2752,9 @@ class AddRootMotion(bpy.types.Operator):
             try:
                 root_bone = context.active_object.pose.bones[root_bone_name]
             except (TypeError, KeyError):
-                self.report({'WARNING'}, f"{root_bone_name} not found in target")
+                self.report({'WARNING'}, "{} not found in target".format(root_bone_name))
                 return {'FINISHED'}
-        
+
         bpy.context.scene.frame_set(start)
         keyframe_options = {'INSERTKEY_VISUAL', 'INSERTKEY_CYCLE_AWARE'}
         add_loc_rot_key(root_bone, start, keyframe_options)
@@ -2518,7 +2763,7 @@ class AddRootMotion(bpy.types.Operator):
         for i, frame_num in enumerate(range(start, end + 1)):
             bpy.context.scene.frame_set(frame_num)
 
-            rootmo_transf = self._hip_bone_transfs[i] @ offset_mat
+            rootmo_transf = matmul(self._hip_bone_transfs[i], offset_mat)
             if self.root_cp_loc_x:
                 if self.root_use_loc_min_x:
                     rootmo_transf[0][3] = max(rootmo_transf[0][3], self.root_loc_min_x)
@@ -2604,13 +2849,13 @@ class AddRootMotion(bpy.types.Operator):
             bpy.context.scene.frame_set(frame_num)
 
             if self.obj_or_bone == 'object' and self.root_motion_bone:
-                context.active_object.pose.bones[self.root_motion_bone].matrix = root_bone.matrix_world.inverted() @ context.active_object.pose.bones[self.root_motion_bone].matrix
+                context.active_object.pose.bones[self.root_motion_bone].matrix = matmul(root_bone.matrix_world.inverted(), context.active_object.pose.bones[self.root_motion_bone].matrix)
 
             floating_mats = self._all_floating_mats[i]
             for bone, mat in zip(floating_bones, floating_mats):
                 if self.obj_or_bone == 'object':
                     # TODO: should get matrix at frame 0
-                    mat = root_bone.matrix_world.inverted() @ mat
+                    mat = matmul(root_bone.matrix_world.inverted(), mat)
 
                 bone.matrix = mat
                 add_loc_rot_key(bone, frame_num, set())
@@ -2618,28 +2863,30 @@ class AddRootMotion(bpy.types.Operator):
         bpy.context.scene.frame_set(current)
 
 
+@make_annotations
 class ActionNameCandidates(bpy.types.PropertyGroup):
-    name: bpy.props.StringProperty(name="Name Candidate", default="")
+    name = bpy.props.StringProperty(name="Name Candidate", default="")
 
 
+@make_annotations
 class RenameActionsFromFbxFiles(bpy.types.Operator, ImportHelper):
     bl_idname = "armature.expykit_rename_actions_fbx"
     bl_label = "Rename Actions from fbx data..."
     bl_description = "Rename Actions from candidate fbx files"
     bl_options = {'PRESET', 'UNDO'}
 
-    directory: StringProperty()
+    directory = StringProperty()
 
     filename_ext = ".fbx"
-    filter_glob: StringProperty(default="*.fbx", options={'HIDDEN'})
+    filter_glob = StringProperty(default="*.fbx", options={'HIDDEN'})
 
-    files: CollectionProperty(
+    files = CollectionProperty(
         name="File Path",
         type=bpy.types.OperatorFileListElement,
     )
 
-    contains: StringProperty(name="Containing", default="|")
-    starts_with: StringProperty(name="Starting with", default="Action")
+    contains = StringProperty(name="Containing", default="|")
+    starts_with = StringProperty(name="Starting with", default="Action")
 
     def execute(self, context):
         fbx_durations = dict()
@@ -2670,11 +2917,11 @@ class RenameActionsFromFbxFiles(bpy.types.Operator, ImportHelper):
                 skip_action = False
             if skip_action and self.starts_with and action.name.startswith(self.starts_with):
                 skip_action = False
-            
+
             if skip_action:
                 continue
 
-            if not validate_actions(action, path_resolve):
+            if not validate_action(action, path_resolve):
                 continue
 
             start, end = action.frame_range
@@ -2690,7 +2937,7 @@ class RenameActionsFromFbxFiles(bpy.types.Operator, ImportHelper):
 
             if not fbx_match:
                 continue
-            if isinstance(fbx_match, typing.List):
+            if isinstance(fbx_match, list):
                 for name in fbx_match:
                     entry = action.expykit_name_candidates.add()
                     entry.name = name
@@ -2711,6 +2958,8 @@ def register_classes():
     bpy.utils.register_class(MergeHeadTails)
     bpy.utils.register_class(RevertDotBoneNames)
     bpy.utils.register_class(ConstrainToArmature)
+    if bpy.app.version < (2, 79):
+        bpy.utils.register_class(ConstrainActiveToSelected)
     bpy.utils.register_class(BakeConstrainedActions)
     bpy.utils.register_class(RenameActionsFromFbxFiles)
     bpy.utils.register_class(CreateTransformOffset)
@@ -2731,6 +2980,8 @@ def unregister_classes():
     bpy.utils.unregister_class(ExtractMetarig)
     bpy.utils.unregister_class(MergeHeadTails)
     bpy.utils.unregister_class(RevertDotBoneNames)
+    if bpy.app.version < (2, 79):
+        bpy.utils.unregister_class(ConstrainActiveToSelected)
     bpy.utils.unregister_class(ConstrainToArmature)
     bpy.utils.unregister_class(BakeConstrainedActions)
     bpy.utils.unregister_class(RenameActionsFromFbxFiles)

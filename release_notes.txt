@@ -1,7 +1,25 @@
 
 version 0.6
 
+- Now it's compatible with Blender from v2.76 on
+- New retarget presets for rigify 0.4
 - "Rigify Game Friendly": fix twist reparent on right side
+- Retarget settings for fingers now include palm bones
+- Retarget settings: fixed '--Current--' settings disappearing if unsaved
+- "Retarget presets" menu now shows last preset name used for the active armature
+- "Add a Bone Retarget Preset" button now reuses the last preset name used for the active armature
+- "Deformation Bones" preset name now doesn't change on preset directory files order change
+- "Mirror Settings to the other side" - uses bone names to find mirrored candidates
+- "Mirror Settings to the other side" - copies also emptied slots
+- "Extract metarig" supports older rigify (from 0.4)
+- "Extract metarig" in rigify v0.4, v0.5 uses semi-supported mechanism to bind the rig and the metarig
+- "Extract Metarig" now allows to skip some spine bones in the mapping
+- "Extract Metarig" now sets precise bone roll for matched bones
+- "Extract Metarig" puts together palm, finger bones more reliably
+- "Extract Metarig": better pelvis, breast bones positioning
+- "Extract Metarig": fixed 'No face bones' flag was killing some bones just once
+- "Extract Metarig": now works in local view from 2.76 on
+
 
 version 0.6
 
