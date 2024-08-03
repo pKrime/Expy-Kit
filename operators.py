@@ -2297,6 +2297,7 @@ class BakeConstrainedActions(bpy.types.Operator):
         if not self.do_bake:
             return {'FINISHED'}
 
+        old_cnt = 0
         sel_obs = list(context.selected_objects)
         for ob in sel_obs:
             if bpy.app.version < (2, 80):
