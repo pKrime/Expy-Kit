@@ -283,7 +283,7 @@ class VIEW3D_PT_expy_rename_advanced(bpy.types.Panel):
 
 
 @make_annotations
-class ExecutePresetArmatureRetarget(ExecutePreset):
+class ExecutePresetArmatureRetarget(Operator):
     """Apply a Bone Retarget Preset"""
     bl_idname = "object.expy_kit_armature_preset_apply"
     bl_label = "Apply Bone Retarget Preset"
@@ -307,7 +307,7 @@ class ExecutePresetArmatureRetarget(ExecutePreset):
         preset_class.filepath = self.filepath
         # in 2.7x there is no callbacks, so we call them manually
         preset_class.reset_cb_va(context)
-        _ = super().execute(context)
+        _ = ExecutePreset.execute(self, context)
         preset_class.post_cb_va(context)
         return _
 
