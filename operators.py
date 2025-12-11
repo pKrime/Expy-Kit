@@ -116,7 +116,10 @@ class SelectConstrainedControls(bpy.types.Operator):
 
         if self.select_type == 'constr':
             for pb in bone_utils.get_constrained_controls(ob, unselect=True, use_deform=not self.skip_deform):
-                pb.bone.select = bool(pb.custom_shape) if self.has_shape else True
+                try:
+                    pb.bone.select = bool(pb.custom_shape) if self.has_shape else True
+                except AttributeError:
+                    pb.select = bool(pb.custom_shape) if self.has_shape else True
 
         elif self.select_type == 'anim':
             if not ob.animation_data:
@@ -1083,17 +1086,23 @@ class ExtractMetarig(bpy.types.Operator):
                 metarig.pose.bones[src_meta].rigify_type = src_attr
                 # TODO: should copy rigify options of specific types as well
 
+        def set_segments(bone, count):
+            try:
+                bone.rigify_parameters.segments = count
+            except AttributeError:
+                bone['thigh.L']['rigify_parameters']['segments'] = count
+
         if current_settings.left_leg.upleg_twist_02 or current_settings.left_leg.leg_twist_02:
-            metarig.pose.bones['thigh.L']['rigify_parameters']['segments'] = 3
+            set_segments(metarig.pose.bones['thigh.L'], 3)
 
         if current_settings.right_leg.upleg_twist_02 or current_settings.right_leg.leg_twist_02:
-            metarig.pose.bones['thigh.R']['rigify_parameters']['segments'] = 3
+            set_segments(metarig.pose.bones['thigh.R'], 3)
 
         if current_settings.left_arm.arm_twist_02 or current_settings.left_arm.forearm_twist_02:
-            metarig.pose.bones['upper_arm.L']['rigify_parameters']['segments'] = 3
+            set_segments(metarig.pose.bones['upper_arm.L'], 3)
 
         if current_settings.right_arm.arm_twist_02 or current_settings.right_arm.forearm_twist_02:
-            metarig.pose.bones['upper_arm.R']['rigify_parameters']['segments'] = 3
+            set_segments(metarig.pose.bones['upper_arm.R'], 3)
 
         if self.assign_metarig:
             # register target rig according to rigify version
