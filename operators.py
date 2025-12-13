@@ -483,7 +483,7 @@ class CreateTransformOffset(bpy.types.Operator):
                 if not validate_action(action, path_resolve):
                     continue
 
-                for fc in action.fcurves:
+                for fc in get_all_fcurves(action):
                     data_path = fc.data_path
 
                     if not data_path.endswith('location'):
