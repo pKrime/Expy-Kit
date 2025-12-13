@@ -2249,6 +2249,27 @@ def action_base_name(name):
     return result if result else name
 
 
+def find_validate_action_slot(act, path_resolve):  # thanks again, io_fbx dev!
+    for layer in act.layers:
+        for strip in layer.strips:
+            for channelbag in strip.channelbags:
+                if not channelbag.fcurves:
+                    # Do not export empty Channelbags.
+                    continue
+                for fc in channelbag.fcurves:
+                    data_path = fc.data_path
+                    if fc.array_index:
+                        data_path = data_path + "[%d]" % fc.array_index
+                    try:
+                        path_resolve(data_path)
+                    except ValueError:
+                        break  # Invalid, go to next strip.
+                else:
+                    # Did not 'break', so all F-Curves are valid.
+                    return channelbag.slot
+    return None  # Found nothing to return.
+
+
 @make_annotations
 class BakeConstrainedActions(bpy.types.Operator):
     bl_idname = "armature.expykit_bake_constrained_actions"
@@ -2355,6 +2376,17 @@ class BakeConstrainedActions(bpy.types.Operator):
                     continue
 
                 trg_ob.animation_data.action = action
+
+                try:
+                    act_slot = ob.animation_data.action_slot
+                except AttributeError:
+                    pass
+                else:
+                    act_slot = find_validate_action_slot(action, trg_ob.path_resolve)
+                    if not act_slot:
+                        continue
+                    trg_ob.animation_data.action_slot = act_slot
+
                 fr_start, fr_end = action.frame_range
                 bpy.ops.nla.bake(frame_start=int(fr_start), frame_end=int(fr_end),
                                  bake_types={'POSE'}, only_selected=True,
