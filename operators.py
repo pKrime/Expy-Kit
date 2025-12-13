@@ -127,15 +127,18 @@ class SelectConstrainedControls(bpy.types.Operator):
             if not ob.animation_data.action:
                 return {'FINISHED'}
 
-            for fc in ob.animation_data.action.fcurves:
+            for fc in get_all_fcurves(ob.animation_data.action):
                 bone_name = crv_bone_name(fc)
                 if not bone_name:
                     continue
                 try:
-                    bone = ob.data.bones[bone_name]
+                    bone = ob.pose.bones[bone_name]
                 except KeyError:
                     continue
-                bone.select = True
+                try:
+                    bone.select = True
+                except AttributeError:
+                    bone.bone.select = True
 
         return {'FINISHED'}
 
@@ -2185,8 +2188,21 @@ class ConstrainToArmature(bpy.types.Operator):
         return {'FINISHED'}
 
 
+def get_all_fcurves(action):
+    try:
+        layers = action.layers
+    except AttributeError:
+        for fc in action.fcurves:
+            yield fc
+    else:
+        for l in layers:
+            for s in l.strips:
+                for c in s.channelbags:
+                    for fc in c.fcurves:
+                        yield fc
+
 def validate_action(action, path_resolve): # :Action, :callable
-    for fc in action.fcurves:
+    for fc in get_all_fcurves(action):
         data_path = fc.data_path
         if fc.array_index:
             data_path = data_path + "[%d]" % fc.array_index
@@ -2306,6 +2322,9 @@ class BakeConstrainedActions(bpy.types.Operator):
         if not self.do_bake:
             return {'FINISHED'}
 
+        old_actions = set(bpy.data.actions)
+        old_cnt = len(old_actions)
+
         sel_obs = list(context.selected_objects)
         for ob in sel_obs:
             if bpy.app.version < (2, 80):
@@ -2318,14 +2337,18 @@ class BakeConstrainedActions(bpy.types.Operator):
                 continue
 
             constr_bone_names = []
+
+            def select_pose_bone(pb, selected):
+                try:
+                    pb.select = selected
+                except AttributeError:
+                    pb.bone.select = selected
+
             for pb in bone_utils.get_constrained_controls(ob, unselect=True, use_deform=not self.exclude_deform):
 
                 if pb.name + "_RET" in trg_ob.data.bones:
-                    pb.bone.select = True
+                    select_pose_bone(pb, True)
                     constr_bone_names.append(pb.name)
-
-            old_actions = set(bpy.data.actions)
-            old_cnt = len(old_actions)
 
             for action in list(bpy.data.actions):  # convert to list beforehand to avoid picking new actions
                 if not validate_action(action, trg_ob.path_resolve):
@@ -2339,13 +2362,13 @@ class BakeConstrainedActions(bpy.types.Operator):
 
                 trg_ob.animation_data.action = None
 
-                new_action = next(a for a in bpy.data.actions if a not in old_actions)
-                old_actions.add(new_action)
-
-                if not new_action:
+                try:
+                    new_action = next(a for a in bpy.data.actions if a not in old_actions)
+                except StopIteration:
                     self.report({'WARNING'}, "failed to bake {}".format(action.name))
                     continue
 
+                old_actions.add(new_action)
                 new_action.use_fake_user = self.fake_user_new
 
                 if trg_ob.name in action.name:
@@ -2376,7 +2399,7 @@ class BakeConstrainedActions(bpy.types.Operator):
                 for constr in reversed(pbone.constraints):
                     pbone.constraints.remove(constr)
 
-        self.report({'INFO'}, "Were baked {} new actions".format(len(bpy.data.actions) - old_cnt))
+        self.report({'INFO'}, "{} new actions were baked".format(len(bpy.data.actions) - old_cnt))
 
         return {'FINISHED'}
 
