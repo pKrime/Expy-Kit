@@ -2363,13 +2363,10 @@ class BakeConstrainedActions(bpy.types.Operator):
                 trg_ob.animation_data.action = None
 
                 try:
-                    new_action = next(a for a in bpy.data.actions if a not in old_actions)
+                    new_action = next(a for a in bpy.data.actions if a not in old_actions)  # I might have created a new action and used it in bpy.ops.nla.bake! :|
                 except StopIteration:
                     self.report({'WARNING'}, "failed to bake {}".format(action.name))
                     continue
-
-                old_actions.add(new_action)
-                new_action.use_fake_user = self.fake_user_new
 
                 if trg_ob.name in action.name:
                     new_name = action.name.replace(trg_ob.name, ob.name)
@@ -2379,6 +2376,9 @@ class BakeConstrainedActions(bpy.types.Operator):
                 new_action.name = new_name
                 print("Baked action: {}".format(new_action.name))
 
+                new_action.use_fake_user = self.fake_user_new
+                old_actions.add(new_action)
+                
                 if self.add_to_nla:
                     if not ob.animation_data:
                         ob.animation_data_create()
