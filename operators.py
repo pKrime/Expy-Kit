@@ -145,7 +145,7 @@ class SelectConstrainedControls(bpy.types.Operator):
 
 @make_annotations
 class RevertDotBoneNames(bpy.types.Operator):
-    """Reverts dots in bones that have renamed by Unreal Engine"""
+    """Reverts dots in bones that were renamed by Unreal Engine"""
     bl_idname = "object.expykit_dot_bone_names"
     bl_label = "Revert dots in Names (from UE4 renaming)"
     bl_options = {'REGISTER', 'UNDO'}

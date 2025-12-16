@@ -1,8 +1,10 @@
 
 version 0.6
 
-- Now it's compatible with Blender from v2.76 on
+- Blender 4.3+ compatibility.
+- Blender v2.76+ compatibility.
 - New retarget presets for rigify 0.4
+- Migrated menus to panels.
 - "Rigify Game Friendly": fix twist reparent on right side
 - Retarget settings for fingers now include palm bones
 - Retarget settings: fixed '--Current--' settings disappearing if unsaved

@@ -2,8 +2,7 @@ import bpy
 from bpy.props import StringProperty
 from bpy.props import FloatProperty
 from bpy.props import PointerProperty
-from bpy.props import EnumProperty
-from bpy.types import Context, Operator, Menu
+from bpy.types import Operator, Menu
 from bl_operators.presets import AddPresetBase, ExecutePreset
 
 from . import operators
@@ -109,6 +108,34 @@ def pose_context_options(self, context):
     layout.menu(AnimMenu.bl_idname)
 
     layout.separator()
+
+
+@make_annotations
+class OP_ActivateExpyTab(Operator):
+    """Activate Expy tab in viewport"""
+    bl_idname = "object.expy_kit_activate_tab"
+    bl_label = "Activate Expy Tab"
+    preset_menu = "VIEW3D_MT_retarget_presets"
+    bl_options = {'REGISTER', 'INTERNAL'}
+
+    def execute(self, context):
+        # thanks SpectralVectors!
+        view3d = next(space for space in context.area.spaces if space.type == 'VIEW_3D')
+        view3d.show_region_ui = True
+        region = next(r for r in context.area.regions if r.type == 'UI')
+        try:
+            region.active_panel_category = 'Expy'
+        except AttributeError:
+            pass
+
+        return {'FINISHED'}
+
+
+def pose_has_moved(self, context):
+    layout = self.layout
+    menu_header(layout)
+
+    layout.operator(OP_ActivateExpyTab.bl_idname, text="moved to the right sidebar (N)")
 
 
 def armature_context_options(self, context):
@@ -662,6 +689,101 @@ if bpy.app.version >= (2, 79, 0):
 
             layout.operator(BindFromPanelSelection.bl_idname)
 
+            layout.label(text="Constrained Controls")
+            row = layout.row()
+            row.operator(operators.ConstraintStatus.bl_idname, text="Toggle")
+
+            op = row.operator(operators.SelectConstrainedControls.bl_idname, text="Select")
+            op.select_type = 'constr'
+    
+
+    class VIEW3D_PT_EditArmPanel(bpy.types.Panel):
+        bl_space_type = 'VIEW_3D'
+        bl_region_type = 'UI'
+        bl_category = "Expy"
+        bl_label = "Edit bones"
+
+        @classmethod
+        def poll(cls, context):
+            return context.mode == 'EDIT_ARMATURE'
+        
+        def draw(self, context):
+            self.layout.row().operator(operators.MergeHeadTails.bl_idname)
+
+
+    class VIEW3D_PT_ConversionPanel(bpy.types.Panel):
+        bl_space_type = 'VIEW_3D'
+        bl_region_type = 'UI'
+        bl_category = "Expy"
+        bl_label = "Conversion"
+
+        @classmethod
+        def poll(cls, context):
+            return context.mode == 'POSE'
+
+        def draw(self, context):
+            layout = self.layout
+
+            row = layout.row()
+            row.operator(operators.ExtractMetarig.bl_idname)
+
+            row = layout.row()
+            row.operator(operators.ConvertGameFriendly.bl_idname)
+
+            row = layout.row()
+            row.operator(operators.CreateTransformOffset.bl_idname)
+
+
+    class VIEW3D_PT_RenamePanel(bpy.types.Panel):
+        bl_space_type = 'VIEW_3D'
+        bl_region_type = 'UI'
+        bl_category = "Expy"
+        bl_label = "Rename"
+
+        @classmethod
+        def poll(cls, context):
+            return context.mode == 'POSE'
+
+        def draw(self, context):
+            layout = self.layout
+
+            row = layout.row()
+            row.operator(operators.RevertDotBoneNames.bl_idname, text="Revert dots in bone names")
+
+            row = layout.row()
+            row.operator(operators.ConvertBoneNaming.bl_idname, text="Rename bones to Preset")
+
+
+    class VIEW3D_PT_AnimationPanel(bpy.types.Panel):
+        bl_space_type = 'VIEW_3D'
+        bl_region_type = 'UI'
+        bl_category = "Expy"
+        bl_label = "Animation"
+
+        @classmethod
+        def poll(cls, context):
+            return context.mode == 'POSE'
+
+        def draw(self, context):
+            layout = self.layout
+
+            row = layout.row()
+            row.operator(operators.ActionRangeToScene.bl_idname)
+
+            row = layout.row()
+            row.operator(operators.BakeConstrainedActions.bl_idname)
+
+            row = layout.row()
+            row.operator_context = 'INVOKE_DEFAULT'
+            row.operator(operators.RenameActionsFromFbxFiles.bl_idname)
+
+            row = layout.row()
+            row.operator(operators.AddRootMotion.bl_idname)
+
+            row = layout.row()
+            op = row.operator(operators.SelectConstrainedControls.bl_idname, text="Select Animated Controls")
+            op.select_type = 'anim'
+
 
 class RetargetBasePanel:
     bl_space_type = 'VIEW_3D'
@@ -846,7 +968,6 @@ class VIEW3D_PT_expy_retarget_arms_IK(RetargetBasePanel, bpy.types.Panel):
 
     def draw(self, context):
         ob = context.object
-        layout = self.layout
 
         skeleton = ob.data.expykit_retarget
         arm_bones = ('shoulder', 'arm', 'forearm', 'hand')
@@ -982,6 +1103,15 @@ def register_classes():
     if bpy.app.version >= (2, 79, 0):
         bpy.utils.register_class(BindFromPanelSelection)
         bpy.utils.register_class(VIEW3D_PT_BindPanel)
+        bpy.utils.register_class(VIEW3D_PT_ConversionPanel)
+        bpy.utils.register_class(VIEW3D_PT_RenamePanel)
+        bpy.utils.register_class(VIEW3D_PT_AnimationPanel)
+        bpy.utils.register_class(VIEW3D_PT_EditArmPanel)
+        bpy.utils.register_class(OP_ActivateExpyTab)
+        bpy.types.VIEW3D_MT_pose_context_menu.append(pose_has_moved)
+    else:
+        bpy.types.VIEW3D_MT_pose_specials.append(pose_context_options)
+        bpy.types.VIEW3D_MT_armature_specials.append(armature_context_options)
 
     bpy.utils.register_class(VIEW3D_PT_expy_retarget)
     bpy.utils.register_class(VIEW3D_PT_expy_retarget_face)
@@ -993,15 +1123,7 @@ def register_classes():
     bpy.utils.register_class(VIEW3D_PT_expy_retarget_leg)
     bpy.utils.register_class(VIEW3D_PT_expy_retarget_root)
 
-    if bpy.app.version < (2, 80):
-        bpy.types.VIEW3D_MT_pose_specials.append(pose_context_options)
-        bpy.types.VIEW3D_MT_armature_specials.append(armature_context_options)
-    else:
-        bpy.types.VIEW3D_MT_pose_context_menu.append(pose_context_options)
-        bpy.types.VIEW3D_MT_armature_context_menu.append(armature_context_options)
-
     bpy.types.DOPESHEET_HT_header.append(action_header_buttons)
-
 
 
 def unregister_classes():
@@ -1016,8 +1138,15 @@ def unregister_classes():
         bpy.types.VIEW3D_MT_pose_specials.remove(pose_context_options)
         bpy.types.VIEW3D_MT_armature_specials.remove(armature_context_options)
     else:
-        bpy.types.VIEW3D_MT_pose_context_menu.remove(pose_context_options)
-        bpy.types.VIEW3D_MT_armature_context_menu.remove(armature_context_options)
+        bpy.types.VIEW3D_MT_pose_context_menu.remove(pose_has_moved)
+        bpy.utils.unregister_class(OP_ActivateExpyTab)
+        bpy.utils.unregister_class(BindFromPanelSelection)
+        bpy.utils.unregister_class(VIEW3D_PT_BindPanel)
+        bpy.utils.unregister_class(VIEW3D_PT_ConversionPanel)
+        bpy.utils.unregister_class(VIEW3D_PT_RenamePanel)
+        bpy.utils.unregister_class(VIEW3D_PT_AnimationPanel)
+        bpy.utils.unregister_class(VIEW3D_PT_EditArmPanel)
+        bpy.utils.unregister_class(VIEW3D_PT_EditArmPanel)
 
     bpy.types.DOPESHEET_HT_header.remove(action_header_buttons)
 
@@ -1030,11 +1159,7 @@ def unregister_classes():
     bpy.utils.unregister_class(ActionRemoveRenameData)
     bpy.utils.unregister_class(VIEW3D_PT_expy_rename_candidates)
     bpy.utils.unregister_class(VIEW3D_PT_expy_rename_advanced)
-
-    if bpy.app.version >= (2, 79, 0):
-        bpy.utils.unregister_class(BindFromPanelSelection)
-        bpy.utils.unregister_class(VIEW3D_PT_BindPanel)
-
+        
     bpy.utils.unregister_class(VIEW3D_PT_expy_retarget)
     bpy.utils.unregister_class(VIEW3D_PT_expy_retarget_root)
     bpy.utils.unregister_class(VIEW3D_PT_expy_retarget_leg_IK)
