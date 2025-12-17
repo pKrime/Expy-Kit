@@ -144,6 +144,60 @@ class SelectConstrainedControls(bpy.types.Operator):
 
 
 @make_annotations
+class AnimationSetStatus(bpy.types.Operator):
+    """Disable/Enable animations."""
+    bl_idname = "object.expykit_set_animation_status"
+    bl_label = "Enable/disable animation"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    set_status = EnumProperty(items=CONSTR_STATUS,
+                             name="Status",
+                             default='enable')
+
+    selected_only = BoolProperty(name="Only Selected",
+                                default=False)
+
+    # TODO: animation type
+
+    @classmethod
+    def poll(cls, context):
+        if not context.object:
+            return False
+        if context.mode != 'POSE':
+            return False
+        if context.object.type != 'ARMATURE':
+            return False
+
+        return True
+
+    def execute(self, context):
+        if not context.object.animation_data:
+            return {'FINISHED'}
+        if not context.object.animation_data.action:
+            return {'FINISHED'}
+        for fc in get_all_fcurves(context.object.animation_data.action):
+
+            if self.selected_only:
+                try:
+                    ani_bone = fc.data_path.split('"')[1]
+                except IndexError:
+                    pass
+                else:
+                    try:
+                        pb = context.object.pose.bones[ani_bone]
+                    except KeyError:
+                        pass
+                    else:
+                        if pb not in context.selected_pose_bones:
+                            continue
+
+            fc.mute = self.set_status != 'enable'
+        
+        return {'FINISHED'}
+
+
+
+@make_annotations
 class RevertDotBoneNames(bpy.types.Operator):
     """Reverts dots in bones that were renamed by Unreal Engine"""
     bl_idname = "object.expykit_dot_bone_names"
@@ -3022,6 +3076,7 @@ def register_classes():
     bpy.utils.register_class(MergeHeadTails)
     bpy.utils.register_class(RevertDotBoneNames)
     bpy.utils.register_class(ConstrainToArmature)
+    bpy.utils.register_class(AnimationSetStatus)
     if bpy.app.version < (2, 79):
         bpy.utils.register_class(ConstrainActiveToSelected)
     bpy.utils.register_class(BakeConstrainedActions)
@@ -3036,6 +3091,7 @@ def register_classes():
 def unregister_classes():
     del bpy.types.Action.expykit_name_candidates
 
+    bpy.utils.unregister_class(AnimationSetStatus)
     bpy.utils.unregister_class(ActionRangeToScene)
     bpy.utils.unregister_class(ConstraintStatus)
     bpy.utils.unregister_class(SelectConstrainedControls)

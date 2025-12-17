@@ -689,12 +689,11 @@ if bpy.app.version >= (2, 79, 0):
 
             layout.operator(BindFromPanelSelection.bl_idname)
 
-            layout.label(text="Constrained Controls")
+            layout.label(text="Constrained controls")
             row = layout.row()
-            row.operator(operators.ConstraintStatus.bl_idname, text="Toggle")
-
             op = row.operator(operators.SelectConstrainedControls.bl_idname, text="Select")
             op.select_type = 'constr'
+            row.operator(operators.ConstraintStatus.bl_idname, text="On/Off")
     
 
     class VIEW3D_PT_EditArmPanel(bpy.types.Panel):
@@ -781,8 +780,11 @@ if bpy.app.version >= (2, 79, 0):
             row.operator(operators.AddRootMotion.bl_idname)
 
             row = layout.row()
-            op = row.operator(operators.SelectConstrainedControls.bl_idname, text="Select Animated Controls")
+            row.label(text="Animated controls")
+            row = layout.row()
+            op = row.operator(operators.SelectConstrainedControls.bl_idname, text="Select")
             op.select_type = 'anim'
+            op = row.operator(operators.AnimationSetStatus.bl_idname, text="On/Off")
 
 
 class RetargetBasePanel:
